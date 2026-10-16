@@ -9,7 +9,7 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   body { font-family: 'Special Elite', 'Courier New', monospace; color: #2a1a0c; user-select: none; }
-  canvas { display: block; width: 100vw; height: 100vh; }
+  canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
   #vignette { position: fixed; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.65) 100%); }
   .tape { position: absolute; background: #d9cfb2; padding: 4px 16px 2px;
@@ -269,6 +269,9 @@ function buildDeco(m, rng) {
 // ===================== CANVAS / TEXTURAS =====================
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const [wallCv, wctx] = mk(), [lightCv, lctx] = mk(), [aCv, actx] = mk(), [bCv, bctx] = mk();
+const [blurCv, blurCtx] = mk(), [litCv, litCtx] = mk();   // sombras suaves / paredes por encima del ratón
+const CAN_BLUR = typeof blurCtx.filter === 'string';
+const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo)
 let scale = 1;
 
 function makeFloorTile() {
@@ -317,8 +320,10 @@ const CS = 320, [coneCv, coneCtx] = mk(CS, CS);
 
 function resize() {
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-  const w = Math.max(1, Math.floor(innerWidth * dpr)), h = Math.max(1, Math.floor(innerHeight * dpr));
-  for (const c of [cv, wallCv, lightCv, aCv, bCv]) { c.width = w; c.height = h; }
+  // tamaño real visible del canvas (en el celular 100vh incluye la barra del navegador y descentraba la cámara)
+  const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
+  for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv]) { c.width = w; c.height = h; }
+  blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);
   computeScale();
 }
 function computeScale() {
@@ -329,7 +334,22 @@ function computeScale() {
 // ===================== ESTADO =====================
 const G = { state: 'title', level: 1, maze: null, rects: [], deco: null, timeLimit: 0, timeLeft: 0,
   attempts: 0, light: 0, dieT: 0, onT: 0, baseSeed: 1, lastTick: 99, time: 0 };
-const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0 };
+const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0,
+  bumpT: 0, blinkT: 0, blinkIn: 2, idleT: 0, twitch: { side: 1, t: 0 }, twitchIn: 1.5 };   // animaciones de la cara
+const BUMP_T = 0.6, TWITCH_T = 0.32, BLINK_T = 0.14;
+
+// Gestos del ratón: golpe contra la pared, parpadeo y orejita cuando está quieto
+function animMouse(dt, active) {
+  M.bumpT = Math.max(0, M.bumpT - dt);
+  M.blinkT = Math.max(0, M.blinkT - dt);
+  if ((M.blinkIn -= dt) <= 0) { M.blinkT = BLINK_T; M.blinkIn = 1.5 + Math.random() * 4; }
+  M.twitch.t = Math.max(0, M.twitch.t - dt);
+  M.idleT = active ? 0 : M.idleT + dt;
+  if (M.idleT > 1 && (M.twitchIn -= dt) <= 0) {
+    M.twitch = { side: Math.random() < 0.5 ? -1 : 1, t: TWITCH_T };
+    M.twitchIn = 1.2 + Math.random() * 3;
+  }
+}
 const cam = { x: 0, y: 0 };
 const keys = {};
 
@@ -500,6 +520,7 @@ function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.
 addEventListener('blur', autoPause);
 document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
 addEventListener('resize', resize);
+if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 
 // ===================== FÍSICA =====================
 function collide() {
@@ -548,7 +569,7 @@ function update(dt) {
     const moved = Math.hypot(M.x - ox, M.y - oy);
     M.bumpCd -= dt;
     if (want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
-      Snd.bump(); if (Math.random() < 0.4) Snd.squeak(); M.bumpCd = 0.45; M.v *= 0.3;
+      Snd.bump(); if (Math.random() < 0.4) Snd.squeak(); M.bumpCd = 0.45; M.v *= 0.3; M.bumpT = BUMP_T;
     }
     const sp = moved / Math.max(dt, 1e-4) + Math.abs(M.turnV) * 20;
     M.phase += dt * sp * 0.12;
@@ -576,8 +597,14 @@ function update(dt) {
   } else if (G.state === 'intro' || G.state === 'lost') {
     G.light = 0;
   }
+  const input = up || down || left || right || Stick.mag > 0;
+  animMouse(dt, G.state === 'play' && (input || Math.abs(M.v) > 5));
+
   const t = camTarget(), f = Math.min(1, dt * 4);
   cam.x += (t.x - cam.x) * f; cam.y += (t.y - cam.y) * f;
+  // red de seguridad: el ratón nunca sale del 70% central de la pantalla
+  const hw = cv.width / (2 * scale) * 0.7, hh = cv.height / (2 * scale) * 0.7;
+  cam.x = clamp(cam.x, M.x - hw, M.x + hw); cam.y = clamp(cam.y, M.y - hh, M.y + hh);
 }
 
 // ===================== LUZ (rayos contra las paredes) =====================
@@ -701,14 +728,22 @@ function drawWalls(c, v) {
 }
 
 function drawMouse(c, alpha) {
-  const wig = Math.sin(M.phase * 1.3), step = Math.sin(M.phase * 2.2);
+  const step = Math.sin(M.phase * 2.2);
+  const bump = M.bumpT / BUMP_T;                       // 1 → 0 durante el golpe
   c.save(); c.translate(M.x, M.y); c.rotate(M.a); c.globalAlpha = alpha;
   c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.ellipse(1, 2, 18, 11, 0, 0, Math.PI * 2); c.fill();
-  // cola
-  const curl = -M.turnV * 3;
+  // cola: muchos segmentos que se van afinando; ondula al caminar, se balancea quieta y se curva al girar
+  const curl = -M.turnV * 3, TAIL_N = 18, TAIL_L = 30;
   c.strokeStyle = '#b98582'; c.lineCap = 'round';
-  c.lineWidth = 3.2; c.beginPath(); c.moveTo(-13, 0); c.quadraticCurveTo(-22, wig * 4 + curl, -28, wig * -3 + curl * 1.6); c.stroke();
-  c.lineWidth = 1.7; c.beginPath(); c.moveTo(-27, wig * -3 + curl * 1.6); c.quadraticCurveTo(-34, wig * -6 + curl * 2.2, -42, wig * 4 + curl * 2.6); c.stroke();
+  let px = -13, py = 0;
+  for (let i = 1; i <= TAIL_N; i++) {
+    const t = i / TAIL_N;
+    const x = -13 - TAIL_L * t;
+    const y = Math.sin(M.phase * 1.3 - t * 3.2) * 4.5 * t + Math.sin(G.time * 1.7 - t * 2.5) * 1.2 * t + curl * 2.6 * t * t;
+    c.lineWidth = 3.6 - 3.0 * t;
+    c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
+    px = x; py = y;
+  }
   // patitas
   c.fillStyle = '#d2a19b';
   for (const [fx, fy, ph] of [[8, -8, 1], [8, 8, -1], [-8, -8, -1], [-8, 8, 1]]) {
@@ -721,12 +756,26 @@ function drawMouse(c, alpha) {
   // cabeza
   c.beginPath(); c.moveTo(4, -6.5); c.quadraticCurveTo(15, -7, 21, 0); c.quadraticCurveTo(15, 7, 4, 6.5); c.closePath(); c.fill();
   c.fillStyle = '#d98f95'; c.beginPath(); c.arc(20.6, 0, 1.7, 0, Math.PI * 2); c.fill();
+  const eyesClosed = M.blinkT > 0 || bump > 0.2;
   for (const sy of [-1, 1]) {
+    // oreja: rota sobre su base; aletea al chocar y a veces se mueve sola cuando está quieto
+    let ear = bump * Math.sin(G.time * 38 + sy) * 0.6;
+    if (M.twitch.t > 0 && M.twitch.side === sy) ear += Math.sin((1 - M.twitch.t / TWITCH_T) * Math.PI * 2) * 0.75;
+    c.save(); c.translate(6, sy * 4.5); c.rotate(sy * ear); c.translate(-6, -sy * 4.5);
     c.fillStyle = '#cfa59f'; c.beginPath(); c.arc(8, sy * 7, 3.9, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#b27f7c'; c.beginPath(); c.arc(8.4, sy * 7.3, 2.4, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#a3141f'; c.beginPath(); c.arc(14, sy * 3.4, 1.35, 0, Math.PI * 2); c.fill();
+    c.restore();
+    // ojo: abierto (rojo, albino) o cerrado (rayita curva)
+    if (eyesClosed) {
+      c.strokeStyle = '#7a4644'; c.lineWidth = 0.7; c.lineCap = 'round'; c.beginPath();
+      c.moveTo(12.7, sy * 3.3); c.quadraticCurveTo(14, sy * 4.3, 15.3, sy * 3.3); c.stroke();
+    } else {
+      c.fillStyle = '#a3141f'; c.beginPath(); c.arc(14, sy * 3.4, 1.35, 0, Math.PI * 2); c.fill();
+    }
+    // bigotes: tiemblan apenas siempre y mucho al chocar
+    const wh = Math.sin(G.time * 9 + sy) * 0.04 + Math.sin(G.time * 55 + sy * 2) * 0.35 * bump;
     c.strokeStyle = 'rgba(235,230,220,0.55)'; c.lineWidth = 0.35; c.beginPath();
-    for (const k of [-0.25, 0.05, 0.35]) { c.moveTo(19, sy * 1.5); c.lineTo(19 + Math.cos(k + sy * 0.9) * 9, sy * (1.5 + Math.abs(Math.sin(k + 0.9)) * 7)); }
+    for (const k of [0.3, 0.65, 1.0]) { const th = sy * (k + wh); c.moveTo(19, sy * 1.5); c.lineTo(19 + Math.cos(th) * 9, sy * 1.5 + Math.sin(th) * 9); }
     c.stroke();
   }
   // arnés
@@ -784,7 +833,15 @@ function render() {
     lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalCompositeOperation = 'source-over'; lctx.globalAlpha = 1;
     lctx.fillStyle = '#000'; lctx.fillRect(0, 0, w, h);
     lctx.globalCompositeOperation = 'lighter'; lctx.globalAlpha = G.light;
-    lctx.drawImage(aCv, 0, 0); lctx.drawImage(bCv, 0, 0);
+    if (CAN_BLUR) {
+      // sombras esfumadas: la luz del piso se desenfoca (a media resolución, para que sea barato)
+      const bw = blurCv.width, bh = blurCv.height;
+      blurCtx.setTransform(1, 0, 0, 1, 0, 0); blurCtx.clearRect(0, 0, bw, bh);
+      blurCtx.filter = `blur(${(SHADOW_SOFT * scale / 2).toFixed(1)}px)`;
+      blurCtx.drawImage(aCv, 0, 0, bw, bh); blurCtx.filter = 'none';
+      lctx.drawImage(blurCv, 0, 0, w, h);
+    } else lctx.drawImage(aCv, 0, 0);
+    lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
 
     // 3) oscuridad total salvo lo que toca la luz
@@ -800,6 +857,21 @@ function render() {
     g.addColorStop(0, `rgba(255,240,200,${0.9 * G.light})`); g.addColorStop(1, 'rgba(255,200,120,0)');
     ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(lx - 12, ly - 12, 24, 24);
     ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 5) las paredes son más altas que el ratón: se vuelven a dibujar encima, solo en la zona alrededor de él
+  if (!lit) { wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.clearRect(0, 0, w, h); wctx.setTransform(...T6); drawWalls(wctx, v); }
+  const pad = 50 * scale, mx = w / 2 + (M.x - cam.x) * scale, my = h / 2 + (M.y - cam.y) * scale;
+  const sx = Math.max(0, Math.floor(mx - pad)), sy = Math.max(0, Math.floor(my - pad));
+  const sw = Math.min(w, Math.ceil(mx + pad)) - sx, sh = Math.min(h, Math.ceil(my + pad)) - sy;
+  if (sw > 0 && sh > 0) {
+    litCtx.setTransform(1, 0, 0, 1, 0, 0); litCtx.globalCompositeOperation = 'source-over'; litCtx.clearRect(sx, sy, sw, sh);
+    litCtx.drawImage(wallCv, sx, sy, sw, sh, sx, sy, sw, sh);
+    if (lit) { litCtx.globalCompositeOperation = 'multiply'; litCtx.drawImage(lightCv, sx, sy, sw, sh, sx, sy, sw, sh); }
+    else { litCtx.globalCompositeOperation = 'source-in'; litCtx.fillStyle = '#000'; litCtx.fillRect(sx, sy, sw, sh); }
+    litCtx.globalCompositeOperation = 'destination-in'; litCtx.drawImage(wallCv, sx, sy, sw, sh, sx, sy, sw, sh);
+    litCtx.globalCompositeOperation = 'source-over';
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(litCv, sx, sy, sw, sh, sx, sy, sw, sh);
   }
 
   // HUD
