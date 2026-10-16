@@ -15,9 +15,7 @@ O abrí `index.html` en el navegador. No necesita instalación ni servidor.
 
 | Tecla | Acción |
 |---|---|
-| ↑ / W | avanzar |
-| ↓ / S | retroceder |
-| ← → / A D | girar |
+| ↑ ↓ ← → / W A S D | moverte en esa dirección (el ratón gira hacia donde apuntás; se pueden combinar para diagonales) |
 | P / Esc | pausa |
 | M | sonido |
 | R | reiniciar nivel |
