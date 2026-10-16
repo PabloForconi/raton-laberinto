@@ -23,6 +23,8 @@ O abrí `index.html` en el navegador. No necesita instalación ni servidor.
 | R | reiniciar nivel |
 | N | saltar nivel (debug) |
 
+En el celular: inclinás el teléfono para girar (como un volante) y mantenés ▲ / ▼ para avanzar o retroceder. Si el sensor no está disponible o no das permiso (iPhone lo pide), aparecen botones ◀ ▶; también podés cambiar de modo con el botón del teléfono arriba a la derecha. Los botones de sonido y pausa están arriba a la derecha.
+
 Los parámetros ajustables (velocidad, linterna, tamaños de nivel, zoom y tiempo) están al principio del script en `index.html`.
 
 `concept/` tiene el arte conceptual de referencia.

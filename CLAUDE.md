@@ -16,6 +16,7 @@ Quirks of the browser pane that affect testing:
 - The page loads as a `data:` snapshot, so after each edit you have to navigate to the URL again.
 - `requestAnimationFrame` is heavily throttled there, so simulated keypresses barely move the rat. To test logic, call the global functions directly from `javascript_tool`. Top-level `const` and `function` declarations are reachable from there. For example, `keys['arrowup']=true; for(...) update(1/60); render();`.
 - `loadLevel(n)`, `startPlay()`, `resetRun()` and `castRays(x,y)` let you set up any situation. Setting `G.light=1` and calling `render()` gives you a lit frame for a screenshot.
+- Mobile mode can't really be tested in the pane: with the local file, touch emulation doesn't trigger on reload, and `DeviceOrientationEvent` doesn't exist. To check the layout, add the `touch` class to the `body` and set `Tilt.supported = Tilt.enabled = true`. To test steering, call `onOrient({beta, gamma})` directly. Final testing is on a real phone, at the Pages URL.
 - The canvas can be 0×0 when the page loads, so `resize()` keeps it at least 1 px. In `frame()`, `requestAnimationFrame` is scheduled before `update`/`render` so that an exception doesn't kill the loop.
 
 ## Script architecture (`index.html`)
@@ -33,6 +34,8 @@ Quirks of the browser pane that affect testing:
 4. The rat (`drawMouse`, procedural) and the lens glow are drawn after the darkness, so they're always faintly visible.
 
 **States** (`G.state`): `title` → `intro` → `play` ⇄ `paused` → `won` | `dying` → `lost`. The cards are HTML (`#card`), and the HUD (level, timer) is DOM over the canvas. When time runs out, the light flickers and goes out (`dying`) and you go back to the start of the same maze. The camera (`camTarget`) follows the rat with some lookahead and is clamped to the maze edges when the maze is larger than the screen.
+
+**Input**: keyboard, buttons and touch all end up in the same `keys` object (the `.pad` buttons simulate `arrowup`, etc.) and in `primaryAction()` (Space, click or tap on the screen). On mobile (`isTouch`), steering uses the `deviceorientation` event: `onOrient` converts beta/gamma into the gravity vector, projects it onto the screen's X axis (taking `screenAngle()` into account), and the resulting roll angle gives `Tilt.steer` ∈ [-1, 1], an analog value with a dead zone of `TILT_DEAD` and full turn at `TILT_FULL`. On iPhone the permission is requested in `firstGesture()`, which must run inside a user gesture. If there's no sensor, the ◀ ▶ pads appear (the `body.tilt` class hides them). Mute is saved in `localStorage` (`raton.muted`).
 
 **Sound** (`Snd`): all synthesized with WebAudio (oscillators and filtered noise, no files). `Snd.init()` runs on the first keypress because of the browsers' autoplay policy.
 

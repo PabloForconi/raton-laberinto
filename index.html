@@ -38,6 +38,36 @@
     padding: 0 6px; font-family: inherit; font-size: 13px; margin: 0 1px; }
   #card table { margin: 10px auto 0; border-collapse: collapse; font-size: 14px; text-align: left; }
   #card td { padding: 2px 8px; }
+
+  /* botones de arriba a la derecha (sonido, pausa, modo de giro) */
+  #topbtns { position: fixed; top: 12px; right: 14px; display: flex; gap: 8px; z-index: 5; }
+  .btn.tape { position: static; width: 44px; height: 44px; padding: 0; border: 0; display: grid; place-items: center;
+    color: #2a1a0c; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .btn.tape:nth-child(odd) { transform: rotate(-2deg); } .btn.tape:nth-child(even) { transform: rotate(2deg); }
+  .btn svg { width: 24px; height: 24px; }
+  .btn:active { filter: brightness(.85); }
+
+  /* controles táctiles */
+  body:not(.touch) #hintTouch, body:not(.touch) #pads { display: none; }
+  body.touch #hint { display: none !important; }
+  #hintTouch { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center;
+    font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; padding: 0 120px; }
+  #pads { display: none; }
+  body.touch.playing #pads { display: block; }
+  .pad { position: fixed; width: 74px; height: 74px; border-radius: 50%; padding: 0; font-size: 26px; line-height: 1;
+    color: #e3d3b4; background: rgba(217,207,178,.14); border: 2px solid rgba(217,207,178,.4);
+    touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; z-index: 4; }
+  .pad.on { background: rgba(217,207,178,.42); }
+  #padUp { right: calc(22px + env(safe-area-inset-right)); bottom: calc(108px + env(safe-area-inset-bottom)); width: 86px; height: 86px; }
+  #padDown { right: calc(28px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); }
+  #padLeft { left: calc(22px + env(safe-area-inset-left)); bottom: calc(40px + env(safe-area-inset-bottom)); }
+  #padRight { left: calc(110px + env(safe-area-inset-left)); bottom: calc(40px + env(safe-area-inset-bottom)); }
+  body.tilt #padLeft, body.tilt #padRight { display: none; }
+  body.touch { touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; }
+  @media (max-width: 560px) {
+    #level { font-size: 17px; }
+    #timer { top: 64px; font-size: 26px; }
+  }
 </style>
 </head>
 <body>
@@ -48,6 +78,18 @@
   <div id="timer" class="tape">0:00</div>
 </div>
 <div id="hint"><kbd>↑</kbd><kbd>↓</kbd> avanzar / retroceder · <kbd>←</kbd><kbd>→</kbd> girar · <kbd>P</kbd> pausa · <kbd>M</kbd> sonido · <kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
+<div id="hintTouch">Incliná el teléfono para girar · mantené ▲ para avanzar</div>
+<div id="topbtns">
+  <button id="btnTilt" class="btn tape hidden" type="button"></button>
+  <button id="btnPause" class="btn tape hidden" type="button"></button>
+  <button id="btnSound" class="btn tape" type="button"></button>
+</div>
+<div id="pads">
+  <button class="pad" id="padLeft" data-key="arrowleft" type="button" aria-label="Girar a la izquierda">◀</button>
+  <button class="pad" id="padRight" data-key="arrowright" type="button" aria-label="Girar a la derecha">▶</button>
+  <button class="pad" id="padUp" data-key="arrowup" type="button" aria-label="Avanzar">▲</button>
+  <button class="pad" id="padDown" data-key="arrowdown" type="button" aria-label="Retroceder">▼</button>
+</div>
 <div id="card"></div>
 
 <script>
@@ -90,12 +132,13 @@ function fmt(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':'
 
 // ===================== SONIDO (todo sintetizado) =====================
 const Snd = {
-  ctx: null, master: null, muted: false, noiseBuf: null,
+  ctx: null, master: null, noiseBuf: null,
+  muted: (() => { try { return localStorage.getItem('raton.muted') === '1'; } catch (_) { return false; } })(),
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const ctx = this.ctx = new AC();
-    this.master = ctx.createGain(); this.master.gain.value = 0.8; this.master.connect(ctx.destination);
+    this.master = ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.8; this.master.connect(ctx.destination);
     const len = ctx.sampleRate * 2;
     this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = this.noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -108,7 +151,10 @@ const Snd = {
     const hum = ctx.createOscillator(); hum.frequency.value = 50; const hg = ctx.createGain(); hg.gain.value = 0.012;
     hum.connect(hg).connect(this.master); hum.start();
   },
-  toggle() { this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.8; },
+  toggle() {
+    this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.8;
+    try { localStorage.setItem('raton.muted', this.muted ? '1' : '0'); } catch (_) {}
+  },
   tone(f0, f1, dur, type, vol, delay = 0) {
     const c = this.ctx; if (!c) return; const t = c.currentTime + delay;
     const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
@@ -326,20 +372,28 @@ function camTarget() {
 
 // ===================== UI =====================
 const $card = document.getElementById('card'), $hud = document.getElementById('hud');
-const $timer = document.getElementById('timer'), $level = document.getElementById('level'), $hint = document.getElementById('hint');
+const $timer = document.getElementById('timer'), $level = document.getElementById('level');
+const $hint = document.getElementById('hint'), $hintTouch = document.getElementById('hintTouch');
+const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+document.body.classList.toggle('touch', isTouch);
 function card(html) { if (html) { $card.innerHTML = html; $card.classList.remove('hidden'); } else $card.classList.add('hidden'); }
+function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>ESPACIO</kbd>'} para ${what}</p>`; }
 
 function showTitle() {
   G.state = 'title'; $hud.classList.add('hidden');
+  const controls = isTouch
+    ? `<tr><td>inclinar el teléfono</td><td>girar</td></tr>
+       <tr><td>botón ▲</td><td>avanzar</td></tr>
+       <tr><td>botón ▼</td><td>retroceder</td></tr>`
+    : `<tr><td><kbd>↑</kbd> <kbd>W</kbd></td><td>avanzar</td></tr>
+       <tr><td><kbd>↓</kbd> <kbd>S</kbd></td><td>retroceder</td></tr>
+       <tr><td><kbd>←</kbd><kbd>→</kbd> <kbd>A</kbd><kbd>D</kbd></td><td>girar</td></tr>`;
   card(`<h1>RATÓN DE<br>LABORATORIO</h1>
     <p>Estás en un laberinto de cartón, a oscuras. Solo tenés la linterna que llevás atada al lomo.</p>
     <p>Encontrá la salida antes de que se termine el tiempo.</p>
-    <table>
-      <tr><td><kbd>↑</kbd> <kbd>W</kbd></td><td>avanzar</td></tr>
-      <tr><td><kbd>↓</kbd> <kbd>S</kbd></td><td>retroceder</td></tr>
-      <tr><td><kbd>←</kbd><kbd>→</kbd> <kbd>A</kbd><kbd>D</kbd></td><td>girar</td></tr>
-    </table>
-    <p class="go">Presioná <kbd>ESPACIO</kbd> para empezar</p>`);
+    <table>${controls}</table>
+    ${go('empezar')}`);
+  updateButtons();
 }
 function showIntro() {
   G.state = 'intro'; $hud.classList.remove('hidden');
@@ -347,27 +401,119 @@ function showIntro() {
   card(`<h1>NIVEL ${G.level}</h1>
     <p class="big">Laberinto ${m.W} × ${m.H}</p>
     <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
-    <p class="go">Presioná <kbd>ESPACIO</kbd> para encender la linterna</p>`);
+    ${go('encender la linterna')}`);
+  updateButtons();
 }
 function startPlay() {
-  G.state = 'play'; G.onT = 0; card(null); Snd.click();
+  G.state = 'play'; G.onT = 0; card(null); Snd.click(); updateButtons();
 }
 function win() {
   G.state = 'won'; Snd.win();
   card(`<h1>¡ESCAPASTE!</h1>
     <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
-    <p class="go">Presioná <kbd>ESPACIO</kbd> para el nivel ${G.level + 1}</p>`);
+    ${go(`el nivel ${G.level + 1}`)}`);
+  updateButtons();
 }
-function startDie() { G.state = 'dying'; G.dieT = 0; G.timeLeft = 0; Snd.lose(); }
+function startDie() { G.state = 'dying'; G.dieT = 0; G.timeLeft = 0; Snd.lose(); updateButtons(); }
 function lost() {
   G.state = 'lost';
   card(`<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
     <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
-    <p class="go">Presioná <kbd>ESPACIO</kbd> para reintentar</p>`);
+    ${go('reintentar')}`);
+  updateButtons();
 }
 function togglePause() {
-  if (G.state === 'play') { G.state = 'paused'; card(`<h1>PAUSA</h1><p class="go">Presioná <kbd>P</kbd> para seguir</p>`); }
+  if (G.state === 'play') { G.state = 'paused'; card(`<h1>PAUSA</h1>${go('seguir')}`); }
   else if (G.state === 'paused') { G.state = 'play'; card(null); }
+  updateButtons();
+}
+// Acción principal: ESPACIO en teclado o tocar la pantalla
+function primaryAction() {
+  Snd.init();
+  if (G.state === 'title') { firstGesture(); G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
+  else if (G.state === 'intro') startPlay();
+  else if (G.state === 'won') { loadLevel(G.level + 1); showIntro(); }
+  else if (G.state === 'lost') { G.attempts++; resetRun(); startPlay(); }
+  else if (G.state === 'paused') togglePause();
+}
+
+// ---- botones de sonido / pausa / inclinación ----
+const ICONS = {
+  sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  muted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>',
+  tilt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2" transform="rotate(-20 12 12)"/><path d="M3 15a9 9 0 0 0 4 5M21 9a9 9 0 0 0-4-5"/></svg>',
+  pads: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l6-5v10zM21 12l-6-5v10z"/></svg>',
+};
+const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnTilt = document.getElementById('btnTilt');
+
+// ---- inclinación del teléfono como volante ----
+// Se calcula hacia dónde está "arriba" (gravedad) en coordenadas de la pantalla:
+// bajar el borde derecho gira a la derecha, con el teléfono vertical u horizontal.
+const Tilt = { supported: isTouch && 'DeviceOrientationEvent' in window, enabled: isTouch, active: false, asked: false, steer: 0 };
+const TILT_DEAD = 4, TILT_FULL = 26;   // grados: zona muerta y giro máximo
+
+function updateButtons() {
+  $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
+  $btnSound.title = Snd.muted ? 'Activar sonido (M)' : 'Silenciar (M)';
+  $btnPause.innerHTML = G.state === 'paused' ? ICONS.play : ICONS.pause;
+  $btnPause.title = G.state === 'paused' ? 'Seguir (P)' : 'Pausa (P)';
+  $btnPause.classList.toggle('hidden', !['play', 'paused'].includes(G.state));
+  const tiltOn = Tilt.enabled && Tilt.active;
+  $btnTilt.innerHTML = Tilt.enabled ? ICONS.tilt : ICONS.pads;
+  $btnTilt.title = Tilt.enabled ? 'Girar inclinando el teléfono' : 'Girar con botones';
+  $btnTilt.classList.toggle('hidden', !isTouch || !Tilt.supported);
+  document.body.classList.toggle('tilt', tiltOn);
+  document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
+}
+$btnSound.addEventListener('click', e => { e.stopPropagation(); Snd.init(); Snd.toggle(); updateButtons(); });
+$btnPause.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+$btnTilt.addEventListener('click', e => { e.stopPropagation(); Tilt.enabled = !Tilt.enabled; if (Tilt.enabled) enableTilt(); updateButtons(); });
+
+// ---- controles táctiles: botones que simulan las flechas ----
+for (const el of document.querySelectorAll('.pad')) {
+  const k = el.dataset.key;
+  const on = e => { e.preventDefault(); keys[k] = true; el.classList.add('on'); Snd.init(); };
+  const off = () => { keys[k] = false; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', e => { try { el.setPointerCapture(e.pointerId); } catch (_) {} on(e); });
+  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('lostpointercapture', off);
+  el.addEventListener('click', e => e.stopPropagation());
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+function screenAngle() {
+  if (screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle;
+  if (typeof window.orientation === 'number') return (window.orientation + 360) % 360;
+  return 0;
+}
+function onOrient(e) {
+  if (e.beta == null || e.gamma == null) return;
+  const b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180, th = screenAngle() * Math.PI / 180;
+  const ux = -Math.sin(g) * Math.cos(b), uy = Math.sin(b);         // vector "arriba" en coordenadas del dispositivo
+  const sx = ux * Math.cos(th) - uy * Math.sin(th);                  // su componente sobre el eje X de la pantalla
+  const roll = Math.asin(clamp(-sx, -1, 1)) * 180 / Math.PI, m = Math.abs(roll);
+  Tilt.steer = m < TILT_DEAD ? 0 : Math.sign(roll) * Math.min(1, (m - TILT_DEAD) / (TILT_FULL - TILT_DEAD));
+  if (!Tilt.active) { Tilt.active = true; updateButtons(); }
+}
+async function enableTilt() {
+  if (Tilt.asked || !Tilt.supported) return;
+  Tilt.asked = true;
+  try {
+    const DOE = window.DeviceOrientationEvent;
+    if (typeof DOE.requestPermission === 'function' && await DOE.requestPermission() !== 'granted') throw 0;   // iPhone
+    addEventListener('deviceorientation', onOrient);
+  } catch (err) { Tilt.enabled = false; Tilt.supported = false; }
+  updateButtons();
+}
+// Primer toque: permiso del sensor y, en Android, pantalla completa en horizontal
+function firstGesture() {
+  if (!isTouch) return;
+  if (Tilt.enabled) enableTilt();
+  const de = document.documentElement;
+  if (de.requestFullscreen && !document.fullscreenElement) {
+    de.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape')).catch(() => {});
+  }
 }
 
 addEventListener('keydown', e => {
@@ -375,19 +521,17 @@ addEventListener('keydown', e => {
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   keys[k] = true; Snd.init();
   if (e.repeat) return;
-  if (k === ' ' || k === 'enter') {
-    if (G.state === 'title') { G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
-    else if (G.state === 'intro') startPlay();
-    else if (G.state === 'won') { loadLevel(G.level + 1); showIntro(); }
-    else if (G.state === 'lost') { G.attempts++; resetRun(); startPlay(); }
-    else if (G.state === 'paused') togglePause();
-  } else if (k === 'p' || k === 'escape') togglePause();
-  else if (k === 'm') Snd.toggle();
+  if (k === ' ' || k === 'enter') primaryAction();
+  else if (k === 'p' || k === 'escape') togglePause();
+  else if (k === 'm') { Snd.toggle(); updateButtons(); }
   else if (k === 'r' && G.state === 'play') { G.attempts++; resetRun(); startPlay(); }
   else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) { loadLevel(G.level + 1); showIntro(); }
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (G.state === 'play') togglePause(); });
+addEventListener('click', e => { if (!e.target.closest('.btn, .pad')) primaryAction(); });
+function autoPause() { for (const k in keys) keys[k] = false; for (const el of document.querySelectorAll('.pad.on')) el.classList.remove('on'); if (G.state === 'play') togglePause(); }
+addEventListener('blur', autoPause);
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
 addEventListener('resize', resize);
 
 // ===================== FÍSICA =====================
@@ -420,7 +564,8 @@ function update(dt) {
   const left = keys['arrowleft'] || keys['a'], right = keys['arrowright'] || keys['d'];
 
   if (G.state === 'play') {
-    const turn = (right ? 1 : 0) - (left ? 1 : 0);
+    let turn = (right ? 1 : 0) - (left ? 1 : 0);
+    if (!turn && Tilt.enabled && Tilt.active) turn = Tilt.steer;   // en el celular: inclinación analógica
     M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
     M.a += M.turnV * dt;
     const target = up && !down ? SPEED : down && !up ? -BACK : 0;
@@ -691,7 +836,9 @@ function render() {
     $timer.textContent = fmt(G.timeLeft);
     $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
   }
-  $hint.style.display = G.state === 'play' && G.level <= 2 ? '' : 'none';
+  const showHint = G.state === 'play' && G.level <= 2;
+  $hint.style.display = showHint ? '' : 'none';
+  $hintTouch.style.display = showHint && Tilt.enabled && Tilt.active ? '' : 'none';
 }
 
 // ===================== LOOP =====================
