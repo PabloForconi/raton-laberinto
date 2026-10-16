@@ -9,7 +9,9 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
 
 ## Jugar
 
-Abrí `index.html` en el navegador. No necesita instalación ni servidor.
+**Online:** https://pabloforconi.github.io/raton-laberinto/
+
+O abrí `index.html` en el navegador. No necesita instalación ni servidor.
 
 | Tecla | Acción |
 |---|---|
