@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ratón de Laboratorio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { font-family: 'Special Elite', 'Courier New', monospace; color: #2a1a0c; user-select: none; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #vignette { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.65) 100%); }
+  .tape { position: absolute; background: #d9cfb2; padding: 4px 16px 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.6); font-family: 'Permanent Marker', cursive;
+    background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.03) 0 2px, transparent 2px 5px); }
+  #level { top: 16px; left: 18px; font-size: 22px; transform: rotate(-2deg); }
+  #timer { top: 12px; left: 50%; font-size: 34px; transform: translateX(-50%) rotate(1.5deg); min-width: 92px; text-align: center; }
+  #timer.warn { color: #b3140f; animation: pulse .5s ease-in-out infinite alternate; }
+  @keyframes pulse { to { transform: translateX(-50%) rotate(1.5deg) scale(1.08); } }
+  #hint { position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; }
+  #hud.hidden, .hidden { display: none !important; }
+  #card { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-1deg);
+    width: min(520px, calc(100vw - 32px)); box-sizing: border-box; padding: 26px 30px 22px; text-align: center;
+    background: #a27b4f;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
+      radial-gradient(ellipse at 30% 20%, rgba(255,230,190,.25), transparent 60%);
+    border: 2px solid #6b4c2c; box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5); }
+  #card h1 { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 40px; margin: 0 0 8px; color: #1e1208; line-height: 1.05; }
+  #card h1.red { color: #8e1410; }
+  #card p { margin: 8px 0; font-size: 16px; line-height: 1.4; }
+  #card .big { font-family: 'Permanent Marker', cursive; font-size: 22px; }
+  #card .go { margin-top: 16px; font-size: 15px; animation: blink 1.1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  kbd { display: inline-block; background: #e8dcc0; border: 1px solid #5a3e22; border-bottom-width: 3px; border-radius: 4px;
+    padding: 0 6px; font-family: inherit; font-size: 13px; margin: 0 1px; }
+  #card table { margin: 10px auto 0; border-collapse: collapse; font-size: 14px; text-align: left; }
+  #card td { padding: 2px 8px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="hud" class="hidden">
+  <div id="level" class="tape">NIVEL 1</div>
+  <div id="timer" class="tape">0:00</div>
+</div>
+<div id="hint"><kbd>↑</kbd><kbd>↓</kbd> avanzar / retroceder · <kbd>←</kbd><kbd>→</kbd> girar · <kbd>P</kbd> pausa · <kbd>M</kbd> sonido · <kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
+<div id="card"></div>
+
+<script>
+'use strict';
+// ===================== CONSTANTES (tuneables) =====================
+const C = 64;              // tamaño de celda (unidades de mundo)
+const T = 10;              // grosor de las paredes de cartón
+const K = 0.10;            // altura aparente de las paredes (paralaje cenital)
+const SPEED = 150;         // velocidad hacia adelante
+const BACK = 90;           // velocidad hacia atrás
+const TURN = 3.4;          // velocidad de giro (rad/s)
+const RAD = 9;             // radio de colisión del cuerpo
+const LIGHT_R = 5.2 * C;   // alcance de la linterna
+const CONE = 0.50;         // medio ángulo del haz (rad)
+const CONE_SOFT = 0.16;    // suavizado del borde del haz
+const RAYS = 540;          // rayos para calcular sombras
+
+// Tamaños de laberinto por nivel (columnas x filas)
+const SIZES = [[7,4],[9,5],[11,6],[13,8],[16,9],[19,11],[22,13],[26,15],[30,17],[34,19]];
+function sizeFor(n) {
+  if (n <= SIZES.length) return SIZES[n - 1];
+  const e = n - SIZES.length;
+  return [Math.min(60, 34 + 3 * e), Math.min(34, 19 + 2 * e)];
+}
+// Cuántas celdas de ancho entran en pantalla: al principio el laberinto entra casi entero,
+// después la cámara se acerca y el laberinto crece, así deja de verse completo.
+function viewCells(n) { return Math.max(6, 9 - 0.4 * (n - 1)); }
+// Tiempo según el largo del camino más corto
+function timeFor(n, pathCells) {
+  const factor = Math.max(2.2, 4.2 - 0.25 * (n - 1));
+  return Math.ceil((8 + pathCells * C / SPEED * factor) / 5) * 5;
+}
+
+// ===================== UTILIDADES =====================
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+function smooth(e0, e1, x) { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); }
+function mk(w, h) { const c = document.createElement('canvas'); if (w) { c.width = w; c.height = h; } return [c, c.getContext('2d')]; }
+function fmt(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+// ===================== SONIDO (todo sintetizado) =====================
+const Snd = {
+  ctx: null, master: null, muted: false, noiseBuf: null,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const ctx = this.ctx = new AC();
+    this.master = ctx.createGain(); this.master.gain.value = 0.8; this.master.connect(ctx.destination);
+    const len = ctx.sampleRate * 2;
+    this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = this.noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    // ambiente: ruido marrón grave + zumbido lejano del laboratorio
+    const brown = ctx.createBuffer(1, len, ctx.sampleRate), bd = brown.getChannelData(0); let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; bd[i] = last * 3.5; }
+    const src = ctx.createBufferSource(); src.buffer = brown; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 280;
+    const g = ctx.createGain(); g.gain.value = 0.10; src.connect(lp).connect(g).connect(this.master); src.start();
+    const hum = ctx.createOscillator(); hum.frequency.value = 50; const hg = ctx.createGain(); hg.gain.value = 0.012;
+    hum.connect(hg).connect(this.master); hum.start();
+  },
+  toggle() { this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.8; },
+  tone(f0, f1, dur, type, vol, delay = 0) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime + delay;
+    const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.03);
+  },
+  noise(dur, freq, q, vol, type = 'bandpass', delay = 0) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime + delay;
+    const s = c.createBufferSource(); s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(this.master); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.02);
+  },
+  step() { this.noise(0.035, 2200 + Math.random() * 1800, 1.4, 0.07); },
+  bump() { this.tone(120, 45, 0.18, 'sine', 0.45); this.noise(0.09, 500, 0.7, 0.35, 'lowpass'); },
+  squeak() { const f = 2600 + Math.random() * 600; this.tone(f, f * 1.3, 0.08, 'sine', 0.07); this.tone(f * 1.25, f * 1.05, 0.09, 'sine', 0.06, 0.09); },
+  tick(hi) { this.tone(hi ? 1600 : 1050, hi ? 1600 : 1050, 0.035, 'square', 0.07); },
+  click() { this.noise(0.025, 3200, 2, 0.4); this.noise(0.02, 1800, 2, 0.3, 'bandpass', 0.05); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.22, 'triangle', 0.2, i * 0.11)); setTimeout(() => this.squeak(), 520); },
+  lose() { this.tone(420, 60, 1.0, 'sawtooth', 0.09); this.tone(210, 40, 1.2, 'square', 0.05, 0.05); },
+};
+
+// ===================== LABERINTO =====================
+function genMaze(W, H, rng, level) {
+  const hW = [], vW = [];
+  for (let r = 0; r <= H; r++) hW.push(new Array(W).fill(true));   // hW[r][c]: pared superior de la fila r
+  for (let c = 0; c <= W; c++) vW.push(new Array(H).fill(true));   // vW[c][r]: pared izquierda de la columna c
+  const vis = new Uint8Array(W * H);
+  const sr = Math.floor(rng() * H); vis[sr * W + W - 1] = 1;
+  const stack = [[W - 1, sr]];
+  while (stack.length) {
+    const [c, r] = stack[stack.length - 1];
+    const nb = [];
+    if (c > 0 && !vis[r * W + c - 1]) nb.push([c - 1, r, 0]);
+    if (c < W - 1 && !vis[r * W + c + 1]) nb.push([c + 1, r, 1]);
+    if (r > 0 && !vis[(r - 1) * W + c]) nb.push([c, r - 1, 2]);
+    if (r < H - 1 && !vis[(r + 1) * W + c]) nb.push([c, r + 1, 3]);
+    if (!nb.length) { stack.pop(); continue; }
+    const [nc, nr, d] = nb[Math.floor(rng() * nb.length)];
+    if (d === 0) vW[c][r] = false; else if (d === 1) vW[c + 1][r] = false; else if (d === 2) hW[r][c] = false; else hW[r + 1][c] = false;
+    vis[nr * W + nc] = 1; stack.push([nc, nr]);
+  }
+  // algunos ciclos en niveles avanzados para confundir
+  const loops = Math.floor(W * H * Math.min(0.05, 0.008 * (level - 1)));
+  for (let i = 0; i < loops; i++) {
+    if (rng() < 0.5) { const c = 1 + Math.floor(rng() * (W - 1)), r = Math.floor(rng() * H); vW[c][r] = false; }
+    else { const r = 1 + Math.floor(rng() * (H - 1)), c = Math.floor(rng() * W); hW[r][c] = false; }
+  }
+  const entRow = Math.floor(rng() * H), exitRow = Math.floor(rng() * H);
+  vW[W][entRow] = false; vW[0][exitRow] = false;
+  return { W, H, hW, vW, entRow, exitRow };
+}
+
+function pathLen(m) {
+  const { W, H } = m, dist = new Int32Array(W * H).fill(-1);
+  const q = [[W - 1, m.entRow]]; dist[m.entRow * W + W - 1] = 0;
+  while (q.length) {
+    const [c, r] = q.shift(), d = dist[r * W + c];
+    if (c === 0 && r === m.exitRow) return d + 3;
+    const go = (nc, nr) => { if (dist[nr * W + nc] < 0) { dist[nr * W + nc] = d + 1; q.push([nc, nr]); } };
+    if (c > 0 && !m.vW[c][r]) go(c - 1, r);
+    if (c < W - 1 && !m.vW[c + 1][r]) go(c + 1, r);
+    if (r > 0 && !m.hW[r][c]) go(c, r - 1);
+    if (r < H - 1 && !m.hW[r + 1][c]) go(c, r + 1);
+  }
+  return W * H;
+}
+
+// Paredes como rectángulos (tramos colineales fusionados)
+function buildRects(m, rng) {
+  const rects = [];
+  for (let r = 0; r <= m.H; r++) {
+    let c = 0;
+    while (c < m.W) {
+      if (!m.hW[r][c]) { c++; continue; }
+      const c0 = c; while (c < m.W && m.hW[r][c]) c++;
+      rects.push({ x: c0 * C - T / 2, y: r * C - T / 2, w: (c - c0) * C + T, h: T });
+    }
+  }
+  for (let c = 0; c <= m.W; c++) {
+    let r = 0;
+    while (r < m.H) {
+      if (!m.vW[c][r]) { r++; continue; }
+      const r0 = r; while (r < m.H && m.vW[c][r]) r++;
+      rects.push({ x: c * C - T / 2, y: r0 * C - T / 2, w: T, h: (r - r0) * C + T });
+    }
+  }
+  // corral de inicio, fuera de la entrada
+  const W = m.W, er = m.entRow;
+  rects.push({ x: W * C - T / 2, y: er * C - T / 2, w: C + T, h: T });
+  rects.push({ x: W * C - T / 2, y: (er + 1) * C - T / 2, w: C + T, h: T });
+  rects.push({ x: (W + 1) * C - T / 2, y: er * C - T / 2, w: T, h: C + T });
+  // cinta de embalar en algunas uniones
+  for (const R of rects) {
+    R.tapes = [];
+    const len = Math.max(R.w, R.h);
+    for (let k = 0; T / 2 + k * C <= len; k++) if (rng() < 0.3) R.tapes.push(T / 2 + k * C + (rng() - 0.5) * 6);
+  }
+  return rects;
+}
+
+const MARKS = ['?', 'X', 'A-3', 'B-7', 'N°4', '!!', '///', '12', 'LAB', 'x2', '→', '↑', '←', 'O', '#', 'no', '7', 'C-1', '?!', '≈', 'R2', '✓'];
+function buildDeco(m, rng) {
+  const Wp = m.W * C, Hp = m.H * C, sx = [], sy = [], tapes = [], marks = [];
+  for (let x = 110 + rng() * 120; x < Wp - 40; x += 150 + rng() * 170) sx.push(x);
+  for (let y = 110 + rng() * 120; y < Hp - 40; y += 150 + rng() * 170) sy.push(y);
+  for (const x of sx) for (let y = 20; y < Hp - 20; y += 90) if (rng() < 0.3) { const l = 24 + rng() * 26; tapes.push({ x: x - l / 2, y, w: l, h: 11 }); }
+  for (const y of sy) for (let x = 20; x < Wp - 20; x += 90) if (rng() < 0.3) { const l = 24 + rng() * 26; tapes.push({ x, y: y - l / 2, w: 11, h: l }); }
+  const n = Math.floor(m.W * m.H / 6);
+  for (let i = 0; i < n; i++) {
+    const c = Math.floor(rng() * m.W), r = Math.floor(rng() * m.H);
+    if ((c === 0 && r === m.exitRow) || (c === m.W - 1 && r === m.entRow)) continue;
+    marks.push({ x: (c + 0.25 + rng() * 0.5) * C, y: (r + 0.3 + rng() * 0.4) * C, rot: (rng() - 0.5) * 0.9,
+      size: 9 + rng() * 6, text: MARKS[Math.floor(rng() * MARKS.length)],
+      color: rng() < 0.2 ? 'rgba(140,22,18,0.75)' : 'rgba(35,24,14,0.55)' });
+  }
+  return { sx, sy, tapes, marks };
+}
+
+// ===================== CANVAS / TEXTURAS =====================
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+const [wallCv, wctx] = mk(), [lightCv, lctx] = mk(), [aCv, actx] = mk(), [bCv, bctx] = mk();
+let scale = 1;
+
+function makeFloorTile() {
+  const S = 512, [c, x] = mk(S, S);
+  x.fillStyle = '#8c6943'; x.fillRect(0, 0, S, S);
+  for (let i = 0; i < 70; i++) {
+    const px = Math.random() * S, py = Math.random() * S, r = 20 + Math.random() * 90;
+    const col = Math.random() < 0.5 ? '60,38,18' : '190,150,100';
+    for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
+      const g = x.createRadialGradient(px + ox, py + oy, 0, px + ox, py + oy, r);
+      g.addColorStop(0, `rgba(${col},0.08)`); g.addColorStop(1, `rgba(${col},0)`);
+      x.fillStyle = g; x.fillRect(px + ox - r, py + oy - r, r * 2, r * 2);
+    }
+  }
+  x.fillStyle = 'rgba(0,0,0,0.035)'; for (let y = 0; y < S; y += 8) x.fillRect(0, y, S, 3);
+  for (let i = 0; i < 500; i++) {
+    const px = Math.random() * S, py = Math.random() * S, a = Math.random() * Math.PI, l = 2 + Math.random() * 5;
+    x.strokeStyle = Math.random() < 0.6 ? 'rgba(50,32,15,0.14)' : 'rgba(210,175,130,0.12)';
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke();
+  }
+  const img = x.getImageData(0, 0, S, S), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - 0.5) * 14; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  x.putImageData(img, 0, 0);
+  return c;
+}
+const floorPat = ctx.createPattern(makeFloorTile(), 'repeat');
+floorPat.setTransform(new DOMMatrix([0.5, 0, 0, 0.5, 0, 0]));
+
+// Sprite del haz de la linterna (apunta hacia +x)
+const CS = 320, [coneCv, coneCtx] = mk(CS, CS);
+(function () {
+  const img = coneCtx.createImageData(CS, CS), d = img.data;
+  for (let j = 0; j < CS; j++) for (let i = 0; i < CS; i++) {
+    const x = (i + 0.5 - CS / 2) / (CS / 2) * LIGHT_R, y = (j + 0.5 - CS / 2) / (CS / 2) * LIGHT_R;
+    const dist = Math.hypot(x, y), a = Math.abs(Math.atan2(y, x));
+    const rad = Math.pow(Math.max(0, 1 - dist / LIGHT_R), 0.9);
+    const ang = smooth(CONE + CONE_SOFT, CONE - CONE_SOFT, a);
+    const hot = 1 + 0.5 * Math.exp(-(a * a) / (0.2 * 0.2));
+    const sp = Math.max(0, 1 - dist / (1.6 * C));
+    const I = Math.min(1, ang * rad * hot * 1.4 + 0.38 * sp * sp);
+    const k = (j * CS + i) * 4;
+    d[k] = 255; d[k + 1] = 200 + 45 * I; d[k + 2] = 135 + 85 * I; d[k + 3] = I * 255;
+  }
+  coneCtx.putImageData(img, 0, 0);
+})();
+
+function resize() {
+  const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+  const w = Math.max(1, Math.floor(innerWidth * dpr)), h = Math.max(1, Math.floor(innerHeight * dpr));
+  for (const c of [cv, wallCv, lightCv, aCv, bCv]) { c.width = w; c.height = h; }
+  computeScale();
+}
+function computeScale() {
+  const vc = viewCells(G.level) * C;
+  scale = Math.sqrt(cv.width * cv.height / (vc * vc * 9 / 16));
+}
+
+// ===================== ESTADO =====================
+const G = { state: 'title', level: 1, maze: null, rects: [], deco: null, timeLimit: 0, timeLeft: 0,
+  attempts: 0, light: 0, dieT: 0, onT: 0, baseSeed: 1, lastTick: 99, time: 0 };
+const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0 };
+const cam = { x: 0, y: 0 };
+const keys = {};
+
+function loadLevel(n) {
+  G.level = n;
+  const [W, H] = sizeFor(n);
+  const rng = mulberry32(G.baseSeed + n * 7919);
+  G.maze = genMaze(W, H, rng, n);
+  G.rects = buildRects(G.maze, rng);
+  G.deco = buildDeco(G.maze, rng);
+  G.timeLimit = timeFor(n, pathLen(G.maze));
+  G.attempts = 1;
+  computeScale();
+  resetRun();
+}
+function resetRun() {
+  const m = G.maze;
+  M.x = (m.W + 0.5) * C; M.y = (m.entRow + 0.5) * C; M.a = Math.PI; M.v = 0; M.turnV = 0;
+  G.timeLeft = G.timeLimit; G.lastTick = 99; G.light = 0;
+  const t = camTarget(); cam.x = t.x; cam.y = t.y;
+}
+function camTarget() {
+  const m = G.maze, hw = cv.width / (2 * scale), hh = cv.height / (2 * scale);
+  const minX = -1.2 * C, maxX = (m.W + 1.4) * C, minY = -0.5 * C, maxY = (m.H + 0.5) * C;
+  const tx = M.x + Math.cos(M.a) * C * 0.8, ty = M.y + Math.sin(M.a) * C * 0.8;
+  // la cámara sigue al ratón; si el laberinto es más grande que la pantalla, no se pasa de los bordes
+  return {
+    x: (maxX - minX < 2 * hw) ? tx : clamp(tx, minX + hw, maxX - hw),
+    y: (maxY - minY < 2 * hh) ? ty : clamp(ty, minY + hh, maxY - hh),
+  };
+}
+
+// ===================== UI =====================
+const $card = document.getElementById('card'), $hud = document.getElementById('hud');
+const $timer = document.getElementById('timer'), $level = document.getElementById('level'), $hint = document.getElementById('hint');
+function card(html) { if (html) { $card.innerHTML = html; $card.classList.remove('hidden'); } else $card.classList.add('hidden'); }
+
+function showTitle() {
+  G.state = 'title'; $hud.classList.add('hidden');
+  card(`<h1>RATÓN DE<br>LABORATORIO</h1>
+    <p>Estás en un laberinto de cartón, a oscuras. Solo tenés la linterna que llevás atada al lomo.</p>
+    <p>Encontrá la salida antes de que se termine el tiempo.</p>
+    <table>
+      <tr><td><kbd>↑</kbd> <kbd>W</kbd></td><td>avanzar</td></tr>
+      <tr><td><kbd>↓</kbd> <kbd>S</kbd></td><td>retroceder</td></tr>
+      <tr><td><kbd>←</kbd><kbd>→</kbd> <kbd>A</kbd><kbd>D</kbd></td><td>girar</td></tr>
+    </table>
+    <p class="go">Presioná <kbd>ESPACIO</kbd> para empezar</p>`);
+}
+function showIntro() {
+  G.state = 'intro'; $hud.classList.remove('hidden');
+  const m = G.maze;
+  card(`<h1>NIVEL ${G.level}</h1>
+    <p class="big">Laberinto ${m.W} × ${m.H}</p>
+    <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
+    <p class="go">Presioná <kbd>ESPACIO</kbd> para encender la linterna</p>`);
+}
+function startPlay() {
+  G.state = 'play'; G.onT = 0; card(null); Snd.click();
+}
+function win() {
+  G.state = 'won'; Snd.win();
+  card(`<h1>¡ESCAPASTE!</h1>
+    <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
+    <p class="go">Presioná <kbd>ESPACIO</kbd> para el nivel ${G.level + 1}</p>`);
+}
+function startDie() { G.state = 'dying'; G.dieT = 0; G.timeLeft = 0; Snd.lose(); }
+function lost() {
+  G.state = 'lost';
+  card(`<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
+    <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
+    <p class="go">Presioná <kbd>ESPACIO</kbd> para reintentar</p>`);
+}
+function togglePause() {
+  if (G.state === 'play') { G.state = 'paused'; card(`<h1>PAUSA</h1><p class="go">Presioná <kbd>P</kbd> para seguir</p>`); }
+  else if (G.state === 'paused') { G.state = 'play'; card(null); }
+}
+
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  keys[k] = true; Snd.init();
+  if (e.repeat) return;
+  if (k === ' ' || k === 'enter') {
+    if (G.state === 'title') { G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
+    else if (G.state === 'intro') startPlay();
+    else if (G.state === 'won') { loadLevel(G.level + 1); showIntro(); }
+    else if (G.state === 'lost') { G.attempts++; resetRun(); startPlay(); }
+    else if (G.state === 'paused') togglePause();
+  } else if (k === 'p' || k === 'escape') togglePause();
+  else if (k === 'm') Snd.toggle();
+  else if (k === 'r' && G.state === 'play') { G.attempts++; resetRun(); startPlay(); }
+  else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) { loadLevel(G.level + 1); showIntro(); }
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (G.state === 'play') togglePause(); });
+addEventListener('resize', resize);
+
+// ===================== FÍSICA =====================
+function collide() {
+  let pushed = 0;
+  const ca = Math.cos(M.a), sa = Math.sin(M.a);
+  for (let it = 0; it < 3; it++) for (const [off, r] of [[0, RAD], [12, 7]]) {
+    let cx = M.x + ca * off, cy = M.y + sa * off;
+    for (const R of G.rects) {
+      if (cx + r < R.x || cx - r > R.x + R.w || cy + r < R.y || cy - r > R.y + R.h) continue;
+      const px = clamp(cx, R.x, R.x + R.w), py = clamp(cy, R.y, R.y + R.h);
+      const dx = cx - px, dy = cy - py, d2 = dx * dx + dy * dy;
+      if (d2 >= r * r) continue;
+      let nx, ny, pen;
+      if (d2 > 1e-9) { const d = Math.sqrt(d2); nx = dx / d; ny = dy / d; pen = r - d; }
+      else {
+        const l = cx - R.x, rr = R.x + R.w - cx, t = cy - R.y, b = R.y + R.h - cy, mn = Math.min(l, rr, t, b);
+        if (mn === l) { nx = -1; ny = 0; pen = l + r; } else if (mn === rr) { nx = 1; ny = 0; pen = rr + r; }
+        else if (mn === t) { nx = 0; ny = -1; pen = t + r; } else { nx = 0; ny = 1; pen = b + r; }
+      }
+      M.x += nx * pen; M.y += ny * pen; cx += nx * pen; cy += ny * pen; pushed = Math.max(pushed, pen);
+    }
+  }
+  return pushed;
+}
+
+function update(dt) {
+  G.time += dt;
+  const up = keys['arrowup'] || keys['w'], down = keys['arrowdown'] || keys['s'];
+  const left = keys['arrowleft'] || keys['a'], right = keys['arrowright'] || keys['d'];
+
+  if (G.state === 'play') {
+    const turn = (right ? 1 : 0) - (left ? 1 : 0);
+    M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
+    M.a += M.turnV * dt;
+    const target = up && !down ? SPEED : down && !up ? -BACK : 0;
+    M.v += (target - M.v) * Math.min(1, dt * 9);
+    const ox = M.x, oy = M.y, want = Math.abs(M.v) * dt;
+    M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt;
+    collide();
+    const moved = Math.hypot(M.x - ox, M.y - oy);
+    M.bumpCd -= dt;
+    if (want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
+      Snd.bump(); if (Math.random() < 0.4) Snd.squeak(); M.bumpCd = 0.45; M.v *= 0.3;
+    }
+    const sp = moved / Math.max(dt, 1e-4) + Math.abs(M.turnV) * 20;
+    M.phase += dt * sp * 0.12;
+    M.stepT -= dt * sp / SPEED;
+    if (M.stepT <= 0 && sp > 20) { Snd.step(); M.stepT = 0.12; }
+
+    G.timeLeft -= dt;
+    const s = Math.ceil(G.timeLeft);
+    if (G.timeLeft <= 10 && s !== G.lastTick && s > 0) { G.lastTick = s; Snd.tick(s <= 5); }
+    G.onT += dt;
+    // encendido con parpadeo + leve oscilación del foco
+    G.light = G.onT < 0.35 ? (Math.random() < 0.55 ? 1 : 0.15) : 0.96 + 0.04 * Math.sin(G.time * 13) * Math.sin(G.time * 7.3);
+    if (M.x < -6) win();
+    else if (G.timeLeft <= 0) startDie();
+  } else if (G.state === 'dying') {
+    G.dieT += dt; M.v *= 0.9;
+    G.light = G.dieT < 1.1 ? (Math.random() < 0.5 ? 0.12 : 0.85) * (1 - G.dieT / 1.25) : 0;
+    if (G.dieT > 1.5) lost();
+  } else if (G.state === 'won') {
+    M.v = SPEED; M.a += (Math.PI - ((M.a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) * Math.min(1, dt * 4);
+    M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt; M.phase += dt * SPEED * 0.12;
+    G.light = 1;
+  } else if (G.state === 'title') {
+    M.a += dt * 0.5; M.phase += dt * 2; G.light = 1;
+  } else if (G.state === 'intro' || G.state === 'lost') {
+    G.light = 0;
+  }
+  const t = camTarget(), f = Math.min(1, dt * 4);
+  cam.x += (t.x - cam.x) * f; cam.y += (t.y - cam.y) * f;
+}
+
+// ===================== LUZ (rayos contra las paredes) =====================
+const COS = new Float32Array(RAYS), SIN = new Float32Array(RAYS), HITS = new Float32Array(RAYS);
+for (let i = 0; i < RAYS; i++) { const a = i / RAYS * Math.PI * 2; COS[i] = Math.cos(a); SIN[i] = Math.sin(a); }
+function castRays(ox, oy) {
+  const vs = [], hs = [];
+  for (const R of G.rects) {
+    const px = clamp(ox, R.x, R.x + R.w), py = clamp(oy, R.y, R.y + R.h);
+    if ((px - ox) ** 2 + (py - oy) ** 2 > LIGHT_R * LIGHT_R) continue;
+    vs.push(R.x, R.y, R.y + R.h, R.x + R.w, R.y, R.y + R.h);
+    hs.push(R.y, R.x, R.x + R.w, R.y + R.h, R.x, R.x + R.w);
+  }
+  for (let i = 0; i < RAYS; i++) {
+    const dx = COS[i], dy = SIN[i]; let t = LIGHT_R;
+    if (Math.abs(dx) > 1e-6) for (let j = 0; j < vs.length; j += 3) {
+      const tt = (vs[j] - ox) / dx; if (tt <= 0 || tt >= t) continue;
+      const y = oy + tt * dy; if (y >= vs[j + 1] && y <= vs[j + 2]) t = tt;
+    }
+    if (Math.abs(dy) > 1e-6) for (let j = 0; j < hs.length; j += 3) {
+      const tt = (hs[j] - oy) / dy; if (tt <= 0 || tt >= t) continue;
+      const x = ox + tt * dx; if (x >= hs[j + 1] && x <= hs[j + 2]) t = tt;
+    }
+    HITS[i] = t;
+  }
+}
+function drawCone(c, ox, oy) {
+  c.save(); c.translate(ox, oy); c.rotate(M.a); c.drawImage(coneCv, -LIGHT_R, -LIGHT_R, LIGHT_R * 2, LIGHT_R * 2); c.restore();
+}
+
+// ===================== RENDER =====================
+function visible(R, v, pad) { return R.x + R.w > v.x0 - pad && R.x < v.x1 + pad && R.y + R.h > v.y0 - pad && R.y < v.y1 + pad; }
+
+function drawFloor(c, v) {
+  const m = G.maze, Wp = m.W * C, Hp = m.H * C;
+  c.fillStyle = '#2b2018'; c.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);       // mesa
+  c.fillStyle = floorPat;
+  c.fillRect(-T / 2, -T / 2, Wp + T, Hp + T);
+  c.fillRect(Wp, m.entRow * C, C, C);
+  // uniones de las planchas de cartón
+  c.lineWidth = 1.1;
+  for (const x of G.deco.sx) {
+    if (x < v.x0 - 4 || x > v.x1 + 4) continue;
+    c.strokeStyle = 'rgba(35,22,10,0.6)'; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, Hp); c.stroke();
+    c.strokeStyle = 'rgba(200,160,110,0.25)'; c.beginPath(); c.moveTo(x + 1.2, 0); c.lineTo(x + 1.2, Hp); c.stroke();
+  }
+  for (const y of G.deco.sy) {
+    if (y < v.y0 - 4 || y > v.y1 + 4) continue;
+    c.strokeStyle = 'rgba(35,22,10,0.6)'; c.beginPath(); c.moveTo(0, y); c.lineTo(Wp, y); c.stroke();
+    c.strokeStyle = 'rgba(200,160,110,0.25)'; c.beginPath(); c.moveTo(0, y + 1.2); c.lineTo(Wp, y + 1.2); c.stroke();
+  }
+  for (const t of G.deco.tapes) {
+    if (!visible(t, v, 10)) continue;
+    c.fillStyle = 'rgba(200,196,182,0.5)'; c.fillRect(t.x, t.y, t.w, t.h);
+    c.fillStyle = 'rgba(255,255,255,0.12)'; c.fillRect(t.x, t.y, t.w, Math.min(t.h, t.w) * 0.25);
+  }
+  // marcas de lápiz y marcador
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (const k of G.deco.marks) {
+    if (k.x < v.x0 - 30 || k.x > v.x1 + 30 || k.y < v.y0 - 30 || k.y > v.y1 + 30) continue;
+    c.save(); c.translate(k.x, k.y); c.rotate(k.rot); c.fillStyle = k.color;
+    c.font = `${k.size}px 'Permanent Marker', cursive`; c.fillText(k.text, 0, 0); c.restore();
+  }
+  // salida e inicio pintados en el piso
+  c.save(); c.translate(C * 0.5, (m.exitRow + 0.5) * C);
+  c.fillStyle = 'rgba(150,20,16,0.85)'; c.font = `13px 'Permanent Marker', cursive`;
+  c.fillText('SALIDA', 2, -10); c.font = `22px 'Permanent Marker', cursive`; c.fillText('←', 0, 10); c.restore();
+  c.save(); c.translate((m.W + 0.5) * C, (m.entRow + 0.5) * C + 18); c.rotate(-0.08);
+  c.fillStyle = 'rgba(30,20,12,0.55)'; c.font = `10px 'Permanent Marker', cursive`; c.fillText('INICIO', 0, 0); c.restore();
+  // sombras de contacto al pie de las paredes
+  for (const R of G.rects) {
+    if (!visible(R, v, 10)) continue;
+    c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(R.x - 6, R.y - 6, R.w + 12, R.h + 12);
+    c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(R.x - 3, R.y - 3, R.w + 6, R.h + 6);
+  }
+}
+
+function sideQuad(c, ax, ay, bx, by, cx2, cy2, dx, dy) {
+  const g = c.createLinearGradient((ax + bx) / 2, (ay + by) / 2, (cx2 + dx) / 2, (cy2 + dy) / 2);
+  g.addColorStop(0, '#3a2816'); g.addColorStop(1, '#7c5b37');
+  c.fillStyle = g; c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.lineTo(cx2, cy2); c.lineTo(dx, dy); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(25,15,6,0.5)'; c.lineWidth = 0.6; c.stroke();
+}
+
+function drawWalls(c, v) {
+  const s = 1 + K, vis = [];
+  for (const R of G.rects) if (visible(R, v, C * 2)) vis.push(R);
+  // caras laterales (las que miran a la cámara)
+  for (const R of vis) {
+    const tx = cam.x + (R.x - cam.x) * s, ty = cam.y + (R.y - cam.y) * s, tw = R.w * s, th = R.h * s;
+    R._t = [tx, ty, tw, th];
+    if (R.x > cam.x) sideQuad(c, R.x, R.y, R.x, R.y + R.h, tx, ty + th, tx, ty);
+    if (R.x + R.w < cam.x) sideQuad(c, R.x + R.w, R.y, R.x + R.w, R.y + R.h, tx + tw, ty + th, tx + tw, ty);
+    if (R.y > cam.y) sideQuad(c, R.x, R.y, R.x + R.w, R.y, tx + tw, ty, tx, ty);
+    if (R.y + R.h < cam.y) sideQuad(c, R.x, R.y + R.h, R.x + R.w, R.y + R.h, tx + tw, ty + th, tx, ty + th);
+  }
+  // cantos superiores: cartón corrugado visto desde arriba
+  for (const R of vis) {
+    const [tx, ty, tw, th] = R._t, horiz = tw >= th;
+    c.fillStyle = '#a9824f'; c.fillRect(tx, ty, tw, th);
+    c.strokeStyle = 'rgba(80,52,24,0.9)'; c.lineWidth = 0.9; c.beginPath();
+    if (horiz) {
+      const y0 = ty + th * 0.22, y1 = ty + th * 0.78; let i = 0;
+      for (let x = tx + 1; x <= tx + tw - 1; x += 2.8, i++) i ? c.lineTo(x, i % 2 ? y0 : y1) : c.moveTo(x, y1);
+    } else {
+      const x0 = tx + tw * 0.22, x1 = tx + tw * 0.78; let i = 0;
+      for (let y = ty + 1; y <= ty + th - 1; y += 2.8, i++) i ? c.lineTo(i % 2 ? x0 : x1, y) : c.moveTo(x1, y);
+    }
+    c.stroke();
+    c.strokeStyle = '#cfa877'; c.lineWidth = 1.5; c.beginPath();
+    if (horiz) { c.moveTo(tx, ty + 1); c.lineTo(tx + tw, ty + 1); c.moveTo(tx, ty + th - 1); c.lineTo(tx + tw, ty + th - 1); }
+    else { c.moveTo(tx + 1, ty); c.lineTo(tx + 1, ty + th); c.moveTo(tx + tw - 1, ty); c.lineTo(tx + tw - 1, ty + th); }
+    c.stroke();
+    c.strokeStyle = 'rgba(30,18,8,0.85)'; c.lineWidth = 0.8; c.strokeRect(tx, ty, tw, th);
+    for (const off of R.tapes) {
+      const o = off * s;
+      c.fillStyle = 'rgba(205,200,186,0.75)';
+      if (horiz) c.fillRect(tx + o - 4.5 * s, ty - 1.5, 9 * s, th + 3); else c.fillRect(tx - 1.5, ty + o - 4.5 * s, tw + 3, 9 * s);
+    }
+  }
+}
+
+function drawMouse(c, alpha) {
+  const wig = Math.sin(M.phase * 1.3), step = Math.sin(M.phase * 2.2);
+  c.save(); c.translate(M.x, M.y); c.rotate(M.a); c.globalAlpha = alpha;
+  c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.ellipse(1, 2, 18, 11, 0, 0, Math.PI * 2); c.fill();
+  // cola
+  const curl = -M.turnV * 3;
+  c.strokeStyle = '#b98582'; c.lineCap = 'round';
+  c.lineWidth = 3.2; c.beginPath(); c.moveTo(-13, 0); c.quadraticCurveTo(-22, wig * 4 + curl, -28, wig * -3 + curl * 1.6); c.stroke();
+  c.lineWidth = 1.7; c.beginPath(); c.moveTo(-27, wig * -3 + curl * 1.6); c.quadraticCurveTo(-34, wig * -6 + curl * 2.2, -42, wig * 4 + curl * 2.6); c.stroke();
+  // patitas
+  c.fillStyle = '#d2a19b';
+  for (const [fx, fy, ph] of [[8, -8, 1], [8, 8, -1], [-8, -8, -1], [-8, 8, 1]]) {
+    c.beginPath(); c.ellipse(fx + step * ph * 2.5, fy, 2.6, 1.8, 0, 0, Math.PI * 2); c.fill();
+  }
+  // cuerpo
+  const g = c.createRadialGradient(-2, -3, 2, -2, 0, 15);
+  g.addColorStop(0, '#e6dfd6'); g.addColorStop(1, '#a39a90');
+  c.fillStyle = g; c.beginPath(); c.ellipse(-2, 0, 14, 9.2, 0, 0, Math.PI * 2); c.fill();
+  // cabeza
+  c.beginPath(); c.moveTo(4, -6.5); c.quadraticCurveTo(15, -7, 21, 0); c.quadraticCurveTo(15, 7, 4, 6.5); c.closePath(); c.fill();
+  c.fillStyle = '#d98f95'; c.beginPath(); c.arc(20.6, 0, 1.7, 0, Math.PI * 2); c.fill();
+  for (const sy of [-1, 1]) {
+    c.fillStyle = '#cfa59f'; c.beginPath(); c.arc(8, sy * 7, 3.9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#b27f7c'; c.beginPath(); c.arc(8.4, sy * 7.3, 2.4, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#a3141f'; c.beginPath(); c.arc(14, sy * 3.4, 1.35, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(235,230,220,0.55)'; c.lineWidth = 0.35; c.beginPath();
+    for (const k of [-0.25, 0.05, 0.35]) { c.moveTo(19, sy * 1.5); c.lineTo(19 + Math.cos(k + sy * 0.9) * 9, sy * (1.5 + Math.abs(Math.sin(k + 0.9)) * 7)); }
+    c.stroke();
+  }
+  // arnés
+  c.strokeStyle = '#26262b'; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
+  c.moveTo(4, -8.2); c.lineTo(4, 8.2); c.moveTo(-8, -8.5); c.lineTo(-8, 8.5); c.moveTo(-8, 0); c.lineTo(4, 0); c.stroke();
+  // linterna sobre el lomo
+  const lg = c.createLinearGradient(0, -3.5, 0, 3.5);
+  lg.addColorStop(0, '#9a9ca2'); lg.addColorStop(0.5, '#5d6066'); lg.addColorStop(1, '#2f3136');
+  c.fillStyle = lg; c.fillRect(-6, -3.2, 14, 6.4);
+  c.fillStyle = '#7d8086'; c.fillRect(7.5, -4.2, 3.5, 8.4);
+  c.fillStyle = G.light > 0.2 ? '#fff4d2' : '#6b6450'; c.fillRect(11, -3.6, 1.2, 7.2);
+  c.restore();
+}
+
+function render() {
+  const w = cv.width, h = cv.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  if (!G.maze) return;
+  const hw = w / (2 * scale), hh = h / (2 * scale);
+  const v = { x0: cam.x - hw, y0: cam.y - hh, x1: cam.x + hw, y1: cam.y + hh };
+  const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
+  const lit = G.light > 0.01;
+
+  if (lit) {
+    // 1) escena completamente iluminada
+    ctx.setTransform(...T6); drawFloor(ctx, v);
+    wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.clearRect(0, 0, w, h); wctx.setTransform(...T6); drawWalls(wctx, v);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(wallCv, 0, 0);
+
+    // 2) mapa de luz: haz recortado por las sombras de las paredes
+    const ox = M.x + Math.cos(M.a) * 4, oy = M.y + Math.sin(M.a) * 4;
+    castRays(ox, oy);
+    actx.setTransform(1, 0, 0, 1, 0, 0); actx.clearRect(0, 0, w, h); actx.setTransform(...T6);
+    drawCone(actx, ox, oy);
+    actx.globalCompositeOperation = 'destination-in'; actx.beginPath();
+    for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * HITS[i], y = oy + SIN[i] * HITS[i]; i ? actx.lineTo(x, y) : actx.moveTo(x, y); }
+    actx.closePath(); actx.fill(); actx.globalCompositeOperation = 'source-over';
+
+    // las paredes se iluminan un poco más allá del impacto (su canto y su cara proyectada)
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, w, h); bctx.setTransform(...T6);
+    drawCone(bctx, ox, oy);
+    bctx.globalCompositeOperation = 'destination-in'; bctx.beginPath();
+    const ext = T + 6, s = 1 + K;
+    for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * (HITS[i] + ext), y = oy + SIN[i] * (HITS[i] + ext); i ? bctx.lineTo(x, y) : bctx.moveTo(x, y); }
+    bctx.closePath();
+    for (let i = 0; i < RAYS; i++) {
+      const x = cam.x + (ox + COS[i] * (HITS[i] + ext) - cam.x) * s, y = cam.y + (oy + SIN[i] * (HITS[i] + ext) - cam.y) * s;
+      i ? bctx.lineTo(x, y) : bctx.moveTo(x, y);
+    }
+    bctx.closePath(); bctx.fill('nonzero');
+    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.drawImage(wallCv, 0, 0);
+    bctx.globalCompositeOperation = 'source-over';
+
+    lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalCompositeOperation = 'source-over'; lctx.globalAlpha = 1;
+    lctx.fillStyle = '#000'; lctx.fillRect(0, 0, w, h);
+    lctx.globalCompositeOperation = 'lighter'; lctx.globalAlpha = G.light;
+    lctx.drawImage(aCv, 0, 0); lctx.drawImage(bCv, 0, 0);
+    lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
+
+    // 3) oscuridad total salvo lo que toca la luz
+    ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lightCv, 0, 0); ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 4) el ratón (siempre apenas visible) y el brillo de la lente
+  ctx.setTransform(...T6);
+  drawMouse(ctx, 0.3 + 0.55 * G.light);
+  if (lit) {
+    const lx = M.x + Math.cos(M.a) * 12, ly = M.y + Math.sin(M.a) * 12;
+    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 12);
+    g.addColorStop(0, `rgba(255,240,200,${0.9 * G.light})`); g.addColorStop(1, 'rgba(255,200,120,0)');
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(lx - 12, ly - 12, 24, 24);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // HUD
+  if (G.state !== 'title') {
+    $level.textContent = 'NIVEL ' + G.level;
+    $timer.textContent = fmt(G.timeLeft);
+    $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
+  }
+  $hint.style.display = G.state === 'play' && G.level <= 2 ? '' : 'none';
+}
+
+// ===================== LOOP =====================
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt); render();
+}
+resize();
+G.baseSeed = 12345; loadLevel(1); M.x = (G.maze.W - 1.5) * C;   // laberinto de fondo para la pantalla de título
+showTitle();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
