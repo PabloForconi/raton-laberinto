@@ -48,21 +48,18 @@
   .btn:active { filter: brightness(.85); }
 
   /* controles táctiles */
-  body:not(.touch) #hintTouch, body:not(.touch) #pads { display: none; }
+  body:not(.touch) #hintTouch { display: none; }
   body.touch #hint { display: none !important; }
   #hintTouch { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center;
     font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; padding: 0 120px; }
-  #pads { display: none; }
-  body.touch.playing #pads { display: block; }
-  .pad { position: fixed; width: 74px; height: 74px; border-radius: 50%; padding: 0; font-size: 26px; line-height: 1;
-    color: #e3d3b4; background: rgba(217,207,178,.14); border: 2px solid rgba(217,207,178,.4);
-    touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; z-index: 4; }
-  .pad.on { background: rgba(217,207,178,.42); }
-  #padUp { right: calc(22px + env(safe-area-inset-right)); bottom: calc(108px + env(safe-area-inset-bottom)); width: 86px; height: 86px; }
-  #padDown { right: calc(28px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); }
-  #padLeft { left: calc(22px + env(safe-area-inset-left)); bottom: calc(40px + env(safe-area-inset-bottom)); }
-  #padRight { left: calc(110px + env(safe-area-inset-left)); bottom: calc(40px + env(safe-area-inset-bottom)); }
-  body.tilt #padLeft, body.tilt #padRight { display: none; }
+  /* joystick flotante: aparece donde apoyás el dedo */
+  #stickZone { position: fixed; inset: 0; z-index: 3; display: none; touch-action: none; }
+  body.touch.playing #stickZone { display: block; }
+  #stick { position: fixed; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; pointer-events: none;
+    background: rgba(217,207,178,.10); border: 2px solid rgba(217,207,178,.38); display: none; z-index: 4; }
+  #stick.on { display: block; }
+  #knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+    background: rgba(217,207,178,.45); border: 2px solid rgba(240,228,205,.6); }
   body.touch { touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; }
   @media (max-width: 560px) {
     #level { font-size: 17px; }
@@ -78,17 +75,12 @@
   <div id="timer" class="tape">0:00</div>
 </div>
 <div id="hint"><kbd>↑</kbd><kbd>↓</kbd> avanzar / retroceder · <kbd>←</kbd><kbd>→</kbd> girar · <kbd>P</kbd> pausa · <kbd>M</kbd> sonido · <kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
-<div id="hintTouch">Incliná el teléfono para girar · mantené ▲ para avanzar</div>
+<div id="hintTouch">Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir</div>
+<div id="stickZone"></div>
+<div id="stick"><div id="knob"></div></div>
 <div id="topbtns">
-  <button id="btnTilt" class="btn tape hidden" type="button"></button>
   <button id="btnPause" class="btn tape hidden" type="button"></button>
   <button id="btnSound" class="btn tape" type="button"></button>
-</div>
-<div id="pads">
-  <button class="pad" id="padLeft" data-key="arrowleft" type="button" aria-label="Girar a la izquierda">◀</button>
-  <button class="pad" id="padRight" data-key="arrowright" type="button" aria-label="Girar a la derecha">▶</button>
-  <button class="pad" id="padUp" data-key="arrowup" type="button" aria-label="Avanzar">▲</button>
-  <button class="pad" id="padDown" data-key="arrowdown" type="button" aria-label="Retroceder">▼</button>
 </div>
 <div id="card"></div>
 
@@ -382,9 +374,7 @@ function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>
 function showTitle() {
   G.state = 'title'; $hud.classList.add('hidden');
   const controls = isTouch
-    ? `<tr><td>inclinar el teléfono</td><td>girar</td></tr>
-       <tr><td>botón ▲</td><td>avanzar</td></tr>
-       <tr><td>botón ▼</td><td>retroceder</td></tr>`
+    ? `<tr><td>arrastrar el dedo</td><td>moverte: el ratón gira hacia donde apuntás</td></tr>`
     : `<tr><td><kbd>↑</kbd> <kbd>W</kbd></td><td>avanzar</td></tr>
        <tr><td><kbd>↓</kbd> <kbd>S</kbd></td><td>retroceder</td></tr>
        <tr><td><kbd>←</kbd><kbd>→</kbd> <kbd>A</kbd><kbd>D</kbd></td><td>girar</td></tr>`;
@@ -437,83 +427,60 @@ function primaryAction() {
   else if (G.state === 'paused') togglePause();
 }
 
-// ---- botones de sonido / pausa / inclinación ----
+// ---- botones de sonido / pausa ----
 const ICONS = {
   sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   muted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>',
-  tilt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2" transform="rotate(-20 12 12)"/><path d="M3 15a9 9 0 0 0 4 5M21 9a9 9 0 0 0-4-5"/></svg>',
-  pads: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l6-5v10zM21 12l-6-5v10z"/></svg>',
 };
-const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnTilt = document.getElementById('btnTilt');
-
-// ---- inclinación del teléfono como volante ----
-// Se calcula hacia dónde está "arriba" (gravedad) en coordenadas de la pantalla:
-// bajar el borde derecho gira a la derecha, con el teléfono vertical u horizontal.
-const Tilt = { supported: isTouch && 'DeviceOrientationEvent' in window, enabled: isTouch, active: false, asked: false, steer: 0 };
-const TILT_DEAD = 4, TILT_FULL = 26;   // grados: zona muerta y giro máximo
-
+const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause');
 function updateButtons() {
   $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
   $btnSound.title = Snd.muted ? 'Activar sonido (M)' : 'Silenciar (M)';
   $btnPause.innerHTML = G.state === 'paused' ? ICONS.play : ICONS.pause;
   $btnPause.title = G.state === 'paused' ? 'Seguir (P)' : 'Pausa (P)';
   $btnPause.classList.toggle('hidden', !['play', 'paused'].includes(G.state));
-  const tiltOn = Tilt.enabled && Tilt.active;
-  $btnTilt.innerHTML = Tilt.enabled ? ICONS.tilt : ICONS.pads;
-  $btnTilt.title = Tilt.enabled ? 'Girar inclinando el teléfono' : 'Girar con botones';
-  $btnTilt.classList.toggle('hidden', !isTouch || !Tilt.supported);
-  document.body.classList.toggle('tilt', tiltOn);
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
+  if (G.state !== 'play') stickEnd();
 }
 $btnSound.addEventListener('click', e => { e.stopPropagation(); Snd.init(); Snd.toggle(); updateButtons(); });
 $btnPause.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
-$btnTilt.addEventListener('click', e => { e.stopPropagation(); Tilt.enabled = !Tilt.enabled; if (Tilt.enabled) enableTilt(); updateButtons(); });
 
-// ---- controles táctiles: botones que simulan las flechas ----
-for (const el of document.querySelectorAll('.pad')) {
-  const k = el.dataset.key;
-  const on = e => { e.preventDefault(); keys[k] = true; el.classList.add('on'); Snd.init(); };
-  const off = () => { keys[k] = false; el.classList.remove('on'); };
-  el.addEventListener('pointerdown', e => { try { el.setPointerCapture(e.pointerId); } catch (_) {} on(e); });
-  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('lostpointercapture', off);
-  el.addEventListener('click', e => e.stopPropagation());
-  el.addEventListener('contextmenu', e => e.preventDefault());
+// ---- joystick flotante (celular) ----
+// Aparece donde apoyás el dedo; el ratón gira hacia la dirección del stick y avanza según cuánto lo empujás.
+const STICK_R = 52, STICK_DEAD = 0.18;   // radio en px CSS y zona muerta (0..1)
+const Stick = { id: null, bx: 0, by: 0, x: 0, y: 0, mag: 0 };
+const $zone = document.getElementById('stickZone'), $stick = document.getElementById('stick'), $knob = document.getElementById('knob');
+function stickMove(cx, cy) {
+  let dx = cx - Stick.bx, dy = cy - Stick.by;
+  const d = Math.hypot(dx, dy);
+  if (d > STICK_R) { dx *= STICK_R / d; dy *= STICK_R / d; }
+  $knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  const m = Math.min(1, d / STICK_R);
+  Stick.mag = m < STICK_DEAD ? 0 : (m - STICK_DEAD) / (1 - STICK_DEAD);
+  Stick.x = d > 0 ? dx / Math.min(d, STICK_R) : 0; Stick.y = d > 0 ? dy / Math.min(d, STICK_R) : 0;
 }
+function stickEnd() {
+  Stick.id = null; Stick.mag = 0; $stick.classList.remove('on'); $knob.style.transform = '';
+}
+$zone.addEventListener('pointerdown', e => {
+  if (G.state !== 'play' || Stick.id !== null) return;
+  e.preventDefault(); Snd.init();
+  try { $zone.setPointerCapture(e.pointerId); } catch (_) {}
+  Stick.id = e.pointerId; Stick.bx = e.clientX; Stick.by = e.clientY;
+  $stick.style.left = e.clientX + 'px'; $stick.style.top = e.clientY + 'px'; $stick.classList.add('on');
+  stickMove(e.clientX, e.clientY);
+});
+$zone.addEventListener('pointermove', e => { if (e.pointerId === Stick.id) { e.preventDefault(); stickMove(e.clientX, e.clientY); } });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) $zone.addEventListener(ev, e => { if (e.pointerId === Stick.id) stickEnd(); });
+$zone.addEventListener('contextmenu', e => e.preventDefault());
 
-function screenAngle() {
-  if (screen.orientation && typeof screen.orientation.angle === 'number') return screen.orientation.angle;
-  if (typeof window.orientation === 'number') return (window.orientation + 360) % 360;
-  return 0;
-}
-function onOrient(e) {
-  if (e.beta == null || e.gamma == null) return;
-  const b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180, th = screenAngle() * Math.PI / 180;
-  const ux = -Math.sin(g) * Math.cos(b), uy = Math.sin(b);         // vector "arriba" en coordenadas del dispositivo
-  const sx = ux * Math.cos(th) - uy * Math.sin(th);                  // su componente sobre el eje X de la pantalla
-  const roll = Math.asin(clamp(-sx, -1, 1)) * 180 / Math.PI, m = Math.abs(roll);
-  Tilt.steer = m < TILT_DEAD ? 0 : Math.sign(roll) * Math.min(1, (m - TILT_DEAD) / (TILT_FULL - TILT_DEAD));
-  if (!Tilt.active) { Tilt.active = true; updateButtons(); }
-}
-async function enableTilt() {
-  if (Tilt.asked || !Tilt.supported) return;
-  Tilt.asked = true;
-  try {
-    const DOE = window.DeviceOrientationEvent;
-    if (typeof DOE.requestPermission === 'function' && await DOE.requestPermission() !== 'granted') throw 0;   // iPhone
-    addEventListener('deviceorientation', onOrient);
-  } catch (err) { Tilt.enabled = false; Tilt.supported = false; }
-  updateButtons();
-}
-// Primer toque: permiso del sensor y, en Android, pantalla completa en horizontal
+// Primer toque en el celular: pantalla completa (donde el navegador lo permite)
 function firstGesture() {
   if (!isTouch) return;
-  if (Tilt.enabled) enableTilt();
   const de = document.documentElement;
-  if (de.requestFullscreen && !document.fullscreenElement) {
-    de.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape')).catch(() => {});
-  }
+  if (de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen().catch(() => {});
 }
 
 addEventListener('keydown', e => {
@@ -528,8 +495,8 @@ addEventListener('keydown', e => {
   else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) { loadLevel(G.level + 1); showIntro(); }
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-addEventListener('click', e => { if (!e.target.closest('.btn, .pad')) primaryAction(); });
-function autoPause() { for (const k in keys) keys[k] = false; for (const el of document.querySelectorAll('.pad.on')) el.classList.remove('on'); if (G.state === 'play') togglePause(); }
+addEventListener('click', e => { if (!e.target.closest('.btn')) primaryAction(); });
+function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.state === 'play') togglePause(); }
 addEventListener('blur', autoPause);
 document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
 addEventListener('resize', resize);
@@ -565,10 +532,15 @@ function update(dt) {
 
   if (G.state === 'play') {
     let turn = (right ? 1 : 0) - (left ? 1 : 0);
-    if (!turn && Tilt.enabled && Tilt.active) turn = Tilt.steer;   // en el celular: inclinación analógica
+    let target = up && !down ? SPEED : down && !up ? -BACK : 0;
+    if (Stick.mag > 0) {
+      // joystick: girar hacia la dirección del stick y avanzar más cuanto más alineado esté
+      const diff = Math.atan2(Math.sin(Math.atan2(Stick.y, Stick.x) - M.a), Math.cos(Math.atan2(Stick.y, Stick.x) - M.a));
+      turn = clamp(diff * 3, -1, 1);
+      target = SPEED * Stick.mag * Math.max(0, Math.cos(diff));
+    }
     M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
     M.a += M.turnV * dt;
-    const target = up && !down ? SPEED : down && !up ? -BACK : 0;
     M.v += (target - M.v) * Math.min(1, dt * 9);
     const ox = M.x, oy = M.y, want = Math.abs(M.v) * dt;
     M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt;
@@ -838,7 +810,7 @@ function render() {
   }
   const showHint = G.state === 'play' && G.level <= 2;
   $hint.style.display = showHint ? '' : 'none';
-  $hintTouch.style.display = showHint && Tilt.enabled && Tilt.active ? '' : 'none';
+  $hintTouch.style.display = showHint && Stick.id === null ? '' : 'none';
 }
 
 // ===================== LOOP =====================
