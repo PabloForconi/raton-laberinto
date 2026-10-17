@@ -1,4 +1,6 @@
-# Ratón de Laboratorio
+# Maze Mouse
+
+![Maze Mouse](img/logo.png)
 
 Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar de un laberinto de cartón completamente a oscuras, con una linterna atada al lomo que apunta hacia adelante.
 
