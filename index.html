@@ -663,6 +663,10 @@ function drawDoorShadow(c, d) {
   c.fillStyle = g; c.beginPath();
   c.moveTo(x0 + d.dy * h, y0 - d.dx * h); c.lineTo(x0 - d.dy * h, y0 + d.dx * h);
   c.lineTo(x1 - d.dy * (h + 3), y1 + d.dx * (h + 3)); c.lineTo(x1 + d.dy * (h + 3), y1 - d.dx * (h + 3)); c.closePath(); c.fill();
+  // tirita de cinta de peligro en el piso, a lo largo de la pared, del lado por donde se pasa (un poco más oscura que la del inicio)
+  c.save(); c.translate(d.wx, d.wy); c.transform(d.dx, d.dy, -d.dy, d.dx, 0, 0);   // x local = hacia B, y local = a lo largo de la pared
+  drawStartTape(c, -T / 2 - 10, -(DOOR_HOLE + 10) / 2, DOOR_HOLE + 10, 0.3);
+  c.restore();
 }
 // Cintas que sostienen la cortina: cruzan el canto de la pared y bajan por la cara del lado B
 function drawHinge(c, d, P, quad) {
@@ -1004,8 +1008,16 @@ function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList
 function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>ESPACIO</kbd>'} para ${what}</p>`; }
 
 // Laberinto de fondo de la portada y del selector (siempre el mismo), con el ratón dando vueltas
+// Fondo de los menús: un laberinto más grande que la pantalla (siempre la tapa entera, sin que se vean los bordes
+// ni la mesa) con la cámara fija en su centro. Si cambia el tamaño de la pantalla, se rearma.
 function titleBackground() {
-  G.baseSeed = 12345; loadLevel(1); M.x = (G.maze.W - 1.5) * C;
+  G.mode = 'challenge'; G.level = 1; G.viewLevel = 1; computeScale();
+  const W = Math.ceil(cv.width / scale / C) + 4, H = Math.ceil(cv.height / scale / C) + 4;
+  buildMaze(W, H, 12345, 0.03);
+  G.items = []; G.solids = G.holeRects = G.rects; G.cheeseTotal = 0; G.timeLimit = 60; G.attempts = 1;
+  resetRun();
+  M.x = W * C / 2; M.y = H * C / 2; M.a = 0; M.tail = null; M.feet = null;
+  cam.x = M.x; cam.y = M.y; G.titleSize = cv.width + 'x' + cv.height;
   G.iris = G.irisTarget = 1; $hud.classList.add('hidden');
 }
 function showTitle() {
@@ -1460,6 +1472,10 @@ function update(dt) {
   const z = safeZone(), w = cv.width, h = cv.height;
   cam.x = clamp(cam.x, M.x - (z.x1 - w / 2) / scale, M.x - (z.x0 - w / 2) / scale);
   cam.y = clamp(cam.y, M.y - (z.y1 - h / 2) / scale, M.y - (z.y0 - h / 2) / scale);
+  if (G.state === 'title' || G.state === 'select') {   // menús: cámara quieta en el centro del laberinto de fondo
+    if (G.titleSize !== w + 'x' + h) titleBackground();
+    cam.x = G.maze.W * C / 2; cam.y = G.maze.H * C / 2;
+  }
 }
 
 // Zona de pantalla (en píxeles del canvas) donde tiene que quedar el ratón.
@@ -1510,6 +1526,7 @@ function castRays(ox, oy) {
 // Fondo de la portada: laberinto a oscuras, sin la rata. Cada tanto un foco viejo parpadea en algún lugar de la
 // pantalla y deja ver un poco (luz redonda, cortada por las paredes), y se vuelve a apagar.
 const MenuFl = { t: 0, dur: 1, in: 1, x: 0, y: 0 };
+const MENU_AMBIENT = 0.3;   // luz pareja de fondo en los menús (en el juego no hay: oscuridad total)
 function menuFlicker(dt) {
   const F = MenuFl;
   if (F.t > 0) {
@@ -1542,8 +1559,8 @@ function drawCone(c, ox, oy) {
 function visible(R, v, pad) { return R.x + R.w > v.x0 - pad && R.x < v.x1 + pad && R.y + R.h > v.y0 - pad && R.y < v.y1 + pad; }
 
 // Cinta de peligro amarilla y negra pegada en el piso, en la boca del corral de inicio: se ve de una dónde se arranca
-// (aunque no sepas leer). Plástico con un brillo a lo largo y arruguitas.
-function drawStartTape(c, x, y0, len) {
+// (aunque no sepas leer). Plástico con un brillo a lo largo y arruguitas. También marca el lado de paso de las puertas.
+function drawStartTape(c, x, y0, len, shade = 0) {
   const w = 9;
   c.save(); c.translate(x, y0 + len / 2); c.rotate(0.03);
   c.beginPath(); c.rect(-w / 2, -len / 2, w, len);
@@ -1556,6 +1573,7 @@ function drawStartTape(c, x, y0, len) {
   c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(-w / 2 + 1, -len / 2, w * 0.28, len);
   c.strokeStyle = 'rgba(255,255,255,0.14)'; c.lineWidth = 0.5;
   for (const k of [-0.32, -0.05, 0.27]) { c.beginPath(); c.moveTo(-w / 2, k * len); c.lineTo(w / 2, k * len + 2.5); c.stroke(); }
+  if (shade) { c.fillStyle = `rgba(20,12,4,${shade})`; c.fillRect(-w / 2, -len / 2, w, len); }   // más oscura (cinta vieja, gastada)
   c.restore();
   c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 0.5; c.stroke();
   c.restore();
@@ -2064,7 +2082,8 @@ function render() {
   const hw = w / (2 * scale), hh = h / (2 * scale);
   const v = { x0: cam.x - hw, y0: cam.y - hh, x1: cam.x + hw, y1: cam.y + hh };
   const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
-  const lit = G.light > 0.01, menu = G.state === 'title' || G.state === 'select';   // en los menús no hay rata
+  const menu = G.state === 'title' || G.state === 'select';   // en los menús no hay rata
+  const lit = G.light > 0.01 || menu;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
 
   if (lit) {
     // 1) escena completamente iluminada
@@ -2120,6 +2139,7 @@ function render() {
     } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
     lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
+    if (menu) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + MENU_AMBIENT + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
     if (G.siren > 0.01) drawSiren(lctx, T6);
 
     // 3) oscuridad total salvo lo que toca la luz
