@@ -163,7 +163,7 @@ function timeFor(n, pathCells) {
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
 // traps / sticky / cheese / tunnels (cantidad de cada cosa), time (opcional: pisa el tiempo calculado).
 const LEVELS = [
-  { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 4,
+  { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 7,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
   { name: 'Pegote', seed: 2203, size: [16, 9], loops: 0.02, sticky: 6,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito.' },
@@ -384,8 +384,8 @@ function buildDeco(m, rng) {
 }
 
 // ===================== ITEMS (mecánicas de Historia) =====================
-const TRAP_L = 40, TRAP_W = 21;        // trampa (un poco más grande que la rata)
-const TRAY_L = 62, TRAY_W = 32;        // bandeja de pegamento: largo (a lo largo del pasillo) y ancho
+const TRAP_L = 46, TRAP_W = 24;        // trampa (más grande que la rata)
+const TRAY_W = 48, TRAY_L = Math.round(TRAY_W * 62 / 32);   // bandeja de pegamento: casi todo el ancho del pasillo, largo proporcional
 const TUBE_R = 13, TUBE_OUT = 0.3 * C; // radio del rollo y cuánto sobresale de la pared hacia cada lado
 const STICKY_SLOW = 0.35, STICKY_T = 1.5;
 
@@ -421,23 +421,36 @@ function placeItems(L, m, rng) {
       const [top, bottom, left, right] = walls(c, r);
       const a = !top ? -Math.PI / 2 : !bottom ? Math.PI / 2 : !left ? Math.PI : 0;   // hacia la abertura del callejón
       const [x, y] = center(c, r);
-      items.push({ type: 'trap', x: x - Math.cos(a) * 7, y: y - Math.sin(a) * 7, a, closed: false, t: 0 });   // fondo de la trampa contra la pared
+      const back = C / 2 - T / 2 - TRAP_L / 2;   // fondo de la trampa contra la pared del callejón
+      items.push({ type: 'trap', x: x - Math.cos(a) * back, y: y - Math.sin(a) * back, a, closed: false, t: 0 });
       used.push([c, r]);
     }
   }
-  // Pegamento: puede ir en el camino; más probable cerca de la salida
+  // Pegamento: solo en tramos rectos de pasillo (dos celdas seguidas con paredes a ambos lados, nunca en cruces ni
+  // esquinas), centrada en el pasillo y ocupando casi todo su ancho; puede ir en el camino, más probable cerca de la salida
   if (L.sticky) {
-    const maxX = Math.max(...dX);
-    const cand = cells.filter(([c, r]) => !special(c, r) && dX[idx(c, r)] >= 0)
-      .map(([c, r]) => ({ cell: [c, r], key: rng() * (1 + 3 * (1 - dX[idx(c, r)] / maxX)) * (onPath(idx(c, r)) ? 1.5 : 1) }))
-      .sort((a, b) => b.key - a.key).map(o => o.cell);
-    for (const [c, r] of pick(cand, L.sticky, 2, used)) {
-      const [x, y] = center(c, r);
-      // rectangular como la de la foto: acostada a lo largo del pasillo (tapa el ancho, no se puede esquivar)
-      const vert = m.vW[c][r] && m.vW[c + 1][r] ? true : m.hW[r][c] && m.hW[r + 1][c] ? false : rng() < 0.5;
-      const w = vert ? TRAY_W : TRAY_L, h = vert ? TRAY_L : TRAY_W;
-      items.push({ type: 'sticky', x: x + (rng() - 0.5) * 4 - w / 2, y: y + (rng() - 0.5) * 4 - h / 2, w, h });
-      used.push([c, r]);
+    const maxX = Math.max(...dX), segs = [];
+    for (const [c, r] of cells) {
+      // horizontal: (c,r) y (c+1,r) unidas, con paredes arriba y abajo en las dos
+      if (c + 1 < W && !m.vW[c + 1][r] && m.hW[r][c] && m.hW[r + 1][c] && m.hW[r][c + 1] && m.hW[r + 1][c + 1]) segs.push({ a: [c, r], b: [c + 1, r], vert: false });
+      // vertical: (c,r) y (c,r+1) unidas, con paredes a izquierda y derecha en las dos
+      if (r + 1 < H && !m.hW[r + 1][c] && m.vW[c][r] && m.vW[c + 1][r] && m.vW[c][r + 1] && m.vW[c + 1][r + 1]) segs.push({ a: [c, r], b: [c, r + 1], vert: true });
+    }
+    const ok = segs.filter(s => !special(...s.a) && !special(...s.b) && dX[idx(...s.a)] >= 0);
+    ok.forEach(s => { const i = idx(...s.a); s.key = rng() * (1 + 3 * (1 - dX[i] / maxX)) * (onPath(i) ? 1.5 : 1); });
+    ok.sort((p, q) => q.key - p.key);
+    const chosen = [];
+    for (const s of ok) {
+      if (chosen.length >= L.sticky) break;
+      const busy = used.concat(...chosen.map(q => [q.a, q.b]));
+      if (busy.some(u => Math.abs(u[0] - s.a[0]) + Math.abs(u[1] - s.a[1]) < 2 || Math.abs(u[0] - s.b[0]) + Math.abs(u[1] - s.b[1]) < 2)) continue;
+      chosen.push(s);
+    }
+    for (const s of chosen) {
+      const x = (s.a[0] + s.b[0] + 1) / 2 * C, y = (s.a[1] + s.b[1] + 1) / 2 * C;   // centro del tramo de dos celdas
+      const w = s.vert ? TRAY_W : TRAY_L, h = s.vert ? TRAY_L : TRAY_W;
+      items.push({ type: 'sticky', x: x - w / 2, y: y - h / 2, w, h });
+      used.push(s.a, s.b);
     }
   }
   // Quesos: preferentemente fuera del camino más corto (para que haya que desviarse), separados entre sí
@@ -578,7 +591,7 @@ const tailWidth = t => 3.6 - 3.0 * t;
 
 // Patas: [x, y] de reposo (coordenadas del ratón), si es de adelante, y su par diagonal (se mueven de a pares, como un trote)
 const FEET = [[10.4, -5.4, true, 0], [10.4, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
-const STEP_FRONT = 3.5, STEP_BACK = 4.5;   // cuánto se alejan del reposo antes de dar el paso
+const STEP_FRONT = 2.8, STEP_BACK = 3;     // cuánto se alejan del reposo antes de dar el paso (cortito: no se despegan del cuerpo)
 // Cada pata queda quieta en el piso mientras el cuerpo avanza; cuando se aleja demasiado de su lugar de reposo
 // (y su par diagonal está apoyado) da un paso rápido hasta un poco más adelante. En el pegamento los pasos
 // son más lentos y "tironeados", y al salir deja huellas pegajosas por un rato.
@@ -603,7 +616,8 @@ function updateFeet(dt) {
           if (M.stickyT > 0 && !M.onTray) G.prints.push({ x: ft.p[0], y: ft.p[1], a: M.a, side: Math.sign(f[1]), t: 0 });
         }
       } else {
-        const e = sticky ? Math.pow(ft.t, 2.4) : ft.t * ft.t * (3 - 2 * ft.t);   // pegado: le cuesta despegar
+        // normal: arranca rápido y frena al apoyar (así no se queda atrás); pegado: le cuesta despegar
+        const e = sticky ? Math.pow(ft.t, 2.4) : 1 - (1 - ft.t) * (1 - ft.t);
         ft.p = [ft.from[0] + (ft.to[0] - ft.from[0]) * e, ft.from[1] + (ft.to[1] - ft.from[1]) * e];
         ft.lift = Math.sin(Math.PI * ft.t);
       }
@@ -611,10 +625,10 @@ function updateFeet(dt) {
       const d = Math.hypot(ft.p[0] - h[0], ft.p[1] - h[1]);
       const pairBusy = M.feet.some((o, j) => o.to && FEET[j][3] !== f[3]), step = f[2] ? STEP_FRONT : STEP_BACK;
       // espera a que el otro par apoye, salvo que ya se haya quedado muy atrás (si no, se vería despegada del cuerpo)
-      if ((d > step && !pairBusy) || d > step * 1.6) {
+      if ((d > step && !pairBusy) || d > step * 1.35) {
         // apunta a donde va a estar su lugar de reposo cuando apoye (el cuerpo sigue avanzando mientras la pata
         // está en el aire) y un poco más adelante: así la pata oscila alrededor de su lugar, no siempre atrás
-        const sp = Math.hypot(vx, vy), ahead = sp > 5 ? step * 0.8 / sp : 0;
+        const sp = Math.hypot(vx, vy), ahead = sp > 5 ? step * 0.7 / sp : 0;
         ft.from = ft.p.slice(); ft.to = [h[0] + vx * (swingT + ahead), h[1] + vy * (swingT + ahead)]; ft.t = 0;
       }
     }

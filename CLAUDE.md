@@ -37,7 +37,7 @@ Quirks of the browser pane that affect testing:
 
 **Items** (`G.items`, generated in `placeItems` from the level rng, so they're fixed):
 - **`trap`**: only in dead-end cells off the shortest path and away from the entrance and exit, facing the opening. Touching it closes it and calls `startDie('trap')`, which shows "¡ATRAPADO!". It's a procedural placeholder until the user sends an image.
-- **`sticky`**: a tray that slows you to `STICKY_SLOW` while you're on it, then for `STICKY_T` s afterwards, via `stickyFactor`. More likely near the exit.
+- **`sticky`**: a tray that slows you to `STICKY_SLOW` while you're on it, then for `STICKY_T` s afterwards, via `stickyFactor`. It only goes on straight corridor stretches (two cells in a row with walls on both sides, never at junctions or corners), centered and almost as wide as the corridor. More likely near the exit.
 - **`cheese`**: preferably off the path. HUD shows `#cheese`, and it counts toward the stars.
 - **`tunnel`**: a cardboard roll through a wall, between neighboring cells that are 8 or more cells apart through the maze. The thin rects on its sides are in `G.solids`, which is walls plus tubes and is used for collision and the tail. Going in from the front starts an automatic trip (`M.tunnel`, `tunnelStep`) with no control and no collision.
 - **Look:** the drawings follow photos the user sent, seen from above:
