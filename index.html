@@ -28,6 +28,18 @@
       repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
       radial-gradient(ellipse at 30% 20%, rgba(255,230,190,.25), transparent 60%);
     border: 2px solid #6b4c2c; box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5); }
+  /* animación de carteles: entra chico y crece con rebote; sale achicándose */
+  #card.in { animation: cardIn .22s cubic-bezier(.2, .9, .3, 1.25) both; }
+  #card.out { animation: cardOut .13s ease-in both; }
+  @keyframes cardIn { from { transform: translate(-50%, -50%) rotate(-5deg) scale(.55); opacity: 0; }
+                      to { transform: translate(-50%, -50%) rotate(-1deg) scale(1); opacity: 1; } }
+  @keyframes cardOut { to { transform: translate(-50%, -50%) rotate(3deg) scale(.6); opacity: 0; } }
+  #level.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
+  #timer.pop:not(.warn) { animation: timerPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
+  @keyframes levelPop { from { transform: rotate(-8deg) scale(.5); opacity: 0; } to { transform: rotate(-2deg) scale(1); opacity: 1; } }
+  @keyframes timerPop { from { transform: translateX(-50%) rotate(6deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(1.5deg) scale(1); opacity: 1; } }
+  .btn.tape { transition: transform .12s; }
+  .btn.tape:active { transform: scale(.85) !important; }
   #card h1 { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 40px; margin: 0 0 8px; color: #1e1208; line-height: 1.05; }
   #card h1.red { color: #8e1410; }
   #card p { margin: 8px 0; font-size: 16px; line-height: 1.4; }
@@ -82,7 +94,7 @@
   <button id="btnPause" class="btn tape hidden" type="button"></button>
   <button id="btnSound" class="btn tape" type="button"></button>
 </div>
-<div id="card"></div>
+<div id="card" class="hidden"></div>
 
 <script>
 'use strict';
@@ -271,6 +283,7 @@ const [wallCv, wctx] = mk(), [lightCv, lctx] = mk(), [aCv, actx] = mk(), [bCv, b
 const [blurCv, blurCtx] = mk(), [litCv, litCtx] = mk(), [mouseCv, mouseCtx] = mk();   // sombras suaves / paredes por encima del ratón / ratón opaco
 const CAN_BLUR = typeof blurCtx.filter === 'string';
 const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo)
+const WALL_SOFT = 8;     // esfumado del borde de la luz sobre las paredes
 let scale = 1;
 
 function makeFloorTile() {
@@ -332,9 +345,13 @@ function computeScale() {
 
 // ===================== ESTADO =====================
 const G = { state: 'title', level: 1, maze: null, rects: [], deco: null, timeLimit: 0, timeLeft: 0,
-  attempts: 0, light: 0, dieT: 0, onT: 0, baseSeed: 1, lastTick: 99, time: 0 };
-const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0,
-  bumpT: 0, blinkT: 0, blinkIn: 2, idleT: 0, twitch: { side: 1, t: 0 }, twitchIn: 1.5 };   // animaciones de la cara
+  attempts: 0, light: 0, dieT: 0, onT: 0, baseSeed: 1, lastTick: 99, time: 0,
+  iris: 1, irisTarget: 1, winCard: false,   // cortinilla circular (1 = abierta, 0 = cerrada)
+  shake: 0 };                               // temblor de cámara (0..1)
+const IRIS_T = 0.5;                         // segundos que tarda en abrirse o cerrarse
+const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0, lastBump: -9,
+  bumpT: 0, blinkT: 0, blinkIn: 2, idleT: 0, twitch: { side: 1, t: 0 }, twitchIn: 1.5,   // animaciones de la cara
+  headA: 0, look: { t: 0, ang: 0, next: 0 }, lookIn: 2 };                                 // giro de la cabeza
 const BUMP_T = 0.6, TWITCH_T = 0.32, BLINK_T = 0.14;
 const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   // la cola nace en x = -TAIL_ROOT
 const tailWidth = t => 3.6 - 3.0 * t;
@@ -394,6 +411,19 @@ function animMouse(dt, active) {
     M.twitch = { side: Math.random() < 0.5 ? -1 : 1, t: TWITCH_T };
     M.twitchIn = 1.2 + Math.random() * 3;
   }
+  // cabeza: se adelanta hacia donde gira; quieto, cada tanto mira a un costado (o a uno y al otro) y vuelve
+  let head = 0;
+  if (active) M.look.t = 0;
+  if (Math.abs(M.turnV) > 0.25) head = clamp(M.turnV / TURN, -1, 1) * 0.45;
+  else if (M.look.t > 0) {
+    head = M.look.ang;
+    if ((M.look.t -= dt) <= 0 && M.look.next) M.look = { t: 0.45 + Math.random() * 0.5, ang: M.look.next, next: 0 };
+  } else if (M.idleT > 1.2 && (M.lookIn -= dt) <= 0) {
+    const s = Math.random() < 0.5 ? -1 : 1, amount = () => 0.3 + Math.random() * 0.25;
+    M.look = { t: 0.5 + Math.random() * 0.7, ang: s * amount(), next: Math.random() < 0.4 ? -s * amount() : 0 };
+    M.lookIn = 1.8 + Math.random() * 3;
+  }
+  M.headA += (head - M.headA) * Math.min(1, dt * 9);
 }
 const cam = { x: 0, y: 0 };
 const keys = {};
@@ -433,11 +463,25 @@ const $timer = document.getElementById('timer'), $level = document.getElementByI
 const $hint = document.getElementById('hint'), $hintTouch = document.getElementById('hintTouch');
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 document.body.classList.toggle('touch', isTouch);
-function card(html) { if (html) { $card.innerHTML = html; $card.classList.remove('hidden'); } else $card.classList.add('hidden'); }
+// Carteles: el que sale se achica y se desvanece; el que entra aparece chico y crece con un rebote
+let cardTimer = 0;
+function card(html) {
+  clearTimeout(cardTimer);
+  const shown = !$card.classList.contains('hidden') && !$card.classList.contains('out');
+  if (shown) {
+    $card.classList.remove('in'); $card.classList.add('out');
+    cardTimer = setTimeout(() => { $card.classList.remove('out'); showCard(html); }, 130);
+  } else { $card.classList.remove('out'); showCard(html); }
+}
+function showCard(html) {
+  if (!html) { $card.classList.add('hidden'); return; }
+  $card.innerHTML = html; $card.classList.remove('hidden', 'in'); void $card.offsetWidth; $card.classList.add('in');
+}
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>ESPACIO</kbd>'} para ${what}</p>`; }
 
 function showTitle() {
-  G.state = 'title'; $hud.classList.add('hidden');
+  G.state = 'title'; $hud.classList.add('hidden'); G.iris = G.irisTarget = 1;
   const controls = isTouch
     ? `<tr><td>arrastrar el dedo</td><td>moverte: el ratón gira hacia donde apuntás</td></tr>`
     : `<tr><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>moverte: el ratón gira hacia donde apuntás</td></tr>`;
@@ -455,17 +499,24 @@ function showIntro() {
     <p class="big">Laberinto ${m.W} × ${m.H}</p>
     <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
     ${go('encender la linterna')}`);
+  G.iris = 0; G.irisTarget = 0;
+  pop($level); pop($timer);
   updateButtons();
 }
 function startPlay() {
   G.state = 'play'; G.onT = 0; card(null); Snd.click(); updateButtons();
+  G.iris = 0; G.irisTarget = 1;   // la escena se abre desde un círculo negro
 }
 function win() {
   G.state = 'won'; Snd.win();
+  G.irisTarget = 0; G.winCard = false;   // se cierra en un círculo negro; el cartel aparece al terminar
+  updateButtons();
+}
+function showWinCard() {
+  G.winCard = true;
   card(`<h1>¡ESCAPASTE!</h1>
     <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
     ${go(`el nivel ${G.level + 1}`)}`);
-  updateButtons();
 }
 function startDie() { G.state = 'dying'; G.dieT = 0; G.timeLeft = 0; Snd.lose(); updateButtons(); }
 function lost() {
@@ -485,7 +536,7 @@ function primaryAction() {
   Snd.init();
   if (G.state === 'title') { firstGesture(); G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
   else if (G.state === 'intro') startPlay();
-  else if (G.state === 'won') { loadLevel(G.level + 1); showIntro(); }
+  else if (G.state === 'won' && G.winCard) { loadLevel(G.level + 1); showIntro(); }
   else if (G.state === 'lost') { G.attempts++; resetRun(); startPlay(); }
   else if (G.state === 'paused') togglePause();
 }
@@ -619,6 +670,8 @@ function update(dt) {
     M.bumpCd -= dt;
     if (want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
       Snd.bump(); if (Math.random() < 0.4) Snd.squeak(); M.bumpCd = 0.45; M.v *= 0.3; M.bumpT = BUMP_T;
+      if (G.time - M.lastBump < 1.2) G.shake = Math.min(1, G.shake + 0.5);   // choques seguidos: tiembla la cámara
+      M.lastBump = G.time;
     }
     const sp = moved / Math.max(dt, 1e-4) + Math.abs(M.turnV) * 20;
     M.phase += dt * sp * 0.12;
@@ -649,6 +702,11 @@ function update(dt) {
   const input = up || down || left || right || Stick.mag > 0;
   animMouse(dt, G.state === 'play' && (input || Math.abs(M.v) > 5));
   updateTail(dt);
+
+  // cortinilla circular y temblor de cámara
+  G.iris += clamp(G.irisTarget - G.iris, -dt / IRIS_T, dt / IRIS_T);
+  if (G.state === 'won' && !G.winCard && G.iris <= 0) showWinCard();
+  G.shake = Math.max(0, G.shake - dt * 2.2);
 
   const t = camTarget(), f = Math.min(1, dt * 4);
   cam.x += (t.x - cam.x) * f; cam.y += (t.y - cam.y) * f;
@@ -816,16 +874,26 @@ function drawMouse(c, alpha) {
     c.stroke();
   }
   // cuerpo en forma de pera redondeada: ancho atrás, hocico corto (cabeza y cuerpo en una sola silueta)
+  // la cabeza gira sobre el cuello (x = NECK); entre el cuello y x = NECK + 4 el giro se reparte para que doble suave
+  const NECK = 2;
+  const P = (x, y) => {
+    x = hx(x);
+    const a = M.headA * clamp((x - NECK) / 4, 0, 1);
+    if (!a) return [x, y];
+    const dx = x - NECK;
+    return [NECK + dx * Math.cos(a) - y * Math.sin(a), dx * Math.sin(a) + y * Math.cos(a)];
+  };
+  const bz = (...pts) => { const q = []; for (let i = 0; i < pts.length; i += 2) q.push(...P(pts[i], pts[i + 1])); body.bezierCurveTo(...q); };
   const body = new Path2D();
-  body.moveTo(hx(18), 0);
-  body.bezierCurveTo(hx(16.5), -2.2, hx(13), -4.6, hx(9), -5.8);       // hocico → cachete
-  body.bezierCurveTo(hx(5), -7, hx(3), -8.8, -1, -10);                 // hombros
-  body.bezierCurveTo(-5, -11.4, -11, -11.6, -15, -10);                 // parte más ancha
-  body.bezierCurveTo(-19, -8.2, -20.5, -4.5, -20.5, 0);                // cola / cadera
-  body.bezierCurveTo(-20.5, 4.5, -19, 8.2, -15, 10);
-  body.bezierCurveTo(-11, 11.6, -5, 11.4, -1, 10);
-  body.bezierCurveTo(hx(3), 8.8, hx(5), 7, hx(9), 5.8);
-  body.bezierCurveTo(hx(13), 4.6, hx(16.5), 2.2, hx(18), 0);
+  body.moveTo(...P(18, 0));
+  bz(16.5, -2.2, 13, -4.6, 9, -5.8);       // hocico → cachete
+  bz(5, -7, 3, -8.8, -1, -10);             // hombros
+  bz(-5, -11.4, -11, -11.6, -15, -10);     // parte más ancha
+  bz(-19, -8.2, -20.5, -4.5, -20.5, 0);    // cola / cadera
+  bz(-20.5, 4.5, -19, 8.2, -15, 10);
+  bz(-11, 11.6, -5, 11.4, -1, 10);
+  bz(3, 8.8, 5, 7, 9, 5.8);
+  bz(13, 4.6, 16.5, 2.2, 18, 0);
   const g = c.createRadialGradient(-5, -3, 2, -4, 0, 19);
   g.addColorStop(0, '#e9e2d9'); g.addColorStop(1, '#a39a90');
   c.fillStyle = g; c.fill(body);
@@ -834,12 +902,32 @@ function drawMouse(c, alpha) {
   c.strokeStyle = '#26262b'; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
   c.moveTo(1, -13); c.lineTo(1, 13); c.moveTo(-10, -13); c.lineTo(-10, 13); c.moveTo(-10, 0); c.lineTo(1, 0); c.stroke();
   c.restore();
-  // linterna sobre el lomo
-  const lg = c.createLinearGradient(0, -3.5, 0, 3.5);
-  lg.addColorStop(0, '#9a9ca2'); lg.addColorStop(0.5, '#5d6066'); lg.addColorStop(1, '#2f3136');
-  c.fillStyle = lg; c.fillRect(-13, -3.2, 17, 6.4);   // cuerpo de la linterna: pasa la segunda tira del arnés
+  // linterna sobre el lomo: cuerpo gris azulado (cilindro, igual de ambos lados) con una barra de batería
+  // que muestra el tiempo que queda y se vacía hacia la cola
+  const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
+  const FL = 4;   // medio ancho del cuerpo
+  const lg = c.createLinearGradient(0, -FL, 0, FL);
+  lg.addColorStop(0, '#1f2125'); lg.addColorStop(0.22, '#5a6970'); lg.addColorStop(0.5, '#8d9ca3');
+  lg.addColorStop(0.78, '#5a6970'); lg.addColorStop(1, '#1f2125');
+  c.fillStyle = lg; rr(-13, -FL, 17, FL * 2, 1.6); c.fill();   // pasa la segunda tira del arnés
+  c.fillStyle = '#26282c'; c.fillRect(-12.2, -FL + 0.5, 0.9, FL * 2 - 1);   // tapa trasera
+  c.fillStyle = '#121316'; rr(-11.3, -2.1, 10.4, 4.2, 1); c.fill();        // marco de la barra
+  const frac = G.state === 'title' ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
+  const blinkOut = G.state === 'play' && G.timeLeft <= 10 && Math.sin(G.time * 14) < -0.3;
+  if (frac > 0 && !blinkOut) {
+    c.fillStyle = frac > 0.25 ? '#e2ea3a' : frac > 0.1 ? '#f2b53a' : '#f0563a';
+    rr(-10.8, -1.6, 9.4 * frac, 3.2, 0.6); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-10.6, -1.35, Math.max(0, 9.4 * frac - 0.4), 0.55);   // brillo
+  }
+  for (const bx of [0.5, 2.6]) {   // botones
+    c.fillStyle = '#17181b'; rr(bx - 0.8, -1.4, 1.6, 2.8, 0.45); c.fill();
+    c.strokeStyle = 'rgba(190,205,210,0.55)'; c.lineWidth = 0.22; c.beginPath(); c.moveTo(bx, -0.6); c.lineTo(bx, 0.6); c.stroke();
+  }
+  c.fillStyle = '#3a3d42'; c.fillRect(3.4, -FL + 0.3, 0.6, FL * 2 - 0.6);   // anillo antes del cabezal
   c.fillStyle = '#7d8086'; c.fillRect(4, -4.2, 3.4, 8.4);
   c.fillStyle = G.light > 0.2 ? '#fff4d2' : '#6b6450'; c.fillRect(7.4, -3.6, 1.2, 7.2);
+  // cara (nariz, orejas, ojos, bigotes): gira entera con la cabeza
+  c.save(); c.translate(NECK, 0); c.rotate(M.headA); c.translate(-NECK, 0);
   // nariz chiquita, un poco metida dentro del hocico
   c.fillStyle = '#d98f95'; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill();
   const eyesClosed = M.blinkT > 0 || bump > 0.2;
@@ -869,6 +957,7 @@ function drawMouse(c, alpha) {
     }
     c.stroke();
   }
+  c.restore();   // fin de la cara
   c.restore();
 }
 
@@ -877,6 +966,9 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
   if (!G.maze) return;
+  // temblor suave de cámara (solo al dibujar, no mueve la cámara real)
+  const shx = G.shake * G.shake * 3 * Math.sin(G.time * 63), shy = G.shake * G.shake * 3 * Math.cos(G.time * 51);
+  cam.x += shx; cam.y += shy;
   const hw = w / (2 * scale), hh = h / (2 * scale);
   const v = { x0: cam.x - hw, y0: cam.y - hh, x1: cam.x + hw, y1: cam.y + hh };
   const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
@@ -909,7 +1001,17 @@ function render() {
       i ? bctx.lineTo(x, y) : bctx.moveTo(x, y);
     }
     bctx.closePath(); bctx.fill('nonzero');
-    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.drawImage(wallCv, 0, 0);
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (CAN_BLUR) {
+      // borde suave también en la luz de las paredes (antes se veía un círculo de borde duro)
+      const bw = blurCv.width, bh = blurCv.height;
+      blurCtx.setTransform(1, 0, 0, 1, 0, 0); blurCtx.clearRect(0, 0, bw, bh);
+      blurCtx.filter = `blur(${(WALL_SOFT * scale / 2).toFixed(1)}px)`;
+      blurCtx.drawImage(bCv, 0, 0, bw, bh); blurCtx.filter = 'none';
+      bctx.globalCompositeOperation = 'copy'; bctx.drawImage(blurCv, 0, 0, w, h);
+      bctx.globalCompositeOperation = 'destination-in';
+    }
+    bctx.drawImage(wallCv, 0, 0);
     bctx.globalCompositeOperation = 'source-over';
 
     lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalCompositeOperation = 'source-over'; lctx.globalAlpha = 1;
@@ -966,6 +1068,17 @@ function render() {
     litCtx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(litCv, sx, sy, sw, sh, sx, sy, sw, sh);
   }
+
+  // 6) cortinilla: círculo negro centrado en el ratón que se cierra al salir y se abre al empezar
+  if (G.iris < 1) {
+    const e = G.iris * G.iris * (3 - 2 * G.iris);   // suavizado
+    const maxR = Math.max(Math.hypot(mx, my), Math.hypot(w - mx, my), Math.hypot(mx, h - my), Math.hypot(w - mx, h - my));
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.beginPath();
+    ctx.rect(0, 0, w, h);
+    if (e > 0.001) ctx.arc(mx, my, e * maxR, 0, Math.PI * 2, true);
+    ctx.fill('evenodd');
+  }
+  cam.x -= shx; cam.y -= shy;
 
   // HUD
   if (G.state !== 'title') {
