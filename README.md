@@ -7,14 +7,14 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
 - Vista cenital: la cámara sigue al ratón.
 - Oscuridad total: solo se ve lo que ilumina la linterna, y las paredes cortan el haz.
 - Tiempo límite por nivel: si se acaba, repetís el mismo laberinto.
-- En los últimos 10 segundos suena la sirena: todo se tiñe de rojo y un haz giratorio deja ver más allá de la linterna.
+- En los últimos 10 segundos suena la sirena: todo se tiñe de rojo y un haz giratorio deja ver más allá de la linterna; cada vez que el haz pasa por encima de la rata suena un "Uuuuh".
 
 ## Modos
 
 - **Historia:** niveles diseñados (siempre iguales), cada uno presenta una mecánica nueva. Se guardan los niveles desbloqueados y las estrellas (1 a 3). Por ahora hay 4 niveles de prueba:
   1. **La trampera:** trampas al fondo de los callejones sin salida; si tocás una, perdés.
   2. **Pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
-  3. **Quesos:** 5 quesos para juntar antes de salir (dan una estrella extra).
+  3. **Quesos:** hay 10 quesos dando vueltas; juntá 5 antes de salir (dan una estrella extra).
   4. **Puertas:** puertitas de un solo sentido. Del lado del agujero empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
 - **Desafío:** laberintos al azar, infinitos, cada vez más grandes y con la cámara más cerca.
 

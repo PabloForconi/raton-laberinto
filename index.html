@@ -161,14 +161,14 @@ function timeFor(n, pathCells) {
 // Niveles diseñados: semilla fija (siempre el mismo laberinto) y las mecánicas de cada uno.
 // Los 4 primeros son de prueba: mismo tamaño (16×9, como el nivel 5 de Desafío) y una mecánica nueva cada uno.
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
-// traps / sticky / cheese / doors (cantidad de cada cosa), time (opcional: pisa el tiempo calculado).
+// traps / sticky / cheese / doors (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional: pisa el tiempo calculado).
 const LEVELS = [
   { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 12,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
   { name: 'Pegote', seed: 2203, size: [16, 9], loops: 0.02, sticky: 6,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito.' },
-  { name: 'Quesos', seed: 3307, size: [16, 9], loops: 0.02, cheese: 5,
-    intro: 'Juntá los 5 quesos antes de salir para ganar más estrellas.' },
+  { name: 'Quesos', seed: 3307, size: [16, 9], loops: 0.02, cheese: 10, cheeseGoal: 5,
+    intro: 'Hay 10 quesos dando vueltas: juntá 5 antes de salir para ganar más estrellas.' },
   { name: 'Puertas', seed: 4409, size: [16, 9], loops: 0, doors: 4,
     intro: 'Hay puertitas en las paredes: del lado del agujero empujás la cortina y pasás. Del otro lado, por más que empujes, no se abren.' },
 ];
@@ -251,6 +251,21 @@ const Snd = {
   },
   bump() { this.tone(120, 45, 0.18, 'sine', 0.45); this.noise(0.09, 500, 0.7, 0.35, 'lowpass'); },
   squeak() { const f = 2600 + Math.random() * 600; this.tone(f, f * 1.3, 0.08, 'sine', 0.07); this.tone(f * 1.25, f * 1.05, 0.09, 'sine', 0.06, 0.09); },
+  // sirena "Uuuuh": sube hasta el pico en WAIL_UP s (cuando el haz pasa por la rata) y baja; dos osciladores apenas desafinados
+  wail(v = 1) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime, up = WAIL_UP, dur = 1.3;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.1 * v, t + up); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 1.5;
+    f.frequency.setValueAtTime(700, t); f.frequency.linearRampToValueAtTime(1900, t + up); f.frequency.linearRampToValueAtTime(700, t + dur);
+    for (const [type, mul] of [['sawtooth', 1], ['triangle', 1.006]]) {
+      const o = c.createOscillator(); o.type = type;
+      o.frequency.setValueAtTime(300 * mul, t); o.frequency.exponentialRampToValueAtTime(560 * mul, t + up);
+      o.frequency.exponentialRampToValueAtTime(330 * mul, t + dur);
+      o.connect(f); o.start(t); o.stop(t + dur + 0.05);
+    }
+    f.connect(g).connect(this.master);
+  },
   tick(hi) { this.tone(hi ? 1600 : 1050, hi ? 1600 : 1050, 0.035, 'square', 0.07); },
   click() { this.noise(0.025, 3200, 2, 0.4); this.noise(0.02, 1800, 2, 0.3, 'bandpass', 0.05); },
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.22, 'triangle', 0.2, i * 0.11)); setTimeout(() => this.squeak(), 520); },
@@ -701,6 +716,7 @@ const G = { state: 'title', mode: 'challenge', level: 1, viewLevel: 1, story: 0,
 const IRIS_T = 0.5;                         // segundos que tarda en abrirse o cerrarse
 const DIM_T = 0.8, DIM_DEPTH = 0.1;         // bajón ocasional de la linterna: duración y cuánto baja (10%)
 G.dimIn = 6; G.dimT = 0; G.faltT = 0;
+const WAIL_UP = 0.4;                         // la sirena llega a su pico en 0.4 s (sincronizado con el haz)
 const FALTER_T = 0.35;                      // titubeo de la linterna después de choques seguidos
 const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0, lastBump: -9,
   bumpT: 0, blinkT: 0, blinkIn: 2, idleT: 0, twitch: { side: 1, t: 0 }, twitchIn: 1.5,   // animaciones de la cara
@@ -890,7 +906,8 @@ function loadStory(i) {
   G.items = placeItems(L, G.maze, rng);
   G.solids = doorSolids(G.items, G.rects);
   G.holeRects = G.solids.filter(R => !R.door);   // paredes con los agujeros de las puertas (la luz pasa con la cortina levantada)
-  G.cheeseTotal = G.items.filter(it => it.type === 'cheese').length;
+  const nCheese = G.items.filter(it => it.type === 'cheese').length;
+  G.cheeseTotal = Math.min(nCheese, L.cheeseGoal || nCheese);   // cuántos hay que juntar (puede haber más dando vueltas)
   // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
   const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5;   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
   G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
@@ -1370,6 +1387,14 @@ function update(dt) {
   G.fx = G.fx.filter(p => p.t < p.life);
   const sirenOn = (G.state === 'play' || G.state === 'paused') && G.timeLeft <= 10;
   G.siren += clamp((sirenOn ? 1 : 0) - G.siren, -dt / 0.5, dt / 0.5);
+  // "Uuuuh" de la sirena, una vez por vuelta: arranca un poco antes para que el pico coincida con el haz pasando
+  // por encima de la rata (el haz gira a G.time·π, una vuelta cada 2 s)
+  if (G.state === 'play' && G.siren > 0.3) {
+    const ra = Math.atan2(M.y - G.maze.H * C / 2, M.x - G.maze.W * C / 2);
+    const until = (((ra - G.time * Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / Math.PI;   // segundos hasta que pase
+    if (until <= WAIL_UP && G.wailUntil > WAIL_UP) Snd.wail(G.siren);
+    G.wailUntil = until;
+  } else G.wailUntil = 99;
   // cortinilla circular y temblor de cámara
   G.iris += clamp(G.irisTarget - G.iris, -dt / IRIS_T, dt / IRIS_T);
   if (G.state === 'won' && !G.winCard && G.iris <= 0) showWinCard();
