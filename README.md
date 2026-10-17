@@ -35,7 +35,7 @@ O abrí `index.html` en el navegador. No necesita instalación ni servidor.
 | R | reiniciar nivel |
 | N | saltar nivel (debug) |
 
-En el celular: apoyás el dedo en cualquier lugar y aparece un joystick; el ratón gira hacia donde apuntás y avanza según cuánto empujás. Los botones de pausa, música y efectos están arriba a la derecha.
+En el celular: apoyás el dedo en cualquier lugar y aparece un joystick; el ratón gira hacia donde apuntás y avanza según cuánto empujás. Los botones de pausa, música y efectos están arriba a la derecha, y la casita (volver al menú) arriba a la izquierda.
 
 La música (`audio/laberinto-de-circuitos.mp3`) arranca con el primer toque o tecla y suena bajita para no tapar los efectos.
 
