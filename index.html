@@ -510,7 +510,29 @@ function tubeSolids(items) {
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const [wallCv, wctx] = mk(), [lightCv, lctx] = mk(), [aCv, actx] = mk(), [bCv, bctx] = mk();
 const [blurCv, blurCtx] = mk(), [litCv, litCtx] = mk(), [mouseCv, mouseCtx] = mk();   // sombras suaves / paredes por encima del ratón / ratón opaco
-const CAN_BLUR = typeof blurCtx.filter === 'string';
+// ¿El navegador desenfoca de verdad con ctx.filter? (Safari / iPhone no: a veces tiene la propiedad pero la ignora)
+let CAN_BLUR = (() => {
+  try {
+    const [, tc] = mk(8, 8);
+    tc.filter = 'blur(2px)'; tc.fillStyle = '#fff'; tc.fillRect(4, 0, 4, 8); tc.filter = 'none';
+    return tc.getImageData(2, 4, 1, 1).data[3] > 0;   // a la izquierda del cuadrado solo hay algo si se desenfocó
+  } catch (_) { return false; }
+})();
+// Desenfoque alternativo (para cuando no hay filter): achica la imagen a la mitad varias veces con suavizado y
+// después se dibuja agrandada; el borde queda esfumado. Funciona en cualquier navegador.
+const halves = [mk(), mk(), mk(), mk()];
+function cheapBlur(src, radiusPx) {
+  const levels = clamp(Math.round(Math.log2(Math.max(1, radiusPx))), 1, halves.length);
+  let cur = src;
+  for (let i = 0; i < levels; i++) {
+    const [hc, hx] = halves[i];
+    hx.setTransform(1, 0, 0, 1, 0, 0); hx.imageSmoothingEnabled = true; hx.imageSmoothingQuality = 'high';
+    hx.clearRect(0, 0, hc.width, hc.height);
+    hx.drawImage(cur, 0, 0, cur.width, cur.height, 0, 0, hc.width, hc.height);
+    cur = hc;
+  }
+  return cur;
+}
 const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo)
 const WALL_SOFT = 8;     // esfumado del borde de la luz sobre las paredes
 let scale = 1;
@@ -565,6 +587,7 @@ function resize() {
   const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
   for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv, mouseCv]) { c.width = w; c.height = h; }
   blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);
+  halves.forEach(([hc], i) => { hc.width = Math.max(1, Math.ceil(w / 2 ** (i + 1))); hc.height = Math.max(1, Math.ceil(h / 2 ** (i + 1))); });
   computeScale();
 }
 function computeScale() {
@@ -590,49 +613,48 @@ const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   //
 const tailWidth = t => 3.6 - 3.0 * t;
 
 // Patas: [x, y] de reposo (coordenadas del ratón), si es de adelante, y su par diagonal (se mueven de a pares, como un trote)
-const FEET = [[10.4, -5.4, true, 0], [10.4, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
-const STEP_FRONT = 2.8, STEP_BACK = 3;     // cuánto se alejan del reposo antes de dar el paso (cortito: no se despegan del cuerpo)
-// Cada pata queda quieta en el piso mientras el cuerpo avanza; cuando se aleja demasiado de su lugar de reposo
-// (y su par diagonal está apoyado) da un paso rápido hasta un poco más adelante. En el pegamento los pasos
-// son más lentos y "tironeados", y al salir deja huellas pegajosas por un rato.
+const FEET = [[7.5, -5.4, true, 0], [7.5, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
+const STRIDE = 18;        // largo de un ciclo de paso (unidades de mundo recorridas por las patas)
+const SWING = 0.45;       // fracción del ciclo que la pata va por el aire
+const FRONT_REACH = 1;    // recorrido de las manos respecto del de las patas traseras (con menos, se corren hacia atrás al apoyar)
+// Marcha atada a la distancia: un ciclo (M.gait) avanza según cuánto se desplazan los lugares de reposo de las patas
+// (caminando o girando en el lugar). Cada par diagonal va a medio ciclo del otro, así que siempre están en sincronía:
+// lento = pasos lentos, rápido = pasos rápidos. Apoyada, la pata queda quieta en el piso; en el aire va de un poco
+// atrás a un poco adelante de su lugar. En el pegamento los pasos son más cortos y "tironeados", y al salir deja huellas.
 function updateFeet(dt) {
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
-  const home = ([fx, fy]) => [M.x + fx * ca - fy * sa, M.y + fx * sa + fy * ca];
-  if (!M.feet || M.feet.some((ft, i) => Math.hypot(ft.p[0] - home(FEET[i])[0], ft.p[1] - home(FEET[i])[1]) > 25)) {
-    M.feet = FEET.map(f => ({ p: home(f), from: null, to: null, t: 0, lift: 0 }));   // primera vez o teletransporte
+  const homes = FEET.map(([fx, fy]) => [M.x + fx * ca - fy * sa, M.y + fx * sa + fy * ca]);
+  if (!M.feet || !M.prevHomes || homes.some((h, i) => Math.hypot(h[0] - M.prevHomes[i][0], h[1] - M.prevHomes[i][1]) > 25)) {
+    M.feet = homes.map(h => ({ p: h, dir: [ca, sa], air: false, lift: 0 }));   // primera vez o teletransporte
+    M.prevHomes = homes; M.gait = 0;
     return;
   }
-  // más rápido corre, más cortitos y rápidos los pasos; en el pegamento, lentos
-  const sticky = M.onTray || M.stickyT > 0, swingT = sticky ? 0.22 : 0.12 - 0.06 * clamp(Math.abs(M.v) / SPEED, 0, 1);
-  const vx = Math.cos(M.a) * M.v, vy = Math.sin(M.a) * M.v;
-  FEET.forEach((f, i) => {
-    const ft = M.feet[i], h = home(f);
-    if (ft.to) {
-      ft.t += dt / swingT;
-      if (ft.t >= 1) {   // se apoya
-        ft.p = ft.to; ft.to = null; ft.lift = 0;
-        if (G.state === 'play') {
-          Snd.step();
-          if (M.stickyT > 0 && !M.onTray) G.prints.push({ x: ft.p[0], y: ft.p[1], a: M.a, side: Math.sign(f[1]), t: 0 });
-        }
-      } else {
-        // normal: arranca rápido y frena al apoyar (así no se queda atrás); pegado: le cuesta despegar
-        const e = sticky ? Math.pow(ft.t, 2.4) : 1 - (1 - ft.t) * (1 - ft.t);
-        ft.p = [ft.from[0] + (ft.to[0] - ft.from[0]) * e, ft.from[1] + (ft.to[1] - ft.from[1]) * e];
-        ft.lift = Math.sin(Math.PI * ft.t);
-      }
-    } else {
-      const d = Math.hypot(ft.p[0] - h[0], ft.p[1] - h[1]);
-      const pairBusy = M.feet.some((o, j) => o.to && FEET[j][3] !== f[3]), step = f[2] ? STEP_FRONT : STEP_BACK;
-      // espera a que el otro par apoye, salvo que ya se haya quedado muy atrás (si no, se vería despegada del cuerpo)
-      if ((d > step && !pairBusy) || d > step * 1.35) {
-        // apunta a donde va a estar su lugar de reposo cuando apoye (el cuerpo sigue avanzando mientras la pata
-        // está en el aire) y un poco más adelante: así la pata oscila alrededor de su lugar, no siempre atrás
-        const sp = Math.hypot(vx, vy), ahead = sp > 5 ? step * 0.7 / sp : 0;
-        ft.from = ft.p.slice(); ft.to = [h[0] + vx * (swingT + ahead), h[1] + vy * (swingT + ahead)]; ft.t = 0;
+  const sticky = M.onTray || M.stickyT > 0, stride = sticky ? STRIDE * 0.6 : STRIDE;
+  const disp = homes.map((h, i) => [h[0] - M.prevHomes[i][0], h[1] - M.prevHomes[i][1]]);
+  const dist = disp.reduce((a, d) => a + Math.hypot(d[0], d[1]), 0) / disp.length;
+  M.gait += dist / stride;
+  // si casi no se mueve y quedó una pata en el aire, termina el paso sola (no queda congelada levantada)
+  if (dist < 0.02 && M.feet.some(f => f.air)) M.gait += dt * 3;
+  FEET.forEach(([, fy, front, pair], i) => {
+    const ft = M.feet[i], h = homes[i], dl = Math.hypot(disp[i][0], disp[i][1]);
+    if (dl > 0.01) ft.dir = [disp[i][0] / dl, disp[i][1] / dl];          // hacia dónde se mueve esta pata
+    const A = stride * (1 - SWING) / 2 * (front ? FRONT_REACH : 1);    // cuánto se adelanta / atrasa de su lugar
+    const pf = ((M.gait + pair * 0.5) % 1 + 1) % 1;
+    if (pf < SWING) {                                                    // en el aire
+      const s = pf / SWING, e = sticky ? Math.pow(s, 2.2) : 1 - (1 - s) * (1 - s);
+      const rel = -A + 2 * A * e;
+      ft.p = [h[0] + ft.dir[0] * rel, h[1] + ft.dir[1] * rel];
+      ft.air = true; ft.lift = Math.sin(Math.PI * s);
+    } else if (ft.air) {                                                 // se apoya
+      ft.p = [h[0] + ft.dir[0] * A, h[1] + ft.dir[1] * A];
+      ft.air = false; ft.lift = 0;
+      if (G.state === 'play') {
+        Snd.step();
+        if (M.stickyT > 0 && !M.onTray) G.prints.push({ x: ft.p[0], y: ft.p[1], a: M.a, side: Math.sign(fy), t: 0 });
       }
     }
   });
+  M.prevHomes = homes;
 }
 const PRINT_LIFE = 4;   // segundos que duran las huellas pegajosas
 
@@ -1227,7 +1249,8 @@ function safeZone() {
       if (!$hud.classList.contains('hidden')) hud = Math.max(hud, $timer.getBoundingClientRect().bottom);
       safeZone.hud = hud;
     }
-    const top = (safeZone.hud + 28) * dpr, bottom = h * 0.72;
+    // arriba: bien por debajo del HUD (el ratón es grande); abajo: margen para el pulgar del joystick
+    const top = (safeZone.hud + 80) * dpr, bottom = h * 0.66;
     if (bottom - top > h * 0.25) { y0 = top; y1 = bottom; }   // en pantallas muy bajitas se queda con la zona normal
   }
   return { x0: w * 0.15, x1: w * 0.85, y0, y1 };
@@ -1798,6 +1821,10 @@ function render() {
       blurCtx.drawImage(bCv, 0, 0, bw, bh); blurCtx.filter = 'none';
       bctx.globalCompositeOperation = 'copy'; bctx.drawImage(blurCv, 0, 0, w, h);
       bctx.globalCompositeOperation = 'destination-in';
+    } else {   // sin filter (iPhone): desenfoque achicando y agrandando
+      bctx.imageSmoothingEnabled = true;
+      bctx.globalCompositeOperation = 'copy'; bctx.drawImage(cheapBlur(bCv, WALL_SOFT * scale), 0, 0, w, h);
+      bctx.globalCompositeOperation = 'destination-in';
     }
     bctx.drawImage(wallCv, 0, 0);
     bctx.globalCompositeOperation = 'source-over';
@@ -1812,7 +1839,10 @@ function render() {
       blurCtx.filter = `blur(${(SHADOW_SOFT * scale / 2).toFixed(1)}px)`;
       blurCtx.drawImage(aCv, 0, 0, bw, bh); blurCtx.filter = 'none';
       lctx.drawImage(blurCv, 0, 0, w, h);
-    } else lctx.drawImage(aCv, 0, 0);
+    } else {   // sin filter (iPhone): desenfoque achicando y agrandando
+      lctx.imageSmoothingEnabled = true;
+      lctx.drawImage(cheapBlur(aCv, SHADOW_SOFT * scale), 0, 0, w, h);
+    }
     lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
     if (G.siren > 0.01) drawSiren(lctx, T6);
