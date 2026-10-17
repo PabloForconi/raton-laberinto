@@ -196,11 +196,11 @@ const Snd = {
 
 // Música de fondo (archivo mp3): suena solo dentro del laberinto, con su propio botón de silencio
 const Music = {
-  el: null, started: false, vol: 0.5,
+  el: null, started: false, vol: 0.28,   // volumen bajo para que no tape los efectos
   muted: (() => { try { return localStorage.getItem('raton.musicMuted') === '1'; } catch (_) { return false; } })(),
   start() {
     if (!this.el) {
-      this.el = new Audio('audio/escape-laberintico.mp3');
+      this.el = new Audio('audio/laberinto-de-circuitos.mp3');
       this.el.loop = true; this.el.volume = 0; this.el.muted = this.muted;
     }
     this.started = true;
@@ -545,7 +545,7 @@ function showIntro() {
 function startPlay() {
   G.state = 'play'; G.onT = 0; card(null); Snd.click(); updateButtons();
   G.iris = 0; G.irisTarget = 1;   // la escena se abre desde un círculo negro
-  Music.start();                  // la música arranca al entrar al laberinto (no en la portada)
+  Music.start();                  // por si todavía no arrancó (normalmente ya suena desde la portada)
 }
 function win() {
   G.state = 'won'; Snd.win();
@@ -655,6 +655,8 @@ addEventListener('keydown', e => {
   else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) { loadLevel(G.level + 1); showIntro(); }
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+// la música arranca con el primer toque o tecla (los navegadores no dejan reproducir audio antes de un gesto)
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (!Music.started) Music.start(); }, { capture: true });
 addEventListener('click', e => { if (!e.target.closest('.btn')) primaryAction(); });
 function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.state === 'play') togglePause(); }
 addEventListener('blur', autoPause);
@@ -764,9 +766,28 @@ function update(dt) {
 
   const t = camTarget(), f = Math.min(1, dt * 4);
   cam.x += (t.x - cam.x) * f; cam.y += (t.y - cam.y) * f;
-  // red de seguridad: el ratón nunca sale del 70% central de la pantalla
-  const hw = cv.width / (2 * scale) * 0.7, hh = cv.height / (2 * scale) * 0.7;
-  cam.x = clamp(cam.x, M.x - hw, M.x + hw); cam.y = clamp(cam.y, M.y - hh, M.y + hh);
+  // red de seguridad: el ratón siempre queda dentro de una zona segura de la pantalla
+  const z = safeZone(), w = cv.width, h = cv.height;
+  cam.x = clamp(cam.x, M.x - (z.x1 - w / 2) / scale, M.x - (z.x0 - w / 2) / scale);
+  cam.y = clamp(cam.y, M.y - (z.y1 - h / 2) / scale, M.y - (z.y0 - h / 2) / scale);
+}
+
+// Zona de pantalla (en píxeles del canvas) donde tiene que quedar el ratón.
+// En el celular: debajo del HUD y por encima del tercio de abajo (donde suele estar el dedo del joystick).
+function safeZone() {
+  const w = cv.width, h = cv.height, dpr = cv.width / (cv.clientWidth || cv.width);
+  let y0 = h * 0.15, y1 = h * 0.85;
+  if (isTouch) {
+    if (!safeZone.at || G.time - safeZone.at > 0.5) {   // medir el HUD cuesta: se renueva cada medio segundo
+      safeZone.at = G.time;
+      let hud = document.getElementById('topbtns').getBoundingClientRect().bottom;
+      if (!$hud.classList.contains('hidden')) hud = Math.max(hud, $timer.getBoundingClientRect().bottom);
+      safeZone.hud = hud;
+    }
+    const top = (safeZone.hud + 28) * dpr, bottom = h * 0.72;
+    if (bottom - top > h * 0.25) { y0 = top; y1 = bottom; }   // en pantallas muy bajitas se queda con la zona normal
+  }
+  return { x0: w * 0.15, x1: w * 0.85, y0, y1 };
 }
 
 // ===================== LUZ (rayos contra las paredes) =====================

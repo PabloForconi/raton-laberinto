@@ -24,7 +24,7 @@ O abrí `index.html` en el navegador. No necesita instalación ni servidor.
 
 En el celular: apoyás el dedo en cualquier lugar y aparece un joystick; el ratón gira hacia donde apuntás y avanza según cuánto empujás. Los botones de pausa, música y efectos están arriba a la derecha.
 
-La música (`audio/escape-laberintico.mp3`) suena solo dentro del laberinto, no en la portada.
+La música (`audio/laberinto-de-circuitos.mp3`) arranca con el primer toque o tecla y suena bajita para no tapar los efectos.
 
 Los parámetros ajustables (velocidad, linterna, tamaños de nivel, zoom y tiempo) están al principio del script en `index.html`.
 
