@@ -1531,7 +1531,7 @@ function menuFlicker(dt) {
 function drawBulb(c, ox, oy) {
   const R = LIGHT_R * 0.7, g = c.createRadialGradient(ox, oy, 0, ox, oy, R);
   g.addColorStop(0, 'rgba(255,236,200,1)'); g.addColorStop(0.35, 'rgba(255,220,170,0.55)'); g.addColorStop(1, 'rgba(255,210,150,0)');
-  c.fillStyle = g; c.fillRect(ox - R, oy - R, R * 2, R * 2);
+  c.save(); c.fillStyle = g; c.fillRect(ox - R, oy - R, R * 2, R * 2); c.restore();   // restore: si no, el degradé quedaba de fillStyle y el recorte de la luz del juego salía vacío
 }
 
 function drawCone(c, ox, oy) {
@@ -2078,14 +2078,14 @@ function render() {
     castRays(ox, oy);
     actx.setTransform(1, 0, 0, 1, 0, 0); actx.clearRect(0, 0, w, h); actx.setTransform(...T6);
     light(actx, ox, oy);
-    actx.globalCompositeOperation = 'destination-in'; actx.beginPath();
+    actx.globalCompositeOperation = 'destination-in'; actx.fillStyle = '#000'; actx.beginPath();
     for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * HITS[i], y = oy + SIN[i] * HITS[i]; i ? actx.lineTo(x, y) : actx.moveTo(x, y); }
     actx.closePath(); actx.fill(); actx.globalCompositeOperation = 'source-over';
 
     // las paredes se iluminan un poco más allá del impacto (su canto y su cara proyectada)
     bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, w, h); bctx.setTransform(...T6);
     light(bctx, ox, oy);
-    bctx.globalCompositeOperation = 'destination-in'; bctx.beginPath();
+    bctx.globalCompositeOperation = 'destination-in'; bctx.fillStyle = '#000'; bctx.beginPath();
     const ext = T + 6, s = 1 + K;
     for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * (HITS[i] + ext), y = oy + SIN[i] * (HITS[i] + ext); i ? bctx.lineTo(x, y) : bctx.moveTo(x, y); }
     bctx.closePath();
