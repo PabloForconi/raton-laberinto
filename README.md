@@ -17,11 +17,14 @@ O abrí `index.html` en el navegador. No necesita instalación ni servidor.
 |---|---|
 | ↑ ↓ ← → / W A S D | moverte en esa dirección (el ratón gira hacia donde apuntás; se pueden combinar para diagonales) |
 | P / Esc | pausa |
-| M | sonido |
+| M | música (on/off) |
+| F | efectos de sonido (on/off) |
 | R | reiniciar nivel |
 | N | saltar nivel (debug) |
 
-En el celular: apoyás el dedo en cualquier lugar y aparece un joystick; el ratón gira hacia donde apuntás y avanza según cuánto empujás. Los botones de sonido y pausa están arriba a la derecha.
+En el celular: apoyás el dedo en cualquier lugar y aparece un joystick; el ratón gira hacia donde apuntás y avanza según cuánto empujás. Los botones de pausa, música y efectos están arriba a la derecha.
+
+La música (`audio/escape-laberintico.mp3`) suena solo dentro del laberinto, no en la portada.
 
 Los parámetros ajustables (velocidad, linterna, tamaños de nivel, zoom y tiempo) están al principio del script en `index.html`.
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-HTML game prototype: a lab rat escapes a dark cardboard maze with a flashlight strapped to its back. All the code lives in `index.html` (inline CSS and JS, no dependencies, no build step). The only external resources are the Google Fonts fonts (Permanent Marker, Special Elite), with fallbacks. `concept/` holds the reference concept art (top-down view, cardboard walls with a corrugated edge, white rat with a harness) and the game doesn't load it.
+HTML game prototype: a lab rat escapes a dark cardboard maze with a flashlight strapped to its back. All the code lives in `index.html` (inline CSS and JS, no dependencies, no build step); the only asset is the music in `audio/`. The only external resources are the Google Fonts fonts (Permanent Marker, Special Elite), with fallbacks. `concept/` holds the reference concept art (top-down view, cardboard walls with a corrugated edge, white rat with a harness) and the game doesn't load it.
 
 The UI, the code comments and the README are in Spanish (Rioplatense, with voseo: "presioná", "escapaste"). Keep that tone.
 
@@ -45,7 +45,7 @@ The cards (`card()`) are animated: the one leaving shrinks (`.out`, 0.13 s) and 
 
 **Input**: directional control on both platforms, with no tank controls (the user tried them and changed their mind, and the gyroscope was dropped too because it was uncomfortable). Each frame, `update()` computes a target direction on screen. It comes from the floating joystick on mobile (`Stick`, with `#stickZone` covering the screen and the base `#stick` appearing where you put your finger) or from the arrows/WASD on PC (↑ = up, and they combine into diagonals). The rat turns toward that direction gradually, limited by `TURN`, and moves at `SPEED × magnitude × cos(angle difference)`, so it first turns and then moves forward. Space, click or tap trigger `primaryAction()`. Mute is saved in `localStorage` (`raton.muted`).
 
-**Sound** (`Snd`): all synthesized with WebAudio (oscillators and filtered noise, no files). `Snd.init()` runs on the first keypress because of the browsers' autoplay policy.
+**Sound** (`Snd`): the effects are all synthesized with WebAudio (oscillators and filtered noise, no files), including the "whoosh" of cards entering (`cardIn`) and leaving (`cardOut`). `Snd.init()` runs on the first keypress because of the browsers' autoplay policy. The music is the only file: `audio/escape-laberintico.mp3`, in `Music` (an `Audio` element on loop, separate from WebAudio). It starts in `startPlay` (never on the title screen), fades in, and pauses and resumes with the pause. Music and effects have separate buttons and mute states (`raton.musicMuted` / `raton.muted` in `localStorage`; keys M / F). In the browser pane the mp3 doesn't load, because the local file opens as a `data:` snapshot. Test it at the Pages URL.
 
 ## Git / GitHub
 

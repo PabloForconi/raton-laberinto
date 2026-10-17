@@ -86,12 +86,13 @@
   <div id="level" class="tape">NIVEL 1</div>
   <div id="timer" class="tape">0:00</div>
 </div>
-<div id="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> sonido · <kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
+<div id="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> música · <kbd>F</kbd> efectos ·<kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
 <div id="hintTouch">Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir</div>
 <div id="stickZone"></div>
 <div id="stick"><div id="knob"></div></div>
 <div id="topbtns">
   <button id="btnPause" class="btn tape hidden" type="button"></button>
+  <button id="btnMusic" class="btn tape" type="button"></button>
   <button id="btnSound" class="btn tape" type="button"></button>
 </div>
 <div id="card" class="hidden"></div>
@@ -178,6 +179,40 @@ const Snd = {
   click() { this.noise(0.025, 3200, 2, 0.4); this.noise(0.02, 1800, 2, 0.3, 'bandpass', 0.05); },
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.22, 'triangle', 0.2, i * 0.11)); setTimeout(() => this.squeak(), 520); },
   lose() { this.tone(420, 60, 1.0, 'sawtooth', 0.09); this.tone(210, 40, 1.2, 'square', 0.05, 0.05); },
+  // ruido con barrido de frecuencia (para los "fiuu" de los carteles)
+  sweep(f0, f1, dur, vol, q = 1.2, delay = 0) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime + delay;
+    const s = c.createBufferSource(); s.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(this.master); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.02);
+  },
+  // cartel que entra: "fiuu" que sube y golpecito de cartón al asentarse
+  cardIn() { this.sweep(500, 2400, 0.14, 0.16); this.tone(170, 80, 0.09, 'sine', 0.22, 0.12); this.noise(0.05, 700, 0.8, 0.18, 'lowpass', 0.12); },
+  // cartel que sale: "fiuu" que baja, más corto
+  cardOut() { this.sweep(2200, 450, 0.12, 0.13); },
+};
+
+// Música de fondo (archivo mp3): suena solo dentro del laberinto, con su propio botón de silencio
+const Music = {
+  el: null, started: false, vol: 0.5,
+  muted: (() => { try { return localStorage.getItem('raton.musicMuted') === '1'; } catch (_) { return false; } })(),
+  start() {
+    if (!this.el) {
+      this.el = new Audio('audio/escape-laberintico.mp3');
+      this.el.loop = true; this.el.volume = 0; this.el.muted = this.muted;
+    }
+    this.started = true;
+    this.el.play().catch(() => {});
+  },
+  pause() { if (this.el) this.el.pause(); },
+  resume() { if (this.el && this.started) this.el.play().catch(() => {}); },
+  toggle() {
+    this.muted = !this.muted; if (this.el) this.el.muted = this.muted;
+    try { localStorage.setItem('raton.musicMuted', this.muted ? '1' : '0'); } catch (_) {}
+  },
+  tick(dt) { if (this.el && this.el.volume < this.vol) this.el.volume = Math.min(this.vol, this.el.volume + dt * this.vol / 1.5); },   // entra suave
 };
 
 // ===================== LABERINTO =====================
@@ -471,6 +506,7 @@ function card(html) {
   clearTimeout(cardTimer);
   const shown = !$card.classList.contains('hidden') && !$card.classList.contains('out');
   if (shown) {
+    Snd.cardOut();
     $card.classList.remove('in'); $card.classList.add('out');
     cardTimer = setTimeout(() => { $card.classList.remove('out'); showCard(html); }, 130);
   } else { $card.classList.remove('out'); showCard(html); }
@@ -478,6 +514,7 @@ function card(html) {
 function showCard(html) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in'); void $card.offsetWidth; $card.classList.add('in');
+  Snd.cardIn();
 }
 function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>ESPACIO</kbd>'} para ${what}</p>`; }
@@ -508,6 +545,7 @@ function showIntro() {
 function startPlay() {
   G.state = 'play'; G.onT = 0; card(null); Snd.click(); updateButtons();
   G.iris = 0; G.irisTarget = 1;   // la escena se abre desde un círculo negro
+  Music.start();                  // la música arranca al entrar al laberinto (no en la portada)
 }
 function win() {
   G.state = 'won'; Snd.win();
@@ -529,8 +567,8 @@ function lost() {
   updateButtons();
 }
 function togglePause() {
-  if (G.state === 'play') { G.state = 'paused'; card(`<h1>PAUSA</h1>${go('seguir')}`); }
-  else if (G.state === 'paused') { G.state = 'play'; card(null); }
+  if (G.state === 'play') { G.state = 'paused'; card(`<h1>PAUSA</h1>${go('seguir')}`); Music.pause(); }
+  else if (G.state === 'paused') { G.state = 'play'; card(null); Music.resume(); }
   updateButtons();
 }
 // Acción principal: ESPACIO en teclado o tocar la pantalla
@@ -549,11 +587,15 @@ const ICONS = {
   muted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>',
+  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></svg>',
+  musicOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/><path d="M3 3l18 18" stroke-width="2.6"/></svg>',
 };
-const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause');
+const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnMusic = document.getElementById('btnMusic');
 function updateButtons() {
   $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
-  $btnSound.title = Snd.muted ? 'Activar sonido (M)' : 'Silenciar (M)';
+  $btnSound.title = Snd.muted ? 'Activar efectos (F)' : 'Silenciar efectos (F)';
+  $btnMusic.innerHTML = Music.muted ? ICONS.musicOff : ICONS.music;
+  $btnMusic.title = Music.muted ? 'Activar música (M)' : 'Silenciar música (M)';
   $btnPause.innerHTML = G.state === 'paused' ? ICONS.play : ICONS.pause;
   $btnPause.title = G.state === 'paused' ? 'Seguir (P)' : 'Pausa (P)';
   $btnPause.classList.toggle('hidden', !['play', 'paused'].includes(G.state));
@@ -561,6 +603,7 @@ function updateButtons() {
   if (G.state !== 'play') stickEnd();
 }
 $btnSound.addEventListener('click', e => { e.stopPropagation(); Snd.init(); Snd.toggle(); updateButtons(); });
+$btnMusic.addEventListener('click', e => { e.stopPropagation(); Music.toggle(); updateButtons(); });
 $btnPause.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
 
 // ---- joystick flotante (celular) ----
@@ -606,7 +649,8 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (k === ' ' || k === 'enter') primaryAction();
   else if (k === 'p' || k === 'escape') togglePause();
-  else if (k === 'm') { Snd.toggle(); updateButtons(); }
+  else if (k === 'm') { Music.toggle(); updateButtons(); }
+  else if (k === 'f') { Snd.toggle(); updateButtons(); }
   else if (k === 'r' && G.state === 'play') { G.attempts++; resetRun(); startPlay(); }
   else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) { loadLevel(G.level + 1); showIntro(); }
 });
@@ -712,6 +756,7 @@ function update(dt) {
   animMouse(dt, G.state === 'play' && (input || Math.abs(M.v) > 5));
   updateTail(dt);
 
+  Music.tick(dt);
   // cortinilla circular y temblor de cámara
   G.iris += clamp(G.irisTarget - G.iris, -dt / IRIS_T, dt / IRIS_T);
   if (G.state === 'won' && !G.winCard && G.iris <= 0) showWinCard();
@@ -872,7 +917,7 @@ function drawMouse(c, alpha) {
   c.fillStyle = '#9a625e'; c.strokeStyle = '#9a625e'; c.lineCap = 'round'; c.lineWidth = 0.7;
   for (const [fx, fy, ph, rx, ry, rot] of [
     [12, -5.4, 1, 1.7, 2.0, -0.4], [12, 5.4, -1, 1.7, 2.0, 0.4],                 // manos
-    [-14.5, -10.2, -1, 3.4, 1.9, -0.35], [-14.5, 10.2, 1, 3.4, 1.9, 0.35]]) {     // patas traseras
+    [-14.5, -9.2, -1, 3.4, 1.9, -0.35], [-14.5, 9.2, 1, 3.4, 1.9, 0.35]]) {       // patas traseras
     const x = hx(fx + step * ph * (fx > 0 ? 1.4 : 2.2)), side = Math.sign(fy);
     const palm = x - (fx > 0 ? 1.6 : 0);   // la palma de las manos va un poco hacia el lomo; los deditos quedan donde estaban
     c.save(); c.translate(palm, fy); c.rotate(rot);
