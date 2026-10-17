@@ -161,7 +161,7 @@ function timeFor(n, pathCells) {
 // Niveles diseñados: semilla fija (siempre el mismo laberinto) y las mecánicas de cada uno.
 // Los 4 primeros son de prueba: mismo tamaño (16×9, como el nivel 5 de Desafío) y una mecánica nueva cada uno.
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
-// traps / sticky / cheese / tunnels (cantidad de cada cosa), time (opcional: pisa el tiempo calculado).
+// traps / sticky / cheese / doors (cantidad de cada cosa), time (opcional: pisa el tiempo calculado).
 const LEVELS = [
   { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 12,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
@@ -169,8 +169,8 @@ const LEVELS = [
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito.' },
   { name: 'Quesos', seed: 3307, size: [16, 9], loops: 0.02, cheese: 5,
     intro: 'Juntá los 5 quesos antes de salir para ganar más estrellas.' },
-  { name: 'Atajos', seed: 4409, size: [16, 9], loops: 0, tunnels: 3,
-    intro: 'Los rollos de cartón atraviesan las paredes: entrá por una boca y salís por la otra.' },
+  { name: 'Puertas', seed: 4409, size: [16, 9], loops: 0, doors: 4,
+    intro: 'Hay puertitas en las paredes: del lado del agujero empujás la cortina y pasás. Del otro lado, por más que empujes, no se abren.' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
 
@@ -230,7 +230,25 @@ const Snd = {
     const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f).connect(g).connect(this.master); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.02);
   },
-  step() { this.noise(0.035, 2200 + Math.random() * 1800, 1.4, 0.07); },
+  // paso: cada uno distinto (volumen, tono, duración y "brillo" al azar) para que suene orgánico
+  step() {
+    const r = Math.random;
+    this.noise(0.022 + r() * 0.03, 1500 + r() * 3200, 0.9 + r() * 1.4, 0.035 + r() * 0.06);
+    if (r() < 0.3) this.noise(0.015 + r() * 0.015, 4500 + r() * 2500, 2, 0.015 + r() * 0.02, 'bandpass', 0.008);   // uñita
+  },
+  // chillido de rata asustada: tres chirridos agudos con vibrato, el tono sube y baja
+  squeal() {
+    const c = this.ctx; if (!c) return;
+    [[0, 3000, 3900, 2900, 0.16], [0.17, 3300, 4300, 3100, 0.14], [0.33, 2800, 3600, 2500, 0.2]].forEach(([d, f0, f1, f2, dur]) => {
+      const t = c.currentTime + d + Math.random() * 0.02;
+      const o = c.createOscillator(); o.type = 'triangle';
+      o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f1, t + dur * 0.35); o.frequency.linearRampToValueAtTime(f2, t + dur);
+      const lfo = c.createOscillator(); lfo.frequency.value = 28 + Math.random() * 10;   // vibrato nervioso
+      const lg = c.createGain(); lg.gain.value = 140; lfo.connect(lg).connect(o.frequency);
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.11, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(this.master); o.start(t); lfo.start(t); o.stop(t + dur + 0.03); lfo.stop(t + dur + 0.03);
+    });
+  },
   bump() { this.tone(120, 45, 0.18, 'sine', 0.45); this.noise(0.09, 500, 0.7, 0.35, 'lowpass'); },
   squeak() { const f = 2600 + Math.random() * 600; this.tone(f, f * 1.3, 0.08, 'sine', 0.07); this.tone(f * 1.25, f * 1.05, 0.09, 'sine', 0.06, 0.09); },
   tick(hi) { this.tone(hi ? 1600 : 1050, hi ? 1600 : 1050, 0.035, 'square', 0.07); },
@@ -256,8 +274,8 @@ const Snd = {
   squish() { this.sweep(900, 220, 0.25, 0.3, 2.5); this.tone(110, 70, 0.15, 'sine', 0.12); },
   // agarrar un queso: dos notitas para arriba
   cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
-  // entrar a un rollo: "fwoop" hueco
-  tube() { this.sweep(300, 1100, 0.45, 0.22, 4); this.tone(140, 230, 0.4, 'sine', 0.1); },
+  flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
+  flapShut(v = 1) { this.noise(0.05, 650, 0.9, 0.3 * v, 'lowpass'); this.tone(190, 95, 0.07, 'sine', 0.16 * v); },   // la cortina golpea el marco
 };
 
 // Música de fondo (archivo mp3): suena solo dentro del laberinto, con su propio botón de silencio
@@ -386,7 +404,6 @@ function buildDeco(m, rng) {
 // ===================== ITEMS (mecánicas de Historia) =====================
 const TRAP_L = 52, TRAP_W = 27;        // trampa (más grande que la rata; casi todo el largo del callejón)
 const TRAY_W = 48, TRAY_L = Math.round(TRAY_W * 62 / 32);   // bandeja de pegamento: casi todo el ancho del pasillo, largo proporcional
-const TUBE_R = 13, TUBE_OUT = 0.3 * C; // radio del rollo y cuánto sobresale de la pared hacia cada lado
 const STICKY_SLOW = 0.35, STICKY_T = 1.5;     // al salir: recupera desde STICKY_SLOW en STICKY_T segundos
 const STICKY_ON = 0.38, STICKY_PAW = 0.06;    // encima: 0.38 de velocidad, menos 0.06 por cada pata apoyada (4 patas: 0.14)
 
@@ -466,45 +483,141 @@ function placeItems(L, m, rng) {
       used.push([c, r]);
     }
   }
-  // Túneles: atajo que atraviesa una pared entre dos celdas vecinas que por el laberinto están lejos
-  if (L.tunnels) {
+  // Puertas de un solo sentido: en una pared entre dos celdas vecinas que por el laberinto están lejos.
+  // Se pasa de A (lado del agujero) a B (lado de la cortina): A es la celda más lejana a la salida, así es un atajo de ida.
+  if (L.doors) {
     const pairs = [];
     for (const [c, r] of cells) {
-      if (special(c, r)) continue;
+      if (special(c, r, 1)) continue;
       const d = bfs(m, c, r);
-      if (c + 1 < W && m.vW[c + 1][r] && !special(c + 1, r) && d[idx(c + 1, r)] >= 8) pairs.push({ a: [c, r], b: [c + 1, r], gain: d[idx(c + 1, r)] });
-      if (r + 1 < H && m.hW[r + 1][c] && !special(c, r + 1) && d[idx(c, r + 1)] >= 8) pairs.push({ a: [c, r], b: [c, r + 1], gain: d[idx(c, r + 1)] });
+      if (c + 1 < W && m.vW[c + 1][r] && !special(c + 1, r, 1) && d[idx(c + 1, r)] >= 8) pairs.push({ a: [c, r], b: [c + 1, r], gain: d[idx(c + 1, r)] });
+      if (r + 1 < H && m.hW[r + 1][c] && !special(c, r + 1, 1) && d[idx(c, r + 1)] >= 8) pairs.push({ a: [c, r], b: [c, r + 1], gain: d[idx(c, r + 1)] });
     }
     shuffle(pairs).sort((p, q) => q.gain - p.gain);
     const chosen = [];
     for (const p of pairs) {
-      if (chosen.length >= L.tunnels) break;
+      if (chosen.length >= L.doors) break;
       const busy = used.concat(...chosen.map(q => [q.a, q.b]));
       if (busy.some(u => Math.abs(u[0] - p.a[0]) + Math.abs(u[1] - p.a[1]) < 3 || Math.abs(u[0] - p.b[0]) + Math.abs(u[1] - p.b[1]) < 3)) continue;
       chosen.push(p);
     }
     for (const p of chosen) {
-      const [ax, ay] = center(...p.a), [bx, by] = center(...p.b);
-      const dx = Math.sign(bx - ax), dy = Math.sign(by - ay), wx = (ax + bx) / 2, wy = (ay + by) / 2;
-      items.push({ type: 'tunnel', dx, dy, wx, wy,                                     // pared en (wx, wy), eje (dx, dy)
-        a: [wx - dx * TUBE_OUT, wy - dy * TUBE_OUT], b: [wx + dx * TUBE_OUT, wy + dy * TUBE_OUT] });   // bocas
+      // hacia la salida: el lado del agujero (A) es el que está más lejos de la salida
+      const [from, to] = dX[idx(...p.a)] >= dX[idx(...p.b)] ? [p.a, p.b] : [p.b, p.a];
+      const [ax, ay] = center(...from), [bx, by] = center(...to);
+      items.push({ type: 'door', dx: Math.sign(bx - ax), dy: Math.sign(by - ay), wx: (ax + bx) / 2, wy: (ay + by) / 2,
+        passing: false, ang: DOOR_REST, av: 0, rattle: 0 });
       used.push(p.a, p.b);
     }
   }
   return items;
 }
 
-// Costados de los rollos (para que solo se entre de frente): rectángulos finos que chocan como paredes
-function tubeSolids(items) {
-  const out = [];
-  for (const it of items) if (it.type === 'tunnel') {
-    for (const side of [-1, 1]) for (const [px, py] of [it.a, it.b]) {
-      const x0 = Math.min(px, it.wx), x1 = Math.max(px, it.wx), y0 = Math.min(py, it.wy), y1 = Math.max(py, it.wy);
-      if (it.dx) out.push({ x: x0, y: it.wy + side * (TUBE_R + 1.5) - 1.5, w: x1 - x0, h: 3 });
-      else out.push({ x: it.wx + side * (TUBE_R + 1.5) - 1.5, y: y0, w: 3, h: y1 - y0 });
-    }
+// Puertas: la pared se corta en el hueco (para chocar) y el hueco se vuelve un sólido de un solo sentido.
+// Las paredes que se dibujan y cortan la luz (G.rects) quedan enteras: el canto sigue arriba del hueco.
+const DOOR_HOLE = 30, DOOR_FLAP = 42;   // ancho del agujero y de la cortina (más grande que el agujero)
+function doorSolids(items, rects) {
+  let out = rects.slice();
+  for (const d of items) if (d.type === 'door') {
+    const vert = d.dx !== 0;   // pared vertical si el paso es horizontal
+    out = out.flatMap(R => {
+      const inside = vert ? R.w === T && Math.abs(R.x + T / 2 - d.wx) < 0.5 && d.wy > R.y && d.wy < R.y + R.h
+                          : R.h === T && Math.abs(R.y + T / 2 - d.wy) < 0.5 && d.wx > R.x && d.wx < R.x + R.w;
+      if (!inside) return [R];
+      return vert
+        ? [{ x: R.x, y: R.y, w: R.w, h: d.wy - DOOR_HOLE / 2 - R.y }, { x: R.x, y: d.wy + DOOR_HOLE / 2, w: R.w, h: R.y + R.h - d.wy - DOOR_HOLE / 2 }]
+        : [{ x: R.x, y: R.y, w: d.wx - DOOR_HOLE / 2 - R.x, h: R.h }, { x: d.wx + DOOR_HOLE / 2, y: R.y, w: R.x + R.w - d.wx - DOOR_HOLE / 2, h: R.h }];
+    });
+    d.rect = vert ? { x: d.wx - T / 2, y: d.wy - DOOR_HOLE / 2, w: T, h: DOOR_HOLE, door: d }
+                  : { x: d.wx - DOOR_HOLE / 2, y: d.wy - T / 2, w: DOOR_HOLE, h: T, door: d };
+    out.push(d.rect);
   }
   return out;
+}
+
+// Cortina: cuelga de una bisagra (cinta) arriba del agujero, del lado B. Pasando, sube según cuánto asoma la rata
+// del otro lado; al soltarla cae, golpea el marco y rebota un poquito. En reposo queda apenas despegada (se ve el borde).
+const DOOR_REST = 0.18;                 // ángulo de reposo (rad)
+const WALL_HW = 40;                     // alto de la pared en unidades de mundo (para el largo de la cortina)
+const HOLE_H = 0.5, FLAP_H = 0.64;      // alto del agujero y de la bisagra (fracción del alto de la pared)
+function updateDoors(dt) {
+  const L = FLAP_H * WALL_HW;
+  for (const d of G.items) if (d.type === 'door') {
+    let tgt = DOOR_REST;
+    if (d.passing) {
+      // cuánto asoma la rata del lado de la cortina (punta del círculo más adelantado, desde la cara de la pared)
+      const depth = Math.max(...ratCircles().map(([x, y, r]) => (x - d.wx) * d.dx + (y - d.wy) * d.dy + r)) - T / 2;
+      tgt = clamp(Math.asin(clamp(depth / L, 0, 1)) + 0.25, 0.3, 1.25);
+    }
+    d.av += ((tgt - d.ang) * 160 - d.av * 11) * dt;
+    d.ang += d.av * dt;
+    if (d.ang < 0) {                     // golpea el marco
+      if (d.av < -2.5) Snd.flapShut(Math.min(1, -d.av / 10));
+      d.ang = 0; d.av = -d.av * 0.3;
+    }
+    d.rattle = Math.max(0, d.rattle - dt * 3);
+  }
+}
+
+// Dibujo de las puertas, en tres pasadas de drawWalls:
+// 'back'  (antes de las paredes): la cortina cuando la cámara está del lado del agujero (la pared la tapa en parte)
+// 'hole'  (sobre las caras laterales): el agujero oscuro en la cara que mira a la cámara, del lado A
+// 'front' (después de los cantos): la cortina cuando la cámara está del lado de la cortina, y las cintas de la bisagra
+function drawDoors(c, v, pass) {
+  for (const d of G.items) {
+    if (d.type !== 'door' || d.wx < v.x0 - C * 2 || d.wx > v.x1 + C * 2 || d.wy < v.y0 - C * 2 || d.wy > v.y1 + C * 2) continue;
+    const nx = d.dx, ny = d.dy, tx = -ny, ty = nx;
+    // punto en coordenadas de la puerta: u a lo largo del paso (A→B), w de costado, f altura (0 piso, 1 canto)
+    const P = (u, w, f) => {
+      const x = d.wx + nx * u + tx * w, y = d.wy + ny * u + ty * w, k = 1 + K * f;
+      return [cam.x + (x - cam.x) * k, cam.y + (y - cam.y) * k];
+    };
+    const quad = pts => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
+    const camU = (cam.x - d.wx) * nx + (cam.y - d.wy) * ny;
+    if (pass === 'hole') {
+      if (camU < -T / 2) {   // la cara del lado A mira a la cámara: se ve el agujero (y adentro, la cortina en sombra)
+        const h = DOOR_HOLE / 2, u = -T / 2;
+        quad([P(u, -h, 0), P(u, h, 0), P(u, h, HOLE_H), P(u, -h, HOLE_H)]);
+        c.fillStyle = '#120c07'; c.fill();
+        c.strokeStyle = 'rgba(200,160,110,0.35)'; c.lineWidth = 0.6; c.stroke();   // borde cortado del cartón
+      }
+      continue;
+    }
+    if ((pass === 'back') === (camU > T / 2)) {
+      if (pass === 'front') drawHinge(c, d, P, quad);
+      continue;
+    }
+    // la cortina: de la bisagra (u = T/2, altura FLAP_H) hasta su borde libre
+    const ang = d.ang + d.rattle * 0.05 * Math.abs(Math.sin(G.time * 60));
+    const L = FLAP_H * WALL_HW, fw = DOOR_FLAP / 2;
+    const u1 = T / 2 + L * Math.sin(ang), f1 = FLAP_H * (1 - Math.cos(ang));
+    const hinge = [P(T / 2, -fw, FLAP_H), P(T / 2, fw, FLAP_H)], edge = [P(u1, fw, f1), P(u1, -fw, f1)];
+    const [gx0, gy0] = P(T / 2, 0, FLAP_H), [gx1, gy1] = P(u1, 0, f1);
+    const g = c.createLinearGradient(gx0, gy0, gx1, gy1);
+    g.addColorStop(0, '#6f6658'); g.addColorStop(1, '#a89d88');
+    quad([...hinge, ...edge]); c.fillStyle = g; c.fill();
+    c.strokeStyle = 'rgba(40,30,20,0.7)'; c.lineWidth = 0.7; c.stroke();
+    // borde inferior más claro (canto del cartón fino)
+    c.strokeStyle = '#c9bea8'; c.lineWidth = 1; c.beginPath(); c.moveTo(...edge[0]); c.lineTo(...edge[1]); c.stroke();
+    if (pass === 'front') drawHinge(c, d, P, quad);
+  }
+}
+// Sombra en el piso del lado del agujero: el hueco es oscuro y se nota aunque la cámara esté justo arriba
+function drawDoorShadow(c, d) {
+  const h = DOOR_HOLE / 2, x0 = d.wx - d.dx * T / 2, y0 = d.wy - d.dy * T / 2, x1 = x0 - d.dx * 8, y1 = y0 - d.dy * 8;
+  const g = c.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, 'rgba(8,5,2,0.8)'); g.addColorStop(1, 'rgba(8,5,2,0)');
+  c.fillStyle = g; c.beginPath();
+  c.moveTo(x0 + d.dy * h, y0 - d.dx * h); c.lineTo(x0 - d.dy * h, y0 + d.dx * h);
+  c.lineTo(x1 - d.dy * (h + 3), y1 + d.dx * (h + 3)); c.lineTo(x1 + d.dy * (h + 3), y1 - d.dx * (h + 3)); c.closePath(); c.fill();
+}
+// Cintas que sostienen la cortina: cruzan el canto de la pared y bajan por la cara del lado B
+function drawHinge(c, d, P, quad) {
+  for (const w of [-DOOR_FLAP / 2 + 5, DOOR_FLAP / 2 - 5]) {
+    quad([P(-T / 2 + 1, w - 3, 1), P(-T / 2 + 1, w + 3, 1), P(T / 2, w + 3, 1), P(T / 2, w + 3, FLAP_H - 0.06),
+          P(T / 2, w - 3, FLAP_H - 0.06), P(T / 2, w - 3, 1)]);
+    c.fillStyle = 'rgba(214,206,186,0.85)'; c.fill();
+  }
 }
 
 // ===================== CANVAS / TEXTURAS =====================
@@ -586,12 +699,18 @@ const G = { state: 'title', mode: 'challenge', level: 1, viewLevel: 1, story: 0,
   iris: 1, irisTarget: 1, winCard: false,   // cortinilla circular (1 = abierta, 0 = cerrada)
   shake: 0 };                               // temblor de cámara (0..1)
 const IRIS_T = 0.5;                         // segundos que tarda en abrirse o cerrarse
+const DIM_T = 0.8, DIM_DEPTH = 0.1;         // bajón ocasional de la linterna: duración y cuánto baja (10%)
+G.dimIn = 6; G.dimT = 0; G.faltT = 0;
+const FALTER_T = 0.35;                      // titubeo de la linterna después de choques seguidos
 const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0, lastBump: -9,
   bumpT: 0, blinkT: 0, blinkIn: 2, idleT: 0, twitch: { side: 1, t: 0 }, twitchIn: 1.5,   // animaciones de la cara
   headA: 0, look: { t: 0, ang: 0, next: 0 }, lookIn: 2,                                   // giro de la cabeza
   spin: 0, feet: null };                                                                  // giro en el lugar y patas
 const BUMP_T = 0.6, TWITCH_T = 0.32, BLINK_T = 0.14;
 const STRETCH_T = 0.45;   // al despegarse del pegamento: el cuerpo se estira y afina un instante (inercia)
+const CAUGHT_T = 1;       // atrapado: cuánto dura el sacudón de orejas y cola (después queda quieta)
+// intensidad del sacudón: completa y se apaga suave en el último tercio
+const caughtAmp = () => clamp((M.caughtT || 0) / (CAUGHT_T * 0.35), 0, 1);
 // cuánto se estira (+) o se achata (-) en este momento: primero se estira, después un rebote mínimo y vuelve
 const stretchAmount = () => { if (!(M.stretchT > 0)) return 0; const f = 1 - M.stretchT / STRETCH_T; return Math.sin(f * Math.PI * 1.5) * (1 - f); };
 const EAR_TILT = 0.35;   // inclinación de las orejas hacia afuera (rad)
@@ -600,7 +719,7 @@ const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   //
 const tailWidth = t => 3.6 - 3.0 * t;
 
 // Patas: [x, y] de reposo (coordenadas del ratón), si es de adelante, y su par diagonal (se mueven de a pares, como un trote)
-const FEET = [[7.5, -5.4, true, 0], [7.5, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
+const FEET = [[6, -5.4, true, 0], [6, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
 const STRIDE = 28;        // largo de un ciclo de paso (unidades de mundo recorridas por las patas): más largo = pasos más lentos
 const FOOT_SLIP = 0.45;   // apoyada, la pata acompaña al cuerpo este tanto (leve arrastre): pasos largos sin despegarse del cuerpo
 const SWING = 0.45;       // fracción del ciclo que la pata va por el aire
@@ -655,7 +774,7 @@ function updateTail(dt) {
   const rest = i => {
     const t = i / TAIL_N, x = -TAIL_ROOT - TAIL_L * t;
     const y = M.caught
-      ? Math.sin(G.time * 40 - t * 1.5) * 5 * t   // atrapado: cola recta que se sacude de lado a lado rapidito
+      ? Math.sin(G.time * 40 - t * 1.5) * 5 * t * caughtAmp()   // atrapado: cola recta que se sacude (1 s) y queda quieta
       : Math.sin(M.phase * 1.3 - t * 3.2) * 4.5 * t + Math.sin(G.time * 1.7 - t * 2.5) * 1.2 * t - M.turnV * 2.5 * t * t
         + Math.sin(G.time * 42 - t * 4) * 4 * t * (M.bumpT / BUMP_T);   // sacudón rápido de la cola al chocar
     return [M.x + x * ca - y * sa, M.y + x * sa + y * ca];
@@ -666,10 +785,8 @@ function updateTail(dt) {
     M.tail = []; for (let i = 0; i <= TAIL_N; i++) M.tail.push([M.x - ca * 4, M.y - sa * 4]);
   }
   const P = M.tail;
-  // dentro de un rollo (y justo al salir) la cola no choca: si no, se trabaría contra la pared que atraviesa el túnel
-  const near = M.tunnel || M.tailFree > 0 ? [] :
-    G.solids.filter(R => R.x < M.x + 60 && R.x + R.w > M.x - 60 && R.y < M.y + 60 && R.y + R.h > M.y - 60);
-  M.tailFree = Math.max(0, (M.tailFree || 0) - dt);
+  // la cola no choca con el hueco de las puertas (pasa por abajo de la cortina detrás del cuerpo)
+  const near = G.solids.filter(R => !R.door && R.x < M.x + 60 && R.x + R.w > M.x - 60 && R.y < M.y + 60 && R.y + R.h > M.y - 60);
   // nacimiento de la cola: sobre el eje del cuerpo, pero si ahí hay una pared, se corre hacia el ratón hasta quedar
   // afuera, del lado del ratón (si no, el empuje de las paredes podía mandar la cola al otro lado)
   let root = TAIL_ROOT;
@@ -720,6 +837,7 @@ function updateTail(dt) {
 function animMouse(dt, active) {
   M.bumpT = Math.max(0, M.bumpT - dt);
   M.stretchT = Math.max(0, (M.stretchT || 0) - dt);
+  M.caughtT = Math.max(0, (M.caughtT || 0) - dt);
   M.blinkT = Math.max(0, M.blinkT - dt);
   if ((M.blinkIn -= dt) <= 0) { M.blinkT = BLINK_T; M.blinkIn = 1.5 + Math.random() * 4; }
   M.twitch.t = Math.max(0, M.twitch.t - dt);
@@ -758,7 +876,7 @@ function loadLevel(n) {
   G.mode = 'challenge'; G.level = n; G.viewLevel = n;
   const [W, H] = sizeFor(n);
   buildMaze(W, H, G.baseSeed + n * 7919, Math.min(0.05, 0.008 * (n - 1)));
-  G.items = []; G.solids = G.rects; G.cheeseTotal = 0;
+  G.items = []; G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
   G.timeLimit = timeFor(n, pathLen(G.maze));
   G.attempts = 1;
   computeScale();
@@ -770,7 +888,8 @@ function loadStory(i) {
   G.mode = 'story'; G.story = i; G.level = i + 1; G.viewLevel = STORY_VIEW;
   const rng = buildMaze(L.size[0], L.size[1], L.seed, L.loops || 0);
   G.items = placeItems(L, G.maze, rng);
-  G.solids = G.rects.concat(tubeSolids(G.items));
+  G.solids = doorSolids(G.items, G.rects);
+  G.holeRects = G.solids.filter(R => !R.door);   // paredes con los agujeros de las puertas (la luz pasa con la cortina levantada)
   G.cheeseTotal = G.items.filter(it => it.type === 'cheese').length;
   // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
   const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5;   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
@@ -782,8 +901,8 @@ function loadStory(i) {
 function resetRun() {
   const m = G.maze;
   M.x = (m.W + 0.5) * C; M.y = (m.entRow + 0.5) * C; M.a = Math.PI; M.v = 0; M.turnV = 0; M.tail = null;
-  M.stickyT = 0; M.onTray = false; M.tunnel = null; M.feet = null; M.spin = 0; M.caught = false; G.prints = [];
-  for (const it of G.items) { it.closed = false; it.t = 0; it.got = false; }   // trampas abiertas y quesos sin juntar
+  M.stickyT = 0; M.onTray = false; M.feet = null; M.spin = 0; M.caught = false; G.prints = [];
+  for (const it of G.items) { it.closed = false; it.t = 0; it.got = false; it.passing = false; it.ang = DOOR_REST; it.av = 0; it.rattle = 0; }   // trampas abiertas, quesos sin juntar, puertas cerradas
   G.cheese = 0; G.fx = []; G.dieReason = 'time'; G.siren = 0;
   G.timeLeft = G.timeLimit; G.lastTick = 99; G.light = 0;
   const t = camTarget(); cam.x = t.x; cam.y = t.y;
@@ -1058,13 +1177,38 @@ addEventListener('resize', resize);
 if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 
 // ===================== FÍSICA =====================
+// Círculos de colisión de la rata: cuerpo, cabeza y cadera
+const ratCircles = () => { const ca = Math.cos(M.a), sa = Math.sin(M.a); return [[0, RAD], [12, 7], [-11, 6]].map(([o, r]) => [M.x + ca * o, M.y + sa * o, r]); };
+const circleRect = (cx, cy, r, R) => (cx - clamp(cx, R.x, R.x + R.w)) ** 2 + (cy - clamp(cy, R.y, R.y + R.h)) ** 2 < r * r;
+
+// Puertas: si la rata se mete al hueco desde el lado del agujero, empuja la cortina y el hueco deja de chocar hasta
+// que sale del todo. Desde el lado de la cortina el hueco es pared: la cortina es más grande y se apoya en el marco.
+function doorCheck() {
+  for (const d of G.items) if (d.type === 'door') {
+    // embudo: yendo hacia el agujero un poco corrida, se acomoda sola hacia el centro (si no, se traba en el marco)
+    const u = (M.x - d.wx) * d.dx + (M.y - d.wy) * d.dy, w = -(M.x - d.wx) * d.dy + (M.y - d.wy) * d.dx;
+    const head = Math.cos(M.a) * d.dx + Math.sin(M.a) * d.dy;
+    if (u < 0 && u > -T / 2 - 26 && Math.abs(w) < DOOR_HOLE / 2 + 16 && head > 0.6 && M.v > 20) {
+      const sh = -Math.sign(w) * Math.min(Math.abs(w), 1.3);
+      M.x += -d.dy * sh; M.y += d.dx * sh;
+    }
+    const over = ratCircles().some(([x, y, r]) => circleRect(x, y, r + 1, d.rect));
+    if (!over) { d.passing = false; continue; }
+    if (d.passing) continue;
+    if ((M.x - d.wx) * d.dx + (M.y - d.wy) * d.dy < 0) { d.passing = true; Snd.flap(); }
+    else { if (d.rattle < 0.3 && Math.abs(M.v) > 50) Snd.flapShut(0.8); d.rattle = 1; }   // empujada del otro lado: traquetea pero no abre
+  }
+}
+
 function collide() {
   let pushed = 0;
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
+  doorCheck();
   // cuerpo, cabeza y cadera (la cadera evita que al girar pegado a una pared la cola se meta en el cartón)
   for (let it = 0; it < 3; it++) for (const [off, r] of [[0, RAD], [12, 7], [-11, 6]]) {
     let cx = M.x + ca * off, cy = M.y + sa * off;
-    for (const R of G.solids) {   // paredes + costados de los rollos
+    for (const R of G.solids) {   // paredes (con los huecos de las puertas) + huecos que están cerrados
+      if (R.door && R.door.passing) continue;
       if (cx + r < R.x || cx - r > R.x + R.w || cy + r < R.y || cy - r > R.y + R.h) continue;
       const px = clamp(cx, R.x, R.x + R.w), py = clamp(cy, R.y, R.y + R.h);
       const dx = cx - px, dy = cy - py, d2 = dx * dx + dy * dy;
@@ -1085,7 +1229,7 @@ function collide() {
 // Pegamento: devuelve cuánto se multiplica la velocidad (frena encima y deja las patas pegajosas un rato)
 function stickyFactor(dt) {
   // cuenta el cuerpo (no solo el centro): pegada a la pared también la pisa
-  const on = !M.tunnel && G.items.some(it => it.type === 'sticky' &&
+  const on = G.items.some(it => it.type === 'sticky' &&
     Math.hypot(M.x - clamp(M.x, it.x, it.x + it.w), M.y - clamp(M.y, it.y, it.y + it.h)) < RAD * 0.7);
   if (on && !M.onTray) Snd.squish();
   if (!on && M.onTray) M.stretchT = STRETCH_T;   // se despega: estirón
@@ -1104,20 +1248,11 @@ function stickyFactor(dt) {
   return 1;
 }
 
-// Túnel: recorrido automático por el eje del rollo, de una boca a la otra
-function tunnelStep(dt) {
-  const tn = M.tunnel;
-  tn.s += SPEED * 0.9 * dt;
-  M.x = tn.ox + tn.ax * tn.s; M.y = tn.oy + tn.ay * tn.s;
-  M.a = Math.atan2(tn.ay, tn.ax); M.v = SPEED * 0.9; M.turnV = 0;
-  if (tn.s >= tn.end) { M.tunnel = null; M.v = SPEED * 0.6; M.tailFree = 0.5; }
-}
-
-// Trampas, quesos y entradas a los túneles
+// Trampas y quesos
 function updateItems() {
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
   for (const it of G.items) {
-    if (it.type === 'trap' && !it.closed && !M.tunnel) {
+    if (it.type === 'trap' && !it.closed) {
       // cuerpo y cabeza de la rata contra el rectángulo de la trampa (en coordenadas de la trampa)
       const c = Math.cos(it.a), s = Math.sin(it.a);
       for (const [off, r] of [[0, RAD], [12, 7]]) {
@@ -1125,7 +1260,8 @@ function updateItems() {
         const lx = px * c + py * s, ly = -px * s + py * c;
         const qx = clamp(lx, -TRAP_L / 2, TRAP_L / 2), qy = clamp(ly, -TRAP_W / 2, TRAP_W / 2);
         if ((lx - qx) ** 2 + (ly - qy) ** 2 < r * r) {
-          it.closed = true; it.t = 0; Snd.trap(); M.v = 0; M.turnV = 0; M.caught = true;   // atrapado: orejas y cola se agitan
+          it.closed = true; it.t = 0; Snd.trap(); Snd.squeal(); M.v = 0; M.turnV = 0;
+          M.caught = true; M.caughtT = CAUGHT_T;   // atrapado: orejas y cola se agitan un segundo
           startDie('trap');
           return;
         }
@@ -1136,18 +1272,6 @@ function updateItems() {
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
           G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.2 });
-        }
-      }
-    } else if (it.type === 'tunnel' && !M.tunnel) {
-      // se entra con la cabeza en la boca, mirando hacia la pared
-      for (const [mouth, sg] of [[it.a, 1], [it.b, -1]]) {
-        const ax = it.dx * sg, ay = it.dy * sg, hx = M.x + ca * 12, hy = M.y + sa * 12;
-        const along = (hx - mouth[0]) * ax + (hy - mouth[1]) * ay, lat = Math.abs(-(hx - mouth[0]) * ay + (hy - mouth[1]) * ax);
-        if (along > -3 && along < TUBE_OUT && lat < TUBE_R - 2 && ca * ax + sa * ay > 0.5) {
-          const s = (M.x - mouth[0]) * ax + (M.y - mouth[1]) * ay;
-          M.tunnel = { ox: mouth[0], oy: mouth[1], ax, ay, s, end: 2 * TUBE_OUT + 16 };
-          Snd.tube();
-          break;
         }
       }
     }
@@ -1183,20 +1307,18 @@ function update(dt) {
     target *= stickyFactor(dt);   // el pegamento frena
     const ox = M.x, oy = M.y;
     let want = 0;
-    if (M.tunnel) tunnelStep(dt);   // adentro de un rollo: recorrido automático, sin control ni choques
-    else {
-      M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
-      M.a += M.turnV * dt;
-      M.v += (target - M.v) * Math.min(1, dt * 9);
-      want = Math.abs(M.v) * dt;
-      M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt;
-      collide();
-    }
+    M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
+    M.a += M.turnV * dt;
+    M.v += (target - M.v) * Math.min(1, dt * 9);
+    want = Math.abs(M.v) * dt;
+    M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt;
+    collide();
+    updateDoors(dt);
     const moved = Math.hypot(M.x - ox, M.y - oy);
     M.bumpCd -= dt;
-    if (!M.tunnel && want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
+    if (want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
       Snd.bump(); if (Math.random() < 0.4) Snd.squeak(); M.bumpCd = 0.45; M.v *= 0.3; M.bumpT = BUMP_T;
-      if (G.time - M.lastBump < 1.2) G.shake = Math.min(1, G.shake + 0.5);   // choques seguidos: tiembla la cámara
+      if (G.time - M.lastBump < 1.2) { G.shake = Math.min(1, G.shake + 0.5); G.faltT = FALTER_T; }   // choques seguidos: tiembla la cámara y la linterna falla
       M.lastBump = G.time;
     }
     const sp = moved / Math.max(dt, 1e-4) + Math.abs(M.turnV) * 20;
@@ -1208,8 +1330,12 @@ function update(dt) {
     G.onT += dt;
     // encendido con parpadeo + leve oscilación del foco
     G.light = G.onT < 0.35 ? (Math.random() < 0.55 ? 1 : 0.15) : 0.96 + 0.04 * Math.sin(G.time * 13) * Math.sin(G.time * 7.3);
+    // cada tanto la linterna baja un poquito y vuelve, suave (como una pila que flaquea un instante, sin parpadear)
+    if ((G.dimIn -= dt) <= 0) { G.dimT = DIM_T; G.dimIn = 5 + Math.random() * 6; }
+    if (G.dimT > 0) { G.dimT -= dt; G.light *= 1 - DIM_DEPTH * Math.sin(Math.PI * (1 - G.dimT / DIM_T)) ** 2; }
+    // después de choques seguidos la linterna titubea: un par de bajones rápidos que se apagan solos
+    if (G.faltT > 0) { G.faltT -= dt; const f = G.faltT / FALTER_T; G.light *= 1 - 0.45 * f * (0.5 + 0.5 * Math.sin(G.time * 55)); }
     G.light *= 1 - exitDarkness();
-    if (M.tunnel) G.light *= 0.25;   // adentro del rollo solo se ve el halo
     updateItems();
     if (G.state !== 'play') { /* una trampa terminó la partida */ }
     else if (M.x < -6) win();
@@ -1281,7 +1407,9 @@ const COS = new Float32Array(RAYS), SIN = new Float32Array(RAYS), HITS = new Flo
 for (let i = 0; i < RAYS; i++) { const a = i / RAYS * Math.PI * 2; COS[i] = Math.cos(a); SIN[i] = Math.sin(a); }
 function castRays(ox, oy) {
   const vs = [], hs = [];
-  for (const R of G.rects) {
+  // con la cortina de una puerta levantada, la luz pasa por el agujero
+  const rects = G.items.some(d => d.type === 'door' && d.ang > 0.3) ? G.holeRects : G.rects;
+  for (const R of rects) {
     const px = clamp(ox, R.x, R.x + R.w), py = clamp(oy, R.y, R.y + R.h);
     if ((px - ox) ** 2 + (py - oy) ** 2 > LIGHT_R * LIGHT_R) continue;
     vs.push(R.x, R.y, R.y + R.h, R.x + R.w, R.y, R.y + R.h);
@@ -1362,6 +1490,7 @@ function sideQuad(c, ax, ay, bx, by, cx2, cy2, dx, dy) {
 function drawWalls(c, v) {
   const s = 1 + K, vis = [];
   for (const R of G.rects) if (visible(R, v, C * 2)) vis.push(R);
+  drawDoors(c, v, 'back');   // cortinas vistas desde el lado del agujero: quedan detrás de la pared
   // caras laterales (las que miran a la cámara)
   for (const R of vis) {
     const tx = cam.x + (R.x - cam.x) * s, ty = cam.y + (R.y - cam.y) * s, tw = R.w * s, th = R.h * s;
@@ -1371,6 +1500,7 @@ function drawWalls(c, v) {
     if (R.y > cam.y) sideQuad(c, R.x, R.y, R.x + R.w, R.y, tx + tw, ty, tx, ty);
     if (R.y + R.h < cam.y) sideQuad(c, R.x, R.y + R.h, R.x + R.w, R.y + R.h, tx + tw, ty + th, tx, ty + th);
   }
+  drawDoors(c, v, 'hole');   // agujeros en la cara de la pared que mira a la cámara
   // cantos superiores: cartón corrugado visto desde arriba
   for (const R of vis) {
     const [tx, ty, tw, th] = R._t, horiz = tw >= th;
@@ -1395,8 +1525,8 @@ function drawWalls(c, v) {
       if (horiz) c.fillRect(tx + o - 4.5 * s, ty - 1.5, 9 * s, th + 3); else c.fillRect(tx - 1.5, ty + o - 4.5 * s, tw + 3, 9 * s);
     }
   }
-  // rollos de cartón (túneles): van sobre las paredes que atraviesan
-  for (const it of G.items) if (it.type === 'tunnel' && it.wx > v.x0 - C * 2 && it.wx < v.x1 + C * 2 && it.wy > v.y0 - C * 2 && it.wy < v.y1 + C * 2) drawTube(c, it);
+  // cortinas de las puertas vistas desde su lado (van delante de la cara de la pared)
+  drawDoors(c, v, 'front');
 }
 
 // ---- items ----
@@ -1556,25 +1686,6 @@ function drawCheese(c, it) {
   }
 }
 
-// Rollo de cartón (papel de cocina) que atraviesa una pared; se dibuja con las paredes porque es alto
-function drawTube(c, it) {
-  const s2 = 1 + K * 0.5, P = ([x, y]) => [cam.x + (x - cam.x) * s2, cam.y + (y - cam.y) * s2];
-  const [ax, ay] = P(it.a), [bx, by] = P(it.b), r = TUBE_R * s2, len = Math.hypot(bx - ax, by - ay);
-  c.save(); c.translate(ax, ay); c.rotate(Math.atan2(by - ay, bx - ax));
-  const g = c.createLinearGradient(0, -r, 0, r);
-  g.addColorStop(0, '#5a3e22'); g.addColorStop(0.25, '#b88a56'); g.addColorStop(0.5, '#ddb47e'); g.addColorStop(0.75, '#b88a56'); g.addColorStop(1, '#5a3e22');
-  c.fillStyle = g; c.fillRect(0, -r, len, r * 2);
-  c.save(); c.beginPath(); c.rect(0, -r, len, r * 2); c.clip();               // costura en espiral
-  c.strokeStyle = 'rgba(90,60,30,0.55)'; c.lineWidth = 0.9;
-  for (let x = -r * 1.2; x < len; x += 9) { c.beginPath(); c.moveTo(x, -r); c.lineTo(x + r * 1.1, r); c.stroke(); }
-  c.restore();
-  for (const ex of [0, len]) {                                                 // bocas abiertas
-    c.fillStyle = '#e2c38f'; c.beginPath(); c.ellipse(ex, 0, 3.4, r, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#140d07'; c.beginPath(); c.ellipse(ex, 0, 2.3, r - 2.2, 0, 0, Math.PI * 2); c.fill();
-  }
-  c.restore();
-}
-
 // Huellas pegajosas: palma y tres deditos del color del pegamento, que se van desvaneciendo
 function drawPrints(c) {
   for (const p of G.prints) {
@@ -1597,6 +1708,7 @@ function drawFloorItems(c, v) {
     if (it.type === 'sticky') drawSticky(c, it);
     else if (it.type === 'trap') drawTrap(c, it);
     else if (it.type === 'cheese' && !it.got) drawCheese(c, it);
+    else if (it.type === 'door') drawDoorShadow(c, it);
   }
 }
 
@@ -1730,7 +1842,7 @@ function drawMouse(c, alpha) {
     // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
     let ear = bump * Math.sin(G.time * 38 + sy) * 0.6;
     if (M.twitch.t > 0 && M.twitch.side === sy) ear += Math.sin((1 - M.twitch.t / TWITCH_T) * Math.PI * 2) * 0.75;
-    if (M.caught) ear += Math.sin(G.time * 46 + sy * 1.3) * 0.55;   // atrapado: las dos orejas se agitan
+    if (M.caught) ear += Math.sin(G.time * 46 + sy * 1.3) * 0.55 * caughtAmp();   // atrapado: las dos orejas se agitan (1 s)
     c.save();
     // un poco metida hacia el cuerpo, e inclinada hacia afuera con pivote en su base trasera (del lado del cuerpo)
     c.translate(0, -sy * EAR_IN);
@@ -1776,7 +1888,7 @@ function drawMouse(c, alpha) {
   c.save(); c.translate(NECK, 0); c.rotate(M.headA); c.translate(-NECK, 0);
   // nariz chiquita, un poco metida dentro del hocico
   c.fillStyle = '#d98f95'; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill();
-  const eyesClosed = M.blinkT > 0 || bump > 0.2;
+  const eyesClosed = M.blinkT > 0 || bump > 0.2 || (M.caught && !(M.caughtT > 0));   // atrapada: cuando deja de sacudirse, queda con los ojos cerrados
   for (const sy of [-1, 1]) {
     // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
     // (las orejas se dibujan antes, debajo de la linterna)

@@ -15,7 +15,7 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
   1. **La trampera:** trampas al fondo de los callejones sin salida; si tocás una, perdés.
   2. **Pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
   3. **Quesos:** 5 quesos para juntar antes de salir (dan una estrella extra).
-  4. **Atajos:** rollos de cartón que atraviesan las paredes.
+  4. **Puertas:** puertitas de un solo sentido. Del lado del agujero empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
 - **Desafío:** laberintos al azar, infinitos, cada vez más grandes y con la cámara más cerca.
 
 ## Jugar
