@@ -268,7 +268,7 @@ function buildDeco(m, rng) {
 // ===================== CANVAS / TEXTURAS =====================
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const [wallCv, wctx] = mk(), [lightCv, lctx] = mk(), [aCv, actx] = mk(), [bCv, bctx] = mk();
-const [blurCv, blurCtx] = mk(), [litCv, litCtx] = mk();   // sombras suaves / paredes por encima del ratón
+const [blurCv, blurCtx] = mk(), [litCv, litCtx] = mk(), [mouseCv, mouseCtx] = mk();   // sombras suaves / paredes por encima del ratón / ratón opaco
 const CAN_BLUR = typeof blurCtx.filter === 'string';
 const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo)
 let scale = 1;
@@ -321,7 +321,7 @@ function resize() {
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
   // tamaño real visible del canvas (en el celular 100vh incluye la barra del navegador y descentraba la cámara)
   const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
-  for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv]) { c.width = w; c.height = h; }
+  for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv, mouseCv]) { c.width = w; c.height = h; }
   blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);
   computeScale();
 }
@@ -336,7 +336,7 @@ const G = { state: 'title', level: 1, maze: null, rects: [], deco: null, timeLim
 const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 0,
   bumpT: 0, blinkT: 0, blinkIn: 2, idleT: 0, twitch: { side: 1, t: 0 }, twitchIn: 1.5 };   // animaciones de la cara
 const BUMP_T = 0.6, TWITCH_T = 0.32, BLINK_T = 0.14;
-const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N;
+const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   // la cola nace en x = -TAIL_ROOT
 const tailWidth = t => 3.6 - 3.0 * t;
 
 // Cola: una cadena de puntos en coordenadas del mundo. Cada punto tiende a su forma "de reposo"
@@ -344,12 +344,13 @@ const tailWidth = t => 3.6 - 3.0 * t;
 function updateTail(dt) {
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
   const rest = i => {
-    const t = i / TAIL_N, x = -13 - TAIL_L * t;
-    const y = Math.sin(M.phase * 1.3 - t * 3.2) * 4.5 * t + Math.sin(G.time * 1.7 - t * 2.5) * 1.2 * t - M.turnV * 3.5 * t * t;
+    const t = i / TAIL_N, x = -TAIL_ROOT - TAIL_L * t;
+    const y = Math.sin(M.phase * 1.3 - t * 3.2) * 4.5 * t + Math.sin(G.time * 1.7 - t * 2.5) * 1.2 * t - M.turnV * 3.5 * t * t
+      + Math.sin(G.time * 42 - t * 4) * 4 * t * (M.bumpT / BUMP_T);   // sacudón rápido de la cola al chocar
     return [M.x + x * ca - y * sa, M.y + x * sa + y * ca];
   };
   const P = M.tail;
-  if (!P || Math.hypot(P[0][0] - (M.x - ca * 13), P[0][1] - (M.y - sa * 13)) > 30) {   // primera vez o teletransporte
+  if (!P || Math.hypot(P[0][0] - (M.x - ca * TAIL_ROOT), P[0][1] - (M.y - sa * TAIL_ROOT)) > 30) {   // primera vez o teletransporte
     M.tail = []; for (let i = 0; i <= TAIL_N; i++) M.tail.push(rest(i));
     return;
   }
@@ -781,7 +782,7 @@ function drawMouse(c, alpha) {
   const bump = M.bumpT / BUMP_T;                       // 1 → 0 durante el golpe
   c.save(); c.globalAlpha = alpha;
   c.save(); c.translate(M.x, M.y); c.rotate(M.a);
-  c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.ellipse(1, 2, 18, 11, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.ellipse(0, 2, 22, 13, 0, 0, Math.PI * 2); c.fill();
   c.restore();
   // cola: tramos que se van afinando (posiciones del mundo, calculadas en updateTail)
   if (M.tail) {
@@ -792,49 +793,82 @@ function drawMouse(c, alpha) {
     }
   }
   c.translate(M.x, M.y); c.rotate(M.a);
-  // patitas
-  c.fillStyle = '#9a625e';
-  for (const [fx, fy, ph] of [[8, -8, 1], [8, 8, -1], [-8, -8, -1], [-8, 8, 1]]) {
-    c.beginPath(); c.ellipse(fx + step * ph * 2.5, fy, 2.6, 1.8, 0, 0, Math.PI * 2); c.fill();
-  }
-  // cuerpo
-  const g = c.createRadialGradient(-2, -3, 2, -2, 0, 15);
-  g.addColorStop(0, '#e6dfd6'); g.addColorStop(1, '#a39a90');
-  c.fillStyle = g; c.beginPath(); c.ellipse(-2, 0, 14, 9.2, 0, 0, Math.PI * 2); c.fill();
-  // cabeza
-  c.beginPath(); c.moveTo(4, -6.5); c.quadraticCurveTo(15, -7, 21, 0); c.quadraticCurveTo(15, 7, 4, 6.5); c.closePath(); c.fill();
-  c.fillStyle = '#d98f95'; c.beginPath(); c.arc(20.5, 0, 1.15, 0, Math.PI * 2); c.fill();
-  const eyesClosed = M.blinkT > 0 || bump > 0.2;
-  for (const sy of [-1, 1]) {
-    // oreja: rota sobre su base; aletea al chocar y a veces se mueve sola cuando está quieto
-    let ear = bump * Math.sin(G.time * 38 + sy) * 0.6;
-    if (M.twitch.t > 0 && M.twitch.side === sy) ear += Math.sin((1 - M.twitch.t / TWITCH_T) * Math.PI * 2) * 0.75;
-    c.save(); c.translate(6, sy * 4.5); c.rotate(sy * ear); c.translate(-6, -sy * 4.5);
-    c.fillStyle = '#cfa59f'; c.beginPath(); c.arc(8, sy * 7, 3.9, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#b27f7c'; c.beginPath(); c.arc(8.4, sy * 7.3, 2.4, 0, Math.PI * 2); c.fill();
+  // al chocar, la cabeza se va un poco hacia atrás: todo lo que está delante de los hombros se comprime
+  const recoil = 2.6 * bump * bump;
+  const hx = x => x > 2 ? x - recoil * (x - 2) / 16 : x;
+  // patitas: un poco por debajo del cuerpo; las de adelante delante de las orejas (a los lados de los ojos),
+  // las de atrás junto a la cadera
+  c.fillStyle = '#9a625e'; c.strokeStyle = '#9a625e'; c.lineCap = 'round'; c.lineWidth = 0.7;
+  for (const [fx, fy, ph, rx, ry, rot] of [
+    [12, -5.4, 1, 1.7, 2.0, -0.4], [12, 5.4, -1, 1.7, 2.0, 0.4],                 // manos
+    [-14.5, -10.2, -1, 3.4, 1.9, -0.35], [-14.5, 10.2, 1, 3.4, 1.9, 0.35]]) {     // patas traseras
+    const x = hx(fx + step * ph * (fx > 0 ? 1.4 : 2.2)), side = Math.sign(fy);
+    c.save(); c.translate(x, fy); c.rotate(rot);
+    c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); c.fill();
     c.restore();
-    // ojo: abierto (rojo, albino) o cerrado (rayita curva)
-    if (eyesClosed) {
-      c.strokeStyle = '#7a4644'; c.lineWidth = 0.7; c.lineCap = 'round'; c.beginPath();
-      c.moveTo(12.7, sy * 3.3); c.quadraticCurveTo(14, sy * 4.3, 15.3, sy * 3.3); c.stroke();
-    } else {
-      c.fillStyle = '#a3141f'; c.beginPath(); c.arc(14, sy * 3.4, 1.35, 0, Math.PI * 2); c.fill();
+    // deditos abiertos hacia adelante y hacia afuera (en diagonal)
+    const l = Math.max(rx, ry) + 1.4;
+    c.beginPath();
+    for (const spread of [-0.45, -0.15, 0.15, 0.45]) {
+      const a = side * 0.85 + spread;
+      c.moveTo(x, fy); c.lineTo(x + Math.cos(a) * l, fy + Math.sin(a) * l);
     }
-    // bigotes: tiemblan apenas siempre y mucho al chocar
-    const wh = Math.sin(G.time * 9 + sy) * 0.04 + Math.sin(G.time * 55 + sy * 2) * 0.35 * bump;
-    c.strokeStyle = 'rgba(235,230,220,0.55)'; c.lineWidth = 0.35; c.beginPath();
-    for (const k of [0.75, 1.1, 1.45]) { const th = sy * (k + wh); c.moveTo(19, sy * 1.5); c.lineTo(19 + Math.cos(th) * 9, sy * 1.5 + Math.sin(th) * 9); }
     c.stroke();
   }
-  // arnés
+  // cuerpo en forma de pera redondeada: ancho atrás, hocico corto (cabeza y cuerpo en una sola silueta)
+  const body = new Path2D();
+  body.moveTo(hx(18), 0);
+  body.bezierCurveTo(hx(16.5), -2.2, hx(13), -4.6, hx(9), -5.8);       // hocico → cachete
+  body.bezierCurveTo(hx(5), -7, hx(3), -8.8, -1, -10);                 // hombros
+  body.bezierCurveTo(-5, -11.4, -11, -11.6, -15, -10);                 // parte más ancha
+  body.bezierCurveTo(-19, -8.2, -20.5, -4.5, -20.5, 0);                // cola / cadera
+  body.bezierCurveTo(-20.5, 4.5, -19, 8.2, -15, 10);
+  body.bezierCurveTo(-11, 11.6, -5, 11.4, -1, 10);
+  body.bezierCurveTo(hx(3), 8.8, hx(5), 7, hx(9), 5.8);
+  body.bezierCurveTo(hx(13), 4.6, hx(16.5), 2.2, hx(18), 0);
+  const g = c.createRadialGradient(-5, -3, 2, -4, 0, 19);
+  g.addColorStop(0, '#e9e2d9'); g.addColorStop(1, '#a39a90');
+  c.fillStyle = g; c.fill(body);
+  // arnés (recortado a la silueta del cuerpo)
+  c.save(); c.clip(body);
   c.strokeStyle = '#26262b'; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
-  c.moveTo(4, -8.2); c.lineTo(4, 8.2); c.moveTo(-8, -8.5); c.lineTo(-8, 8.5); c.moveTo(-8, 0); c.lineTo(4, 0); c.stroke();
+  c.moveTo(1, -13); c.lineTo(1, 13); c.moveTo(-10, -13); c.lineTo(-10, 13); c.moveTo(-10, 0); c.lineTo(1, 0); c.stroke();
+  c.restore();
   // linterna sobre el lomo
   const lg = c.createLinearGradient(0, -3.5, 0, 3.5);
   lg.addColorStop(0, '#9a9ca2'); lg.addColorStop(0.5, '#5d6066'); lg.addColorStop(1, '#2f3136');
-  c.fillStyle = lg; c.fillRect(-6, -3.2, 14, 6.4);
-  c.fillStyle = '#7d8086'; c.fillRect(7.5, -4.2, 3.5, 8.4);
-  c.fillStyle = G.light > 0.2 ? '#fff4d2' : '#6b6450'; c.fillRect(11, -3.6, 1.2, 7.2);
+  c.fillStyle = lg; c.fillRect(-13, -3.2, 17, 6.4);   // cuerpo de la linterna: pasa la segunda tira del arnés
+  c.fillStyle = '#7d8086'; c.fillRect(4, -4.2, 3.4, 8.4);
+  c.fillStyle = G.light > 0.2 ? '#fff4d2' : '#6b6450'; c.fillRect(7.4, -3.6, 1.2, 7.2);
+  // nariz chiquita, un poco metida dentro del hocico
+  c.fillStyle = '#d98f95'; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill();
+  const eyesClosed = M.blinkT > 0 || bump > 0.2;
+  for (const sy of [-1, 1]) {
+    // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
+    let ear = bump * Math.sin(G.time * 38 + sy) * 0.6;
+    if (M.twitch.t > 0 && M.twitch.side === sy) ear += Math.sin((1 - M.twitch.t / TWITCH_T) * Math.PI * 2) * 0.75;
+    c.save(); c.translate(hx(7.5), sy * 4.8); c.rotate(sy * ear); c.translate(-hx(7.5), -sy * 4.8);
+    c.fillStyle = '#cfa59f'; c.beginPath(); c.ellipse(hx(7), sy * 7.8, 5.4, 4.0, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#b27f7c'; c.beginPath(); c.ellipse(hx(7.5), sy * 7.0, 3.4, 2.4, 0, 0, Math.PI * 2); c.fill();
+    c.restore();
+    // ojo: cerca del hocico; rojo (albino) con brillito blanco, o cerrado (rayita de costado, curvada hacia el lomo)
+    const ex = hx(11.7);
+    if (eyesClosed) {
+      c.strokeStyle = '#7a4644'; c.lineWidth = 0.6; c.lineCap = 'round'; c.beginPath();
+      c.moveTo(ex, sy * 1.9); c.quadraticCurveTo(ex - 0.9, sy * 2.9, ex, sy * 3.9); c.stroke();
+    } else {
+      c.fillStyle = '#e8101c'; c.beginPath(); c.arc(ex, sy * 2.9, 1.1, 0, Math.PI * 2); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(ex + 0.4, sy * 2.5, 0.38, 0, Math.PI * 2); c.fill();
+    }
+    // bigotes: salen junto a la nariz y se abren bien a los costados; tiemblan apenas y mucho al chocar
+    const wh = Math.sin(G.time * 9 + sy) * 0.04 + Math.sin(G.time * 55 + sy * 2) * 0.35 * bump;
+    const wx = hx(15.8);
+    c.strokeStyle = 'rgba(235,230,220,0.6)'; c.lineWidth = 0.35; c.beginPath();
+    for (const [k, len] of [[0.75, 10], [1.1, 12], [1.45, 12], [1.8, 10]]) {
+      const th = sy * (k + wh); c.moveTo(wx, sy * 1.2); c.lineTo(wx + Math.cos(th) * len, sy * 1.2 + Math.sin(th) * len);
+    }
+    c.stroke();
+  }
   c.restore();
 }
 
@@ -896,11 +930,25 @@ function render() {
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lightCv, 0, 0); ctx.globalCompositeOperation = 'source-over';
   }
 
-  // 4) el ratón (siempre apenas visible) y el brillo de la lente
+  // zona de pantalla alrededor del ratón (para dibujarlo aparte y para las paredes de encima)
+  const pad = 55 * scale, mx = w / 2 + (M.x - cam.x) * scale, my = h / 2 + (M.y - cam.y) * scale;
+  const sx = Math.max(0, Math.floor(mx - pad)), sy = Math.max(0, Math.floor(my - pad));
+  const sw = Math.min(w, Math.ceil(mx + pad)) - sx, sh = Math.min(h, Math.ceil(my + pad)) - sy;
+
+  // 4) el ratón (siempre visible): se dibuja opaco en su propio canvas y se oscurece según la luz,
+  //    así no se transparenta (ni el cuerpo ni la linterna dejan ver lo que hay debajo)
+  if (sw > 0 && sh > 0) {
+    mouseCtx.setTransform(1, 0, 0, 1, 0, 0); mouseCtx.globalCompositeOperation = 'source-over'; mouseCtx.clearRect(sx, sy, sw, sh);
+    mouseCtx.setTransform(...T6); drawMouse(mouseCtx, 1);
+    mouseCtx.setTransform(1, 0, 0, 1, 0, 0);
+    const dark = 1 - (0.4 + 0.6 * G.light);
+    if (dark > 0.01) { mouseCtx.globalCompositeOperation = 'source-atop'; mouseCtx.fillStyle = `rgba(0,0,0,${dark})`; mouseCtx.fillRect(sx, sy, sw, sh); }
+    mouseCtx.globalCompositeOperation = 'source-over';
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(mouseCv, sx, sy, sw, sh, sx, sy, sw, sh);
+  }
   ctx.setTransform(...T6);
-  drawMouse(ctx, 0.3 + 0.55 * G.light);
   if (lit) {
-    const lx = M.x + Math.cos(M.a) * 12, ly = M.y + Math.sin(M.a) * 12;
+    const lx = M.x + Math.cos(M.a) * 8.5, ly = M.y + Math.sin(M.a) * 8.5;
     const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 12);
     g.addColorStop(0, `rgba(255,240,200,${0.9 * G.light})`); g.addColorStop(1, 'rgba(255,200,120,0)');
     ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(lx - 12, ly - 12, 24, 24);
@@ -909,9 +957,6 @@ function render() {
 
   // 5) las paredes son más altas que el ratón: se vuelven a dibujar encima, solo en la zona alrededor de él
   if (!lit) { wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.clearRect(0, 0, w, h); wctx.setTransform(...T6); drawWalls(wctx, v); }
-  const pad = 50 * scale, mx = w / 2 + (M.x - cam.x) * scale, my = h / 2 + (M.y - cam.y) * scale;
-  const sx = Math.max(0, Math.floor(mx - pad)), sy = Math.max(0, Math.floor(my - pad));
-  const sw = Math.min(w, Math.ceil(mx + pad)) - sx, sh = Math.min(h, Math.ceil(my + pad)) - sy;
   if (sw > 0 && sh > 0) {
     litCtx.setTransform(1, 0, 0, 1, 0, 0); litCtx.globalCompositeOperation = 'source-over'; litCtx.clearRect(sx, sy, sw, sh);
     litCtx.drawImage(wallCv, sx, sy, sw, sh, sx, sy, sw, sh);
