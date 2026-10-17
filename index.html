@@ -48,6 +48,31 @@
   @keyframes blink { 50% { opacity: .35; } }
   kbd { display: inline-block; background: #e8dcc0; border: 1px solid #5a3e22; border-bottom-width: 3px; border-radius: 4px;
     padding: 0 6px; font-family: inherit; font-size: 13px; margin: 0 1px; }
+  #card { z-index: 6; }   /* por encima del joystick, así los botones de la pausa se pueden tocar */
+  #card .menu { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  #card .cbtn { font-family: 'Permanent Marker', cursive; font-size: 22px; color: #1e1208; background: #e2d6b8; border: 0;
+    padding: 8px 22px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c, 0 4px 10px rgba(0,0,0,.35); transform: rotate(-1.5deg);
+    -webkit-tap-highlight-color: transparent; }
+  #card .cbtn:nth-child(even) { transform: rotate(1.5deg); }
+  #card .cbtn.alt { background: #c8b893; font-size: 17px; }
+  #card .cbtn:hover { filter: brightness(1.06); }
+  #card .cbtn:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 0 #6b4c2c; }
+  #card .levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 4px; }
+  #card .lvl { background: #e2d6b8; border: 0; padding: 8px 4px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; color: #1e1208;
+    -webkit-tap-highlight-color: transparent; }
+  #card .lvl:nth-child(odd) { transform: rotate(-1deg); } #card .lvl:nth-child(even) { transform: rotate(1deg); }
+  #card .lvl b { font-family: 'Permanent Marker', cursive; font-size: 26px; line-height: 1; }
+  #card .lvl small { font-size: 11px; }
+  #card .lvl:disabled { opacity: .45; cursor: default; }
+  #card .lvl:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #6b4c2c; }
+  #card .st { color: #c98a12; font-size: 15px; letter-spacing: 1px; } #card .st i { color: rgba(60,40,20,.3); font-style: normal; }
+  #card .stars { font-size: 46px; color: #e0a21a; text-shadow: 0 2px 0 #6b4c2c; letter-spacing: 6px; line-height: 1.1; }
+  #card .stars span { color: rgba(60,40,20,.25); text-shadow: none; }
+  #card .small { font-size: 13px; opacity: .8; }
+  #cheese { top: 58px; left: 18px; font-size: 20px; display: flex; align-items: center; gap: 6px; transform: rotate(1deg); padding: 3px 12px 1px; }
+  #cheese svg { width: 22px; height: 22px; }
+  #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   #card table { margin: 10px auto 0; border-collapse: collapse; font-size: 14px; text-align: left; }
   #card td { padding: 2px 8px; }
 
@@ -76,6 +101,8 @@
   @media (max-width: 560px) {
     #level { font-size: 17px; }
     #timer { top: 64px; font-size: 26px; }
+    #cheese { top: 50px; font-size: 16px; }
+    #card .levels { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -85,6 +112,7 @@
 <div id="hud" class="hidden">
   <div id="level" class="tape">NIVEL 1</div>
   <div id="timer" class="tape">0:00</div>
+  <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><path d="M2 17 L21 7 L22 17 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 17 L22 17 L22 20 L2 20 Z" fill="#d9a62e" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><circle cx="14" cy="13.5" r="1.6" fill="#c98f1d"/><circle cx="18.5" cy="12" r="1.1" fill="#c98f1d"/></svg><span id="cheeseN">0/5</span></div>
 </div>
 <div id="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> música · <kbd>F</kbd> efectos ·<kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
 <div id="hintTouch">Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir</div>
@@ -126,6 +154,34 @@ function timeFor(n, pathCells) {
   const factor = Math.max(2.2, 4.2 - 0.25 * (n - 1));
   return Math.ceil((8 + pathCells * C / SPEED * factor) / 5) * 5;
 }
+
+// ===================== MODO HISTORIA =====================
+// Niveles diseñados: semilla fija (siempre el mismo laberinto) y las mecánicas de cada uno.
+// Los 4 primeros son de prueba: mismo tamaño (16×9, como el nivel 5 de Desafío) y una mecánica nueva cada uno.
+// Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
+// traps / sticky / cheese / tunnels (cantidad de cada cosa), time (opcional: pisa el tiempo calculado).
+const LEVELS = [
+  { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 4,
+    intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
+  { name: 'Pegote', seed: 2203, size: [16, 9], loops: 0.02, sticky: 6,
+    intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito.' },
+  { name: 'Quesos', seed: 3307, size: [16, 9], loops: 0.02, cheese: 5,
+    intro: 'Juntá los 5 quesos antes de salir para ganar más estrellas.' },
+  { name: 'Atajos', seed: 4409, size: [16, 9], loops: 0, tunnels: 3,
+    intro: 'Los rollos de cartón atraviesan las paredes: entrá por una boca y salís por la otra.' },
+];
+const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
+
+// Progreso de Historia (niveles desbloqueados y mejores estrellas), guardado en el navegador
+const Story = {
+  data: (() => { try { return JSON.parse(localStorage.getItem('raton.story')); } catch (_) { return null; } })() || { unlocked: 1, stars: [] },
+  save() { try { localStorage.setItem('raton.story', JSON.stringify(this.data)); } catch (_) {} },
+  finish(i, stars) {
+    this.data.stars[i] = Math.max(this.data.stars[i] || 0, stars);
+    this.data.unlocked = Math.max(this.data.unlocked, Math.min(LEVELS.length, i + 2));
+    this.save();
+  },
+};
 
 // ===================== UTILIDADES =====================
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -192,6 +248,14 @@ const Snd = {
   cardIn() { this.sweep(500, 2400, 0.14, 0.16); this.tone(170, 80, 0.09, 'sine', 0.22, 0.12); this.noise(0.05, 700, 0.8, 0.18, 'lowpass', 0.12); },
   // cartel que sale: "fiuu" que baja, más corto
   cardOut() { this.sweep(2200, 450, 0.12, 0.13); },
+  // trampa que se cierra: golpe metálico seco
+  trap() { this.noise(0.06, 2600, 1, 0.6); this.tone(320, 70, 0.14, 'square', 0.22); this.noise(0.12, 400, 0.7, 0.4, 'lowpass', 0.02); },
+  // pisar pegamento: "splosh" pegajoso
+  squish() { this.sweep(900, 220, 0.25, 0.3, 2.5); this.tone(110, 70, 0.15, 'sine', 0.12); },
+  // agarrar un queso: dos notitas para arriba
+  cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
+  // entrar a un rollo: "fwoop" hueco
+  tube() { this.sweep(300, 1100, 0.45, 0.22, 4); this.tone(140, 230, 0.4, 'sine', 0.1); },
 };
 
 // Música de fondo (archivo mp3): suena solo dentro del laberinto, con su propio botón de silencio
@@ -216,7 +280,7 @@ const Music = {
 };
 
 // ===================== LABERINTO =====================
-function genMaze(W, H, rng, level) {
+function genMaze(W, H, rng, loopFrac) {
   const hW = [], vW = [];
   for (let r = 0; r <= H; r++) hW.push(new Array(W).fill(true));   // hW[r][c]: pared superior de la fila r
   for (let c = 0; c <= W; c++) vW.push(new Array(H).fill(true));   // vW[c][r]: pared izquierda de la columna c
@@ -235,8 +299,8 @@ function genMaze(W, H, rng, level) {
     if (d === 0) vW[c][r] = false; else if (d === 1) vW[c + 1][r] = false; else if (d === 2) hW[r][c] = false; else hW[r + 1][c] = false;
     vis[nr * W + nc] = 1; stack.push([nc, nr]);
   }
-  // algunos ciclos en niveles avanzados para confundir
-  const loops = Math.floor(W * H * Math.min(0.05, 0.008 * (level - 1)));
+  // algunos ciclos para confundir (se abren paredes al azar)
+  const loops = Math.floor(W * H * loopFrac);
   for (let i = 0; i < loops; i++) {
     if (rng() < 0.5) { const c = 1 + Math.floor(rng() * (W - 1)), r = Math.floor(rng() * H); vW[c][r] = false; }
     else { const r = 1 + Math.floor(rng() * (H - 1)), c = Math.floor(rng() * W); hW[r][c] = false; }
@@ -246,19 +310,24 @@ function genMaze(W, H, rng, level) {
   return { W, H, hW, vW, entRow, exitRow };
 }
 
-function pathLen(m) {
+// Distancia (en celdas) desde una celda a todas las demás, recorriendo el laberinto
+function bfs(m, c0, r0) {
   const { W, H } = m, dist = new Int32Array(W * H).fill(-1);
-  const q = [[W - 1, m.entRow]]; dist[m.entRow * W + W - 1] = 0;
-  while (q.length) {
-    const [c, r] = q.shift(), d = dist[r * W + c];
-    if (c === 0 && r === m.exitRow) return d + 3;
+  const q = [[c0, r0]]; dist[r0 * W + c0] = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const [c, r] = q[qi], d = dist[r * W + c];
     const go = (nc, nr) => { if (dist[nr * W + nc] < 0) { dist[nr * W + nc] = d + 1; q.push([nc, nr]); } };
     if (c > 0 && !m.vW[c][r]) go(c - 1, r);
     if (c < W - 1 && !m.vW[c + 1][r]) go(c + 1, r);
     if (r > 0 && !m.hW[r][c]) go(c, r - 1);
     if (r < H - 1 && !m.hW[r + 1][c]) go(c, r + 1);
   }
-  return W * H;
+  return dist;
+}
+// Largo del camino más corto, contando el corral de inicio y el umbral de salida
+function pathLen(m) {
+  const d = bfs(m, m.W - 1, m.entRow)[m.exitRow * m.W];
+  return d < 0 ? m.W * m.H : d + 3;
 }
 
 // Paredes como rectángulos (tramos colineales fusionados)
@@ -310,6 +379,113 @@ function buildDeco(m, rng) {
       color: rng() < 0.2 ? 'rgba(140,22,18,0.75)' : 'rgba(35,24,14,0.55)' });
   }
   return { sx, sy, tapes, marks };
+}
+
+// ===================== ITEMS (mecánicas de Historia) =====================
+const TRAP_L = 34, TRAP_W = 18;        // trampa del tamaño de la rata
+const TRAY = 46;                       // bandeja de pegamento (casi todo el ancho del pasillo)
+const TUBE_R = 13, TUBE_OUT = 0.3 * C; // radio del rollo y cuánto sobresale de la pared hacia cada lado
+const STICKY_SLOW = 0.35, STICKY_T = 1.5;
+
+// Coloca los items de un nivel según sus reglas. Todo sale del rng del nivel, así que siempre queda igual.
+function placeItems(L, m, rng) {
+  const { W, H } = m, idx = (c, r) => r * W + c;
+  const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), best = dE[idx(0, m.exitRow)];
+  const onPath = i => dE[i] + dX[i] === best;
+  const ent = [W - 1, m.entRow], ext = [0, m.exitRow];
+  const near = (c, r, [c2, r2], d) => Math.abs(c - c2) + Math.abs(r - r2) <= d;
+  const special = (c, r, d = 0) => near(c, r, ent, d) || near(c, r, ext, d);
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const cells = [];
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) cells.push([c, r]);
+  const center = (c, r) => [(c + 0.5) * C, (r + 0.5) * C];
+  // elige hasta n celdas separadas entre sí al menos minSep (distancia en grilla)
+  const pick = (cands, n, minSep, chosen = []) => {
+    const out = [];
+    for (const cell of cands) {
+      if (out.length >= n) break;
+      if ([...chosen, ...out].some(o => Math.abs(o[0] - cell[0]) + Math.abs(o[1] - cell[1]) < minSep)) continue;
+      out.push(cell);
+    }
+    return out;
+  };
+  const items = [], used = [];
+
+  // Trampas: solo al fondo de callejones sin salida, fuera del camino y lejos de la entrada y la salida
+  if (L.traps) {
+    const walls = (c, r) => [m.hW[r][c], m.hW[r + 1][c], m.vW[c][r], m.vW[c + 1][r]];
+    const cand = shuffle(cells.filter(([c, r]) => walls(c, r).filter(Boolean).length === 3 && !onPath(idx(c, r)) && !special(c, r, 1)));
+    for (const [c, r] of pick(cand, L.traps, 3)) {
+      const [top, bottom, left, right] = walls(c, r);
+      const a = !top ? -Math.PI / 2 : !bottom ? Math.PI / 2 : !left ? Math.PI : 0;   // hacia la abertura del callejón
+      const [x, y] = center(c, r);
+      items.push({ type: 'trap', x: x - Math.cos(a) * 8, y: y - Math.sin(a) * 8, a, closed: false, t: 0 });
+      used.push([c, r]);
+    }
+  }
+  // Pegamento: puede ir en el camino; más probable cerca de la salida
+  if (L.sticky) {
+    const maxX = Math.max(...dX);
+    const cand = cells.filter(([c, r]) => !special(c, r) && dX[idx(c, r)] >= 0)
+      .map(([c, r]) => ({ cell: [c, r], key: rng() * (1 + 3 * (1 - dX[idx(c, r)] / maxX)) * (onPath(idx(c, r)) ? 1.5 : 1) }))
+      .sort((a, b) => b.key - a.key).map(o => o.cell);
+    for (const [c, r] of pick(cand, L.sticky, 2, used)) {
+      const [x, y] = center(c, r);
+      items.push({ type: 'sticky', x: x + (rng() - 0.5) * 6 - TRAY / 2, y: y + (rng() - 0.5) * 6 - TRAY / 2, w: TRAY, h: TRAY });
+      used.push([c, r]);
+    }
+  }
+  // Quesos: preferentemente fuera del camino más corto (para que haya que desviarse), separados entre sí
+  if (L.cheese) {
+    const free = cells.filter(([c, r]) => !special(c, r) && dE[idx(c, r)] >= 0 && !used.some(u => u[0] === c && u[1] === r));
+    const off = shuffle(free.filter(([c, r]) => !onPath(idx(c, r)))), on = shuffle(free.filter(([c, r]) => onPath(idx(c, r))));
+    let chosen = pick(off, L.cheese, 4, used);
+    if (chosen.length < L.cheese) chosen = chosen.concat(pick(off.concat(on), L.cheese - chosen.length, 2, used.concat(chosen)));
+    for (const [c, r] of chosen) {
+      const [x, y] = center(c, r);
+      items.push({ type: 'cheese', x: x + (rng() - 0.5) * 16, y: y + (rng() - 0.5) * 16, rot: rng() * Math.PI * 2, got: false });
+      used.push([c, r]);
+    }
+  }
+  // Túneles: atajo que atraviesa una pared entre dos celdas vecinas que por el laberinto están lejos
+  if (L.tunnels) {
+    const pairs = [];
+    for (const [c, r] of cells) {
+      if (special(c, r)) continue;
+      const d = bfs(m, c, r);
+      if (c + 1 < W && m.vW[c + 1][r] && !special(c + 1, r) && d[idx(c + 1, r)] >= 8) pairs.push({ a: [c, r], b: [c + 1, r], gain: d[idx(c + 1, r)] });
+      if (r + 1 < H && m.hW[r + 1][c] && !special(c, r + 1) && d[idx(c, r + 1)] >= 8) pairs.push({ a: [c, r], b: [c, r + 1], gain: d[idx(c, r + 1)] });
+    }
+    shuffle(pairs).sort((p, q) => q.gain - p.gain);
+    const chosen = [];
+    for (const p of pairs) {
+      if (chosen.length >= L.tunnels) break;
+      const busy = used.concat(...chosen.map(q => [q.a, q.b]));
+      if (busy.some(u => Math.abs(u[0] - p.a[0]) + Math.abs(u[1] - p.a[1]) < 3 || Math.abs(u[0] - p.b[0]) + Math.abs(u[1] - p.b[1]) < 3)) continue;
+      chosen.push(p);
+    }
+    for (const p of chosen) {
+      const [ax, ay] = center(...p.a), [bx, by] = center(...p.b);
+      const dx = Math.sign(bx - ax), dy = Math.sign(by - ay), wx = (ax + bx) / 2, wy = (ay + by) / 2;
+      items.push({ type: 'tunnel', dx, dy, wx, wy,                                     // pared en (wx, wy), eje (dx, dy)
+        a: [wx - dx * TUBE_OUT, wy - dy * TUBE_OUT], b: [wx + dx * TUBE_OUT, wy + dy * TUBE_OUT] });   // bocas
+      used.push(p.a, p.b);
+    }
+  }
+  return items;
+}
+
+// Costados de los rollos (para que solo se entre de frente): rectángulos finos que chocan como paredes
+function tubeSolids(items) {
+  const out = [];
+  for (const it of items) if (it.type === 'tunnel') {
+    for (const side of [-1, 1]) for (const [px, py] of [it.a, it.b]) {
+      const x0 = Math.min(px, it.wx), x1 = Math.max(px, it.wx), y0 = Math.min(py, it.wy), y1 = Math.max(py, it.wy);
+      if (it.dx) out.push({ x: x0, y: it.wy + side * (TUBE_R + 1.5) - 1.5, w: x1 - x0, h: 3 });
+      else out.push({ x: it.wx + side * (TUBE_R + 1.5) - 1.5, y: y0, w: 3, h: y1 - y0 });
+    }
+  }
+  return out;
 }
 
 // ===================== CANVAS / TEXTURAS =====================
@@ -374,12 +550,13 @@ function resize() {
   computeScale();
 }
 function computeScale() {
-  const vc = viewCells(G.level) * C;
+  const vc = viewCells(G.viewLevel || G.level) * C;
   scale = Math.sqrt(cv.width * cv.height / (vc * vc * 9 / 16));
 }
 
 // ===================== ESTADO =====================
-const G = { state: 'title', level: 1, maze: null, rects: [], deco: null, timeLimit: 0, timeLeft: 0,
+const G = { state: 'title', mode: 'challenge', level: 1, viewLevel: 1, story: 0, maze: null, rects: [], solids: [], deco: null,
+  items: [], cheese: 0, cheeseTotal: 0, fx: [], dieReason: 'time', siren: 0, timeLimit: 0, timeLeft: 0,
   attempts: 0, light: 0, dieT: 0, onT: 0, baseSeed: 1, lastTick: 99, time: 0,
   iris: 1, irisTarget: 1, winCard: false,   // cortinilla circular (1 = abierta, 0 = cerrada)
   shake: 0 };                               // temblor de cámara (0..1)
@@ -409,7 +586,10 @@ function updateTail(dt) {
     return;
   }
   P[0] = rest(0);
-  const near = G.rects.filter(R => R.x < M.x + 60 && R.x + R.w > M.x - 60 && R.y < M.y + 60 && R.y + R.h > M.y - 60);
+  // dentro de un rollo (y justo al salir) la cola no choca: si no, se trabaría contra la pared que atraviesa el túnel
+  const near = M.tunnel || M.tailFree > 0 ? [] :
+    G.solids.filter(R => R.x < M.x + 60 && R.x + R.w > M.x - 60 && R.y < M.y + 60 && R.y + R.h > M.y - 60);
+  M.tailFree = Math.max(0, (M.tailFree || 0) - dt);
   for (let i = 1; i <= TAIL_N; i++) {
     const t = i / TAIL_N, [rx, ry] = rest(i), k = Math.min(1, dt * (28 - 20 * t));
     let x = P[i][0] + (rx - P[i][0]) * k, y = P[i][1] + (ry - P[i][1]) * k;
@@ -465,14 +645,36 @@ function animMouse(dt, active) {
 const cam = { x: 0, y: 0 };
 const keys = {};
 
-function loadLevel(n) {
-  G.level = n;
-  const [W, H] = sizeFor(n);
-  const rng = mulberry32(G.baseSeed + n * 7919);
-  G.maze = genMaze(W, H, rng, n);
+// Arma el laberinto (paredes, decoración) a partir de una semilla; devuelve el rng para seguir colocando cosas
+function buildMaze(W, H, seed, loopFrac) {
+  const rng = mulberry32(seed);
+  G.maze = genMaze(W, H, rng, loopFrac);
   G.rects = buildRects(G.maze, rng);
   G.deco = buildDeco(G.maze, rng);
+  return rng;
+}
+// Desafío: niveles infinitos al azar (la semilla de la partida cambia cada vez)
+function loadLevel(n) {
+  G.mode = 'challenge'; G.level = n; G.viewLevel = n;
+  const [W, H] = sizeFor(n);
+  buildMaze(W, H, G.baseSeed + n * 7919, Math.min(0.05, 0.008 * (n - 1)));
+  G.items = []; G.solids = G.rects; G.cheeseTotal = 0;
   G.timeLimit = timeFor(n, pathLen(G.maze));
+  G.attempts = 1;
+  computeScale();
+  resetRun();
+}
+// Historia: niveles fijos de la tabla LEVELS
+function loadStory(i) {
+  const L = LEVELS[i];
+  G.mode = 'story'; G.story = i; G.level = i + 1; G.viewLevel = STORY_VIEW;
+  const rng = buildMaze(L.size[0], L.size[1], L.seed, L.loops || 0);
+  G.items = placeItems(L, G.maze, rng);
+  G.solids = G.rects.concat(tubeSolids(G.items));
+  G.cheeseTotal = G.items.filter(it => it.type === 'cheese').length;
+  // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
+  const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 3;
+  G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
   G.attempts = 1;
   computeScale();
   resetRun();
@@ -480,6 +682,9 @@ function loadLevel(n) {
 function resetRun() {
   const m = G.maze;
   M.x = (m.W + 0.5) * C; M.y = (m.entRow + 0.5) * C; M.a = Math.PI; M.v = 0; M.turnV = 0; M.tail = null;
+  M.stickyT = 0; M.onTray = false; M.tunnel = null;
+  for (const it of G.items) { it.closed = false; it.t = 0; it.got = false; }   // trampas abiertas y quesos sin juntar
+  G.cheese = 0; G.fx = []; G.dieReason = 'time'; G.siren = 0;
   G.timeLeft = G.timeLimit; G.lastTick = 99; G.light = 0;
   const t = camTarget(); cam.x = t.x; cam.y = t.y;
 }
@@ -497,6 +702,7 @@ function camTarget() {
 // ===================== UI =====================
 const $card = document.getElementById('card'), $hud = document.getElementById('hud');
 const $timer = document.getElementById('timer'), $level = document.getElementById('level');
+const $cheese = document.getElementById('cheese'), $cheeseN = document.getElementById('cheeseN');
 const $hint = document.getElementById('hint'), $hintTouch = document.getElementById('hintTouch');
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 document.body.classList.toggle('touch', isTouch);
@@ -519,8 +725,14 @@ function showCard(html) {
 function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>ESPACIO</kbd>'} para ${what}</p>`; }
 
+// Laberinto de fondo de la portada y del selector (siempre el mismo), con el ratón dando vueltas
+function titleBackground() {
+  G.baseSeed = 12345; loadLevel(1); M.x = (G.maze.W - 1.5) * C;
+  G.iris = G.irisTarget = 1; $hud.classList.add('hidden');
+}
 function showTitle() {
-  G.state = 'title'; $hud.classList.add('hidden'); G.iris = G.irisTarget = 1;
+  titleBackground();
+  G.state = 'title';
   const controls = isTouch
     ? `<tr><td>arrastrar el dedo</td><td>moverte: el ratón gira hacia donde apuntás</td></tr>`
     : `<tr><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> o <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>moverte: el ratón gira hacia donde apuntás</td></tr>`;
@@ -528,16 +740,41 @@ function showTitle() {
     <p>Estás en un laberinto de cartón, a oscuras. Solo tenés la linterna que llevás atada al lomo.</p>
     <p>Encontrá la salida antes de que se termine el tiempo.</p>
     <table>${controls}</table>
-    ${go('empezar')}`);
+    <div class="menu"><button class="cbtn" data-act="story">Historia</button><button class="cbtn" data-act="challenge">Desafío</button></div>
+    <p class="small">Historia: niveles diseñados, con cosas nuevas en cada uno · Desafío: laberintos al azar, cada vez más grandes</p>
+    ${isTouch ? '' : '<p class="small"><kbd>1</kbd> Historia · <kbd>2</kbd> Desafío</p>'}`);
+  updateButtons();
+}
+// Selector de niveles de Historia: los bloqueados aparecen apagados; se ven las mejores estrellas de cada uno
+function showSelect() {
+  if (G.state !== 'title') titleBackground();
+  G.state = 'select';
+  const d = Story.data;
+  const btns = LEVELS.map((L, i) => {
+    const locked = i + 1 > d.unlocked, st = d.stars[i] || 0;
+    return `<button class="lvl" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
+      <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
+  }).join('');
+  card(`<h1>HISTORIA</h1>
+    <p>Niveles de prueba: cada uno presenta algo nuevo.</p>
+    <div class="levels">${btns}</div>
+    <div class="menu"><button class="cbtn alt" data-act="back">Volver</button></div>
+    ${isTouch ? '' : go('jugar el último nivel desbloqueado')}`);
   updateButtons();
 }
 function showIntro() {
   G.state = 'intro'; $hud.classList.remove('hidden');
-  const m = G.maze;
-  card(`<h1>NIVEL ${G.level}</h1>
-    <p class="big">Laberinto ${m.W} × ${m.H}</p>
-    <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
-    ${go('encender la linterna')}`);
+  const m = G.maze, L = G.mode === 'story' ? LEVELS[G.story] : null;
+  card(L
+    ? `<h1>NIVEL ${G.level}</h1>
+       <p class="big">${L.name}</p>
+       <p>${L.intro}</p>
+       <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
+       ${go('encender la linterna')}`
+    : `<h1>NIVEL ${G.level}</h1>
+       <p class="big">Laberinto ${m.W} × ${m.H}</p>
+       <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
+       ${go('encender la linterna')}`);
   G.iris = 0; G.irisTarget = 0;
   pop($level); pop($timer);
   updateButtons();
@@ -552,33 +789,77 @@ function win() {
   G.irisTarget = 0; G.winCard = false;   // se cierra en un círculo negro; el cartel aparece al terminar
   updateButtons();
 }
+// Estrellas: 1 por escapar + 1 por los quesos (sin quesos: más de 1/3 del tiempo) + 1 por el tiempo (más de 1/3; sin quesos, más de 1/2)
+function starsFor() {
+  const frac = G.timeLeft / G.timeLimit, hasCheese = G.cheeseTotal > 0;
+  return 1 + ((hasCheese ? G.cheese >= G.cheeseTotal : frac > 1 / 3) ? 1 : 0) + ((hasCheese ? frac > 1 / 3 : frac > 1 / 2) ? 1 : 0);
+}
 function showWinCard() {
   G.winCard = true;
+  if (G.mode === 'story') {
+    const st = starsFor(), last = G.story >= LEVELS.length - 1;
+    Story.finish(G.story, st);
+    card(`<h1>¡ESCAPASTE!</h1>
+      <div class="stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></div>
+      <p>${G.cheeseTotal ? `Quesos: <b>${G.cheese}/${G.cheeseTotal}</b> · ` : ''}Te sobraron <b>${Math.floor(G.timeLeft)} s</b></p>
+      ${last ? '<p>¡Completaste los niveles de prueba!</p>' : ''}
+      <div class="menu">${last ? '' : '<button class="cbtn" data-act="next">Siguiente nivel</button>'}<button class="cbtn alt" data-act="levels">Niveles</button></div>
+      ${isTouch ? '' : go(last ? 'volver a los niveles' : 'el siguiente nivel')}`);
+    return;
+  }
   card(`<h1>¡ESCAPASTE!</h1>
     <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
     ${go(`el nivel ${G.level + 1}`)}`);
 }
-function startDie() { G.state = 'dying'; G.dieT = 0; G.timeLeft = 0; Snd.lose(); updateButtons(); }
+function startDie(reason = 'time') {
+  G.state = 'dying'; G.dieReason = reason; G.dieT = 0;
+  if (reason === 'time') G.timeLeft = 0;
+  Snd.lose(); updateButtons();
+}
 function lost() {
   G.state = 'lost';
-  card(`<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
-    <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
-    ${go('reintentar')}`);
+  card(G.dieReason === 'trap'
+    ? `<h1 class="red">¡ATRAPADO!</h1>
+       <p>La trampa se cerró. Volvés a la entrada del mismo laberinto.</p>
+       ${go('reintentar')}`
+    : `<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
+       <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
+       ${go('reintentar')}`);
   updateButtons();
 }
 function togglePause() {
-  if (G.state === 'play') { G.state = 'paused'; card(`<h1>PAUSA</h1>${go('seguir')}`); Music.pause(); }
+  if (G.state === 'play') {
+    G.state = 'paused'; Music.pause();
+    card(`<h1>PAUSA</h1>${go('seguir')}
+      <div class="menu"><button class="cbtn alt" data-act="menu">Salir al menú</button></div>
+      ${isTouch ? '' : '<p class="small"><kbd>Q</kbd> salir al menú</p>'}`);
+  }
   else if (G.state === 'paused') { G.state = 'play'; card(null); Music.resume(); }
   updateButtons();
 }
 // Acción principal: ESPACIO en teclado o tocar la pantalla
 function primaryAction() {
   Snd.init();
-  if (G.state === 'title') { firstGesture(); G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
+  if (G.state === 'title') act('story');
+  else if (G.state === 'select') { loadStory(Math.min(Story.data.unlocked, LEVELS.length) - 1); showIntro(); }
   else if (G.state === 'intro') startPlay();
-  else if (G.state === 'won' && G.winCard) { loadLevel(G.level + 1); showIntro(); }
+  else if (G.state === 'won' && G.winCard) {
+    if (G.mode === 'story') act(G.story >= LEVELS.length - 1 ? 'levels' : 'next');
+    else { loadLevel(G.level + 1); showIntro(); }
+  }
   else if (G.state === 'lost') { G.attempts++; resetRun(); startPlay(); }
   else if (G.state === 'paused') togglePause();
+}
+// Botones de los carteles (data-act)
+function act(a, el) {
+  Snd.init();
+  if (a === 'story') { firstGesture(); showSelect(); }
+  else if (a === 'challenge') { firstGesture(); G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
+  else if (a === 'level') { loadStory(+el.dataset.i); showIntro(); }
+  else if (a === 'next') { loadStory(G.story + 1); showIntro(); }
+  else if (a === 'levels') showSelect();
+  else if (a === 'back') showTitle();
+  else if (a === 'menu') { Music.resume(); showTitle(); }
 }
 
 // ---- botones de sonido / pausa ----
@@ -648,16 +929,28 @@ addEventListener('keydown', e => {
   keys[k] = true; Snd.init();
   if (e.repeat) return;
   if (k === ' ' || k === 'enter') primaryAction();
+  else if (G.state === 'title' && (k === '1' || k === '2')) act(k === '1' ? 'story' : 'challenge');
+  else if (G.state === 'select' && (k === 'escape' || k === 'backspace')) act('back');
+  else if (G.state === 'paused' && k === 'q') act('menu');
   else if (k === 'p' || k === 'escape') togglePause();
   else if (k === 'm') { Music.toggle(); updateButtons(); }
   else if (k === 'f') { Snd.toggle(); updateButtons(); }
   else if (k === 'r' && G.state === 'play') { G.attempts++; resetRun(); startPlay(); }
-  else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) { loadLevel(G.level + 1); showIntro(); }
+  else if (k === 'n' && ['play', 'intro', 'paused'].includes(G.state)) {   // debug: saltar nivel
+    if (G.mode === 'story') { if (G.story < LEVELS.length - 1) { loadStory(G.story + 1); showIntro(); } }
+    else { loadLevel(G.level + 1); showIntro(); }
+  }
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 // la música arranca con el primer toque o tecla (los navegadores no dejan reproducir audio antes de un gesto)
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (!Music.started) Music.start(); }, { capture: true });
-addEventListener('click', e => { if (!e.target.closest('.btn')) primaryAction(); });
+addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (b) { if (!b.disabled) act(b.dataset.act, b); return; }
+  if (e.target.closest('.btn')) return;
+  if (G.state === 'title' || G.state === 'select') return;   // en los menús se elige con los botones
+  primaryAction();
+});
 function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.state === 'play') togglePause(); }
 addEventListener('blur', autoPause);
 document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
@@ -670,7 +963,7 @@ function collide() {
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
   for (let it = 0; it < 3; it++) for (const [off, r] of [[0, RAD], [12, 7]]) {
     let cx = M.x + ca * off, cy = M.y + sa * off;
-    for (const R of G.rects) {
+    for (const R of G.solids) {   // paredes + costados de los rollos
       if (cx + r < R.x || cx - r > R.x + R.w || cy + r < R.y || cy - r > R.y + R.h) continue;
       const px = clamp(cx, R.x, R.x + R.w), py = clamp(cy, R.y, R.y + R.h);
       const dx = cx - px, dy = cy - py, d2 = dx * dx + dy * dy;
@@ -686,6 +979,69 @@ function collide() {
     }
   }
   return pushed;
+}
+
+// Pegamento: devuelve cuánto se multiplica la velocidad (frena encima y deja las patas pegajosas un rato)
+function stickyFactor(dt) {
+  const on = !M.tunnel && G.items.some(it => it.type === 'sticky' && M.x > it.x && M.x < it.x + it.w && M.y > it.y && M.y < it.y + it.h);
+  if (on && !M.onTray) Snd.squish();
+  M.onTray = on;
+  if (on) { M.stickyT = STICKY_T; return STICKY_SLOW; }
+  if (M.stickyT > 0) {
+    M.stickyT = Math.max(0, M.stickyT - dt);
+    return STICKY_SLOW + (1 - STICKY_SLOW) * (1 - M.stickyT / STICKY_T);   // recupera la velocidad de a poco
+  }
+  return 1;
+}
+
+// Túnel: recorrido automático por el eje del rollo, de una boca a la otra
+function tunnelStep(dt) {
+  const tn = M.tunnel;
+  tn.s += SPEED * 0.9 * dt;
+  M.x = tn.ox + tn.ax * tn.s; M.y = tn.oy + tn.ay * tn.s;
+  M.a = Math.atan2(tn.ay, tn.ax); M.v = SPEED * 0.9; M.turnV = 0;
+  if (tn.s >= tn.end) { M.tunnel = null; M.v = SPEED * 0.6; M.tailFree = 0.5; }
+}
+
+// Trampas, quesos y entradas a los túneles
+function updateItems() {
+  const ca = Math.cos(M.a), sa = Math.sin(M.a);
+  for (const it of G.items) {
+    if (it.type === 'trap' && !it.closed && !M.tunnel) {
+      // cuerpo y cabeza de la rata contra el rectángulo de la trampa (en coordenadas de la trampa)
+      const c = Math.cos(it.a), s = Math.sin(it.a);
+      for (const [off, r] of [[0, RAD], [12, 7]]) {
+        const px = M.x + ca * off - it.x, py = M.y + sa * off - it.y;
+        const lx = px * c + py * s, ly = -px * s + py * c;
+        const qx = clamp(lx, -TRAP_L / 2, TRAP_L / 2), qy = clamp(ly, -TRAP_W / 2, TRAP_W / 2);
+        if ((lx - qx) ** 2 + (ly - qy) ** 2 < r * r) {
+          it.closed = true; it.t = 0; Snd.trap(); M.v = 0; M.turnV = 0;
+          startDie('trap');
+          return;
+        }
+      }
+    } else if (it.type === 'cheese' && !it.got) {
+      if (Math.hypot(M.x + ca * 10 - it.x, M.y + sa * 10 - it.y) < 14) {
+        it.got = true; G.cheese++; Snd.cheese(); pop($cheese);
+        for (let k = 0; k < 10; k++) {
+          const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
+          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.2 });
+        }
+      }
+    } else if (it.type === 'tunnel' && !M.tunnel) {
+      // se entra con la cabeza en la boca, mirando hacia la pared
+      for (const [mouth, sg] of [[it.a, 1], [it.b, -1]]) {
+        const ax = it.dx * sg, ay = it.dy * sg, hx = M.x + ca * 12, hy = M.y + sa * 12;
+        const along = (hx - mouth[0]) * ax + (hy - mouth[1]) * ay, lat = Math.abs(-(hx - mouth[0]) * ay + (hy - mouth[1]) * ax);
+        if (along > -3 && along < TUBE_OUT && lat < TUBE_R - 2 && ca * ax + sa * ay > 0.5) {
+          const s = (M.x - mouth[0]) * ax + (M.y - mouth[1]) * ay;
+          M.tunnel = { ox: mouth[0], oy: mouth[1], ax, ay, s, end: 2 * TUBE_OUT + 16 };
+          Snd.tube();
+          break;
+        }
+      }
+    }
+  }
 }
 
 // Al cruzar el umbral de salida todo se va oscureciendo: 0 dentro del laberinto, 1 ya afuera
@@ -714,15 +1070,21 @@ function update(dt) {
       turn = clamp(diff * 3, -1, 1);
       target = SPEED * mag * Math.max(0, Math.cos(diff));
     }
-    M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
-    M.a += M.turnV * dt;
-    M.v += (target - M.v) * Math.min(1, dt * 9);
-    const ox = M.x, oy = M.y, want = Math.abs(M.v) * dt;
-    M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt;
-    collide();
+    target *= stickyFactor(dt);   // el pegamento frena
+    const ox = M.x, oy = M.y;
+    let want = 0;
+    if (M.tunnel) tunnelStep(dt);   // adentro de un rollo: recorrido automático, sin control ni choques
+    else {
+      M.turnV += (turn * TURN - M.turnV) * Math.min(1, dt * 14);
+      M.a += M.turnV * dt;
+      M.v += (target - M.v) * Math.min(1, dt * 9);
+      want = Math.abs(M.v) * dt;
+      M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt;
+      collide();
+    }
     const moved = Math.hypot(M.x - ox, M.y - oy);
     M.bumpCd -= dt;
-    if (want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
+    if (!M.tunnel && want > 1.2 && moved < want * 0.35 && M.bumpCd <= 0 && Math.abs(M.v) > 80) {
       Snd.bump(); if (Math.random() < 0.4) Snd.squeak(); M.bumpCd = 0.45; M.v *= 0.3; M.bumpT = BUMP_T;
       if (G.time - M.lastBump < 1.2) G.shake = Math.min(1, G.shake + 0.5);   // choques seguidos: tiembla la cámara
       M.lastBump = G.time;
@@ -739,8 +1101,11 @@ function update(dt) {
     // encendido con parpadeo + leve oscilación del foco
     G.light = G.onT < 0.35 ? (Math.random() < 0.55 ? 1 : 0.15) : 0.96 + 0.04 * Math.sin(G.time * 13) * Math.sin(G.time * 7.3);
     G.light *= 1 - exitDarkness();
-    if (M.x < -6) win();
-    else if (G.timeLeft <= 0) startDie();
+    if (M.tunnel) G.light *= 0.25;   // adentro del rollo solo se ve el halo
+    updateItems();
+    if (G.state !== 'play') { /* una trampa terminó la partida */ }
+    else if (M.x < -6) win();
+    else if (G.timeLeft <= 0) startDie('time');
   } else if (G.state === 'dying') {
     G.dieT += dt; M.v *= 0.9;
     G.light = G.dieT < 1.1 ? (Math.random() < 0.5 ? 0.12 : 0.85) * (1 - G.dieT / 1.25) : 0;
@@ -749,7 +1114,7 @@ function update(dt) {
     M.v = SPEED; M.a += (Math.PI - ((M.a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) * Math.min(1, dt * 4);
     M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt; M.phase += dt * SPEED * 0.12;
     G.light = 1 - exitDarkness();
-  } else if (G.state === 'title') {
+  } else if (G.state === 'title' || G.state === 'select') {
     M.a += dt * 0.5; M.phase += dt * 2; G.light = 1;
   } else if (G.state === 'intro' || G.state === 'lost') {
     G.light = 0;
@@ -759,6 +1124,12 @@ function update(dt) {
   updateTail(dt);
 
   Music.tick(dt);
+  // trampas cerrándose, migas de queso y sirena de los últimos 10 segundos
+  for (const it of G.items) if (it.type === 'trap' && it.closed) it.t = Math.min(1, it.t + dt / 0.15);
+  for (const p of G.fx) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+  G.fx = G.fx.filter(p => p.t < p.life);
+  const sirenOn = (G.state === 'play' || G.state === 'paused') && G.timeLeft <= 10;
+  G.siren += clamp((sirenOn ? 1 : 0) - G.siren, -dt / 0.5, dt / 0.5);
   // cortinilla circular y temblor de cámara
   G.iris += clamp(G.irisTarget - G.iris, -dt / IRIS_T, dt / IRIS_T);
   if (G.state === 'won' && !G.winCard && G.iris <= 0) showWinCard();
@@ -863,6 +1234,7 @@ function drawFloor(c, v) {
     c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(R.x - 6, R.y - 6, R.w + 12, R.h + 12);
     c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(R.x - 3, R.y - 3, R.w + 6, R.h + 6);
   }
+  drawFloorItems(c, v);   // trampas, pegamento y quesos (en la oscuridad no se ven: solo con la linterna)
 }
 
 function sideQuad(c, ax, ay, bx, by, cx2, cy2, dx, dy) {
@@ -908,6 +1280,112 @@ function drawWalls(c, v) {
       if (horiz) c.fillRect(tx + o - 4.5 * s, ty - 1.5, 9 * s, th + 3); else c.fillRect(tx - 1.5, ty + o - 4.5 * s, tw + 3, 9 * s);
     }
   }
+  // rollos de cartón (túneles): van sobre las paredes que atraviesan
+  for (const it of G.items) if (it.type === 'tunnel' && it.wx > v.x0 - C * 2 && it.wx < v.x1 + C * 2 && it.wy > v.y0 - C * 2 && it.wy < v.y1 + C * 2) drawTube(c, it);
+}
+
+// ---- items ----
+function rrect(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
+
+// Trampera de madera vista desde arriba (placeholder hasta tener la imagen): +x apunta a la abertura del callejón
+function drawTrap(c, it) {
+  const L = TRAP_L, W = TRAP_W;
+  c.save(); c.translate(it.x, it.y); c.rotate(it.a);
+  c.fillStyle = 'rgba(0,0,0,0.32)'; rrect(c, -L / 2 + 1.5, -W / 2 + 2.5, L, W, 2); c.fill();   // sombra
+  c.fillStyle = '#c99a5b'; rrect(c, -L / 2, -W / 2, L, W, 2); c.fill();                       // base de madera
+  c.strokeStyle = 'rgba(120,80,35,0.45)'; c.lineWidth = 0.5;
+  for (const k of [-5.5, -2, 1.5, 5]) { c.beginPath(); c.moveTo(-L / 2 + 1, k); c.bezierCurveTo(-6, k + 1, 6, k - 1, L / 2 - 1, k + 0.4); c.stroke(); }
+  c.strokeStyle = 'rgba(80,50,20,0.75)'; c.lineWidth = 0.8; rrect(c, -L / 2, -W / 2, L, W, 2); c.stroke();
+  // pedal de chapa con el cebo de queso, del lado de la abertura
+  c.fillStyle = '#9aa0a6'; c.fillRect(6, -4.5, 9, 9);
+  c.fillStyle = '#f2c94c'; c.beginPath(); c.moveTo(7.5, 3); c.lineTo(14, 3); c.lineTo(7.5, -3); c.closePath(); c.fill();
+  // resortes y bisagra en el medio
+  c.strokeStyle = '#c4c9ce'; c.lineWidth = 1;
+  for (const s of [-1, 1]) { c.beginPath(); c.arc(-2, s * 5.5, 2.2, 0, Math.PI * 2); c.stroke(); }
+  // arco de alambre: abierto descansa hacia atrás; al cerrarse gira sobre la bisagra y cae hacia adelante
+  const endX = -2 - 14 * Math.cos(Math.PI * (it.closed ? it.t : 0));
+  c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 2.2;
+  c.beginPath(); c.moveTo(-2, -7); c.lineTo(endX, -7); c.lineTo(endX, 7); c.lineTo(-2, 7); c.stroke();
+  c.strokeStyle = '#d9dee2'; c.lineWidth = 1.3;
+  c.beginPath(); c.moveTo(-2, -7); c.lineTo(endX, -7); c.lineTo(endX, 7); c.lineTo(-2, 7); c.stroke();
+  if (!it.closed) { c.strokeStyle = '#b5babf'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(endX, 0); c.lineTo(7, 0); c.stroke(); }   // traba
+  c.restore();
+}
+
+// Bandeja de plástico con pegamento amarillento y brillante
+function drawSticky(c, it) {
+  const { x, y, w, h } = it;
+  c.fillStyle = 'rgba(0,0,0,0.25)'; rrect(c, x + 1.5, y + 2.5, w, h, 6); c.fill();
+  c.fillStyle = '#e4dfd0'; rrect(c, x, y, w, h, 6); c.fill();                   // borde de plástico
+  const g = c.createRadialGradient(x + w * 0.4, y + h * 0.35, 2, x + w / 2, y + h / 2, w * 0.6);
+  g.addColorStop(0, '#e8cb63'); g.addColorStop(1, '#a8832c');
+  c.fillStyle = g; rrect(c, x + 3.5, y + 3.5, w - 7, h - 7, 4); c.fill();       // pegote
+  c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1.2; c.lineCap = 'round';
+  c.beginPath(); c.arc(x + w * 0.32, y + h * 0.3, w * 0.16, Math.PI * 1.1, Math.PI * 1.6); c.stroke();   // brillo
+  c.lineWidth = 0.6; c.strokeStyle = 'rgba(255,250,220,0.55)';
+  for (const [bx, by, br] of [[0.65, 0.6, 2], [0.4, 0.7, 1.4], [0.72, 0.32, 1.1], [0.25, 0.55, 0.9]]) { c.beginPath(); c.arc(x + w * bx, y + h * by, br, 0, Math.PI * 2); c.stroke(); }
+  c.strokeStyle = 'rgba(90,80,60,0.6)'; c.lineWidth = 0.8; rrect(c, x, y, w, h, 6); c.stroke();
+}
+
+// Trocito de queso (cuña con agujeritos)
+function drawCheese(c, it) {
+  c.save(); c.translate(it.x, it.y); c.rotate(it.rot);
+  c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(1, 2, 8, 5, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#d9a62e'; c.beginPath(); c.moveTo(-7, 4); c.lineTo(8, 4); c.lineTo(8, 6); c.lineTo(-7, 6); c.closePath(); c.fill();
+  c.fillStyle = '#f2c94c'; c.beginPath(); c.moveTo(-7, 4); c.lineTo(8, 4); c.lineTo(-7, -6); c.closePath(); c.fill();
+  c.strokeStyle = '#8a5b10'; c.lineWidth = 0.6; c.stroke();
+  c.fillStyle = '#c98f1d';
+  for (const [hx, hy, hr] of [[-3.5, 1, 1.4], [-5, -3, 0.9], [1.5, 2.2, 0.8]]) { c.beginPath(); c.arc(hx, hy, hr, 0, Math.PI * 2); c.fill(); }
+  c.restore();
+}
+
+// Rollo de cartón (papel de cocina) que atraviesa una pared; se dibuja con las paredes porque es alto
+function drawTube(c, it) {
+  const s2 = 1 + K * 0.5, P = ([x, y]) => [cam.x + (x - cam.x) * s2, cam.y + (y - cam.y) * s2];
+  const [ax, ay] = P(it.a), [bx, by] = P(it.b), r = TUBE_R * s2, len = Math.hypot(bx - ax, by - ay);
+  c.save(); c.translate(ax, ay); c.rotate(Math.atan2(by - ay, bx - ax));
+  const g = c.createLinearGradient(0, -r, 0, r);
+  g.addColorStop(0, '#5a3e22'); g.addColorStop(0.25, '#b88a56'); g.addColorStop(0.5, '#ddb47e'); g.addColorStop(0.75, '#b88a56'); g.addColorStop(1, '#5a3e22');
+  c.fillStyle = g; c.fillRect(0, -r, len, r * 2);
+  c.save(); c.beginPath(); c.rect(0, -r, len, r * 2); c.clip();               // costura en espiral
+  c.strokeStyle = 'rgba(90,60,30,0.55)'; c.lineWidth = 0.9;
+  for (let x = -r * 1.2; x < len; x += 9) { c.beginPath(); c.moveTo(x, -r); c.lineTo(x + r * 1.1, r); c.stroke(); }
+  c.restore();
+  for (const ex of [0, len]) {                                                 // bocas abiertas
+    c.fillStyle = '#e2c38f'; c.beginPath(); c.ellipse(ex, 0, 3.4, r, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#140d07'; c.beginPath(); c.ellipse(ex, 0, 2.3, r - 2.2, 0, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+
+function drawFloorItems(c, v) {
+  for (const it of G.items) {
+    if (it.x < v.x0 - 60 || it.x > v.x1 + 60 || it.y < v.y0 - 60 || it.y > v.y1 + 60) continue;
+    if (it.type === 'sticky') drawSticky(c, it);
+    else if (it.type === 'trap') drawTrap(c, it);
+    else if (it.type === 'cheese' && !it.got) drawCheese(c, it);
+  }
+}
+
+// Sirena de los últimos 10 segundos: todo se tiñe de rojo y un haz rojo gira desde el techo
+// (no lo cortan las paredes), dejando ver por un instante zonas lejos de la linterna
+function drawSiren(l, T6) {
+  const S = G.siren, w = lightCv.width, h = lightCv.height;
+  l.setTransform(1, 0, 0, 1, 0, 0); l.globalAlpha = 1;
+  l.globalCompositeOperation = 'multiply';
+  l.fillStyle = `rgb(255, ${255 - 170 * S | 0}, ${255 - 185 * S | 0})`; l.fillRect(0, 0, w, h);
+  l.globalCompositeOperation = 'lighter';
+  l.fillStyle = `rgba(255, 30, 20, ${0.05 * S})`; l.fillRect(0, 0, w, h);      // un rojo apenas en todo
+  l.setTransform(...T6);
+  const cx = G.maze.W * C / 2, cy = G.maze.H * C / 2, R = Math.hypot(G.maze.W, G.maze.H) * C * 0.75, a = G.time * Math.PI;
+  for (const [half, alpha] of [[0.42, 0.12], [0.3, 0.16], [0.18, 0.2]]) {      // tres capas: borde suave
+    const g = l.createRadialGradient(cx, cy, 0, cx, cy, R);
+    // transparente en el centro: el emisor está en el techo y no se ve, solo el haz que barre
+    g.addColorStop(0, 'rgba(255, 50, 35, 0)'); g.addColorStop(0.18, `rgba(255, 50, 35, ${alpha * 1.6 * S})`);
+    g.addColorStop(1, `rgba(255, 30, 20, ${alpha * 0.8 * S})`);
+    l.fillStyle = g; l.beginPath(); l.moveTo(cx, cy); l.arc(cx, cy, R, a - half, a + half); l.closePath(); l.fill();
+  }
+  l.setTransform(1, 0, 0, 1, 0, 0); l.globalCompositeOperation = 'source-over';
 }
 
 function drawMouse(c, alpha) {
@@ -1122,6 +1600,7 @@ function render() {
     } else lctx.drawImage(aCv, 0, 0);
     lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
+    if (G.siren > 0.01) drawSiren(lctx, T6);
 
     // 3) oscuridad total salvo lo que toca la luz
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lightCv, 0, 0); ctx.globalCompositeOperation = 'source-over';
@@ -1151,6 +1630,11 @@ function render() {
     ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(lx - 12, ly - 12, 24, 24);
     ctx.globalCompositeOperation = 'source-over';
   }
+  // migas de queso al agarrarlo
+  for (const p of G.fx) {
+    ctx.fillStyle = `rgba(245, 205, 80, ${1 - p.t / p.life})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); ctx.fill();
+  }
 
   // 5) las paredes son más altas que el ratón: se vuelven a dibujar encima, solo en la zona alrededor de él
   if (!lit) { wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.clearRect(0, 0, w, h); wctx.setTransform(...T6); drawWalls(wctx, v); }
@@ -1176,10 +1660,12 @@ function render() {
   cam.x -= shx; cam.y -= shy;
 
   // HUD
-  if (G.state !== 'title') {
+  if (G.state !== 'title' && G.state !== 'select') {
     $level.textContent = 'NIVEL ' + G.level;
     $timer.textContent = fmt(G.timeLeft);
     $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
+    $cheese.classList.toggle('hidden', !G.cheeseTotal);
+    $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
   }
   const showHint = G.state === 'play' && G.level <= 2;
   $hint.style.display = showHint ? '' : 'none';
@@ -1194,7 +1680,6 @@ function frame(now) {
   update(dt); render();
 }
 resize();
-G.baseSeed = 12345; loadLevel(1); M.x = (G.maze.W - 1.5) * C;   // laberinto de fondo para la pantalla de título
 showTitle();
 requestAnimationFrame(frame);
 </script>
