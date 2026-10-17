@@ -163,7 +163,7 @@ function timeFor(n, pathCells) {
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
 // traps / sticky / cheese / tunnels (cantidad de cada cosa), time (opcional: pisa el tiempo calculado).
 const LEVELS = [
-  { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 7,
+  { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 12,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
   { name: 'Pegote', seed: 2203, size: [16, 9], loops: 0.02, sticky: 6,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito.' },
@@ -384,10 +384,11 @@ function buildDeco(m, rng) {
 }
 
 // ===================== ITEMS (mecánicas de Historia) =====================
-const TRAP_L = 46, TRAP_W = 24;        // trampa (más grande que la rata)
+const TRAP_L = 52, TRAP_W = 27;        // trampa (más grande que la rata; casi todo el largo del callejón)
 const TRAY_W = 48, TRAY_L = Math.round(TRAY_W * 62 / 32);   // bandeja de pegamento: casi todo el ancho del pasillo, largo proporcional
 const TUBE_R = 13, TUBE_OUT = 0.3 * C; // radio del rollo y cuánto sobresale de la pared hacia cada lado
-const STICKY_SLOW = 0.35, STICKY_T = 1.5;
+const STICKY_SLOW = 0.35, STICKY_T = 1.5;     // al salir: recupera desde STICKY_SLOW en STICKY_T segundos
+const STICKY_ON = 0.38, STICKY_PAW = 0.06;    // encima: 0.38 de velocidad, menos 0.06 por cada pata apoyada (4 patas: 0.14)
 
 // Coloca los items de un nivel según sus reglas. Todo sale del rng del nivel, así que siempre queda igual.
 function placeItems(L, m, rng) {
@@ -417,7 +418,7 @@ function placeItems(L, m, rng) {
   if (L.traps) {
     const walls = (c, r) => [m.hW[r][c], m.hW[r + 1][c], m.vW[c][r], m.vW[c + 1][r]];
     const cand = shuffle(cells.filter(([c, r]) => walls(c, r).filter(Boolean).length === 3 && !onPath(idx(c, r)) && !special(c, r, 1)));
-    for (const [c, r] of pick(cand, L.traps, 3)) {
+    for (const [c, r] of pick(cand, L.traps, 2)) {
       const [top, bottom, left, right] = walls(c, r);
       const a = !top ? -Math.PI / 2 : !bottom ? Math.PI / 2 : !left ? Math.PI : 0;   // hacia la abertura del callejón
       const [x, y] = center(c, r);
@@ -518,21 +519,6 @@ let CAN_BLUR = (() => {
     return tc.getImageData(2, 4, 1, 1).data[3] > 0;   // a la izquierda del cuadrado solo hay algo si se desenfocó
   } catch (_) { return false; }
 })();
-// Desenfoque alternativo (para cuando no hay filter): achica la imagen a la mitad varias veces con suavizado y
-// después se dibuja agrandada; el borde queda esfumado. Funciona en cualquier navegador.
-const halves = [mk(), mk(), mk(), mk()];
-function cheapBlur(src, radiusPx) {
-  const levels = clamp(Math.round(Math.log2(Math.max(1, radiusPx))), 1, halves.length);
-  let cur = src;
-  for (let i = 0; i < levels; i++) {
-    const [hc, hx] = halves[i];
-    hx.setTransform(1, 0, 0, 1, 0, 0); hx.imageSmoothingEnabled = true; hx.imageSmoothingQuality = 'high';
-    hx.clearRect(0, 0, hc.width, hc.height);
-    hx.drawImage(cur, 0, 0, cur.width, cur.height, 0, 0, hc.width, hc.height);
-    cur = hc;
-  }
-  return cur;
-}
 const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo)
 const WALL_SOFT = 8;     // esfumado del borde de la luz sobre las paredes
 let scale = 1;
@@ -586,9 +572,7 @@ function resize() {
   // tamaño real visible del canvas (en el celular 100vh incluye la barra del navegador y descentraba la cámara)
   const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
   for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv, mouseCv]) { c.width = w; c.height = h; }
-  blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);
-  halves.forEach(([hc], i) => { hc.width = Math.max(1, Math.ceil(w / 2 ** (i + 1))); hc.height = Math.max(1, Math.ceil(h / 2 ** (i + 1))); });
-  computeScale();
+  blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);  computeScale();
 }
 function computeScale() {
   const vc = viewCells(G.viewLevel || G.level) * C;
@@ -607,6 +591,9 @@ const M = { x: 0, y: 0, a: Math.PI, v: 0, turnV: 0, phase: 0, stepT: 0, bumpCd: 
   headA: 0, look: { t: 0, ang: 0, next: 0 }, lookIn: 2,                                   // giro de la cabeza
   spin: 0, feet: null };                                                                  // giro en el lugar y patas
 const BUMP_T = 0.6, TWITCH_T = 0.32, BLINK_T = 0.14;
+const STRETCH_T = 0.45;   // al despegarse del pegamento: el cuerpo se estira y afina un instante (inercia)
+// cuánto se estira (+) o se achata (-) en este momento: primero se estira, después un rebote mínimo y vuelve
+const stretchAmount = () => { if (!(M.stretchT > 0)) return 0; const f = 1 - M.stretchT / STRETCH_T; return Math.sin(f * Math.PI * 1.5) * (1 - f); };
 const EAR_TILT = 0.35;   // inclinación de las orejas hacia afuera (rad)
 const EAR_IN = 0.45;     // cuánto se meten las orejas hacia el cuerpo
 const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   // la cola nace en x = -TAIL_ROOT
@@ -614,7 +601,8 @@ const tailWidth = t => 3.6 - 3.0 * t;
 
 // Patas: [x, y] de reposo (coordenadas del ratón), si es de adelante, y su par diagonal (se mueven de a pares, como un trote)
 const FEET = [[7.5, -5.4, true, 0], [7.5, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
-const STRIDE = 18;        // largo de un ciclo de paso (unidades de mundo recorridas por las patas)
+const STRIDE = 28;        // largo de un ciclo de paso (unidades de mundo recorridas por las patas): más largo = pasos más lentos
+const FOOT_SLIP = 0.45;   // apoyada, la pata acompaña al cuerpo este tanto (leve arrastre): pasos largos sin despegarse del cuerpo
 const SWING = 0.45;       // fracción del ciclo que la pata va por el aire
 const FRONT_REACH = 1;    // recorrido de las manos respecto del de las patas traseras (con menos, se corren hacia atrás al apoyar)
 // Marcha atada a la distancia: un ciclo (M.gait) avanza según cuánto se desplazan los lugares de reposo de las patas
@@ -638,7 +626,7 @@ function updateFeet(dt) {
   FEET.forEach(([, fy, front, pair], i) => {
     const ft = M.feet[i], h = homes[i], dl = Math.hypot(disp[i][0], disp[i][1]);
     if (dl > 0.01) ft.dir = [disp[i][0] / dl, disp[i][1] / dl];          // hacia dónde se mueve esta pata
-    const A = stride * (1 - SWING) / 2 * (front ? FRONT_REACH : 1);    // cuánto se adelanta / atrasa de su lugar
+    const A = stride * (1 - SWING) * (1 - FOOT_SLIP) / 2 * (front ? FRONT_REACH : 1);   // cuánto se adelanta / atrasa
     const pf = ((M.gait + pair * 0.5) % 1 + 1) % 1;
     if (pf < SWING) {                                                    // en el aire
       const s = pf / SWING, e = sticky ? Math.pow(s, 2.2) : 1 - (1 - s) * (1 - s);
@@ -652,6 +640,8 @@ function updateFeet(dt) {
         Snd.step();
         if (M.stickyT > 0 && !M.onTray) G.prints.push({ x: ft.p[0], y: ft.p[1], a: M.a, side: Math.sign(fy), t: 0 });
       }
+    } else {                                                             // apoyada: acompaña un poco al cuerpo
+      ft.p = [ft.p[0] + disp[i][0] * FOOT_SLIP, ft.p[1] + disp[i][1] * FOOT_SLIP];
     }
   });
   M.prevHomes = homes;
@@ -664,23 +654,44 @@ function updateTail(dt) {
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
   const rest = i => {
     const t = i / TAIL_N, x = -TAIL_ROOT - TAIL_L * t;
-    const y = Math.sin(M.phase * 1.3 - t * 3.2) * 4.5 * t + Math.sin(G.time * 1.7 - t * 2.5) * 1.2 * t - M.turnV * 3.5 * t * t
-      + Math.sin(G.time * 42 - t * 4) * 4 * t * (M.bumpT / BUMP_T);   // sacudón rápido de la cola al chocar
+    const y = M.caught
+      ? Math.sin(G.time * 40 - t * 1.5) * 5 * t   // atrapado: cola recta que se sacude de lado a lado rapidito
+      : Math.sin(M.phase * 1.3 - t * 3.2) * 4.5 * t + Math.sin(G.time * 1.7 - t * 2.5) * 1.2 * t - M.turnV * 2.5 * t * t
+        + Math.sin(G.time * 42 - t * 4) * 4 * t * (M.bumpT / BUMP_T);   // sacudón rápido de la cola al chocar
     return [M.x + x * ca - y * sa, M.y + x * sa + y * ca];
   };
-  const P = M.tail;
-  if (!P || Math.hypot(P[0][0] - (M.x - ca * TAIL_ROOT), P[0][1] - (M.y - sa * TAIL_ROOT)) > 30) {   // primera vez o teletransporte
-    M.tail = []; for (let i = 0; i <= TAIL_N; i++) M.tail.push(rest(i));
-    return;
+  // primera vez o teletransporte: la cola nace recogida en la base del cuerpo y crece hacia atrás en los primeros
+  // cuadros, chocando con las paredes (si se armaba recta de una, en el corral de inicio atravesaba la pared de atrás)
+  if (!M.tail || Math.hypot(M.tail[0][0] - (M.x - ca * TAIL_ROOT), M.tail[0][1] - (M.y - sa * TAIL_ROOT)) > 30) {
+    M.tail = []; for (let i = 0; i <= TAIL_N; i++) M.tail.push([M.x - ca * 4, M.y - sa * 4]);
   }
-  P[0] = rest(0);
+  const P = M.tail;
   // dentro de un rollo (y justo al salir) la cola no choca: si no, se trabaría contra la pared que atraviesa el túnel
   const near = M.tunnel || M.tailFree > 0 ? [] :
     G.solids.filter(R => R.x < M.x + 60 && R.x + R.w > M.x - 60 && R.y < M.y + 60 && R.y + R.h > M.y - 60);
   M.tailFree = Math.max(0, (M.tailFree || 0) - dt);
+  // nacimiento de la cola: sobre el eje del cuerpo, pero si ahí hay una pared, se corre hacia el ratón hasta quedar
+  // afuera, del lado del ratón (si no, el empuje de las paredes podía mandar la cola al otro lado)
+  let root = TAIL_ROOT;
+  for (const R of near) {
+    const x0 = R.x - 1.5, x1 = R.x + R.w + 1.5, y0 = R.y - 1.5, y1 = R.y + R.h + 1.5;
+    let t0 = 0, t1 = TAIL_ROOT;
+    for (const [o, d, lo, hi] of [[M.x, -ca, x0, x1], [M.y, -sa, y0, y1]]) {
+      if (Math.abs(d) < 1e-9) { if (o < lo || o > hi) { t0 = 1; t1 = 0; } continue; }
+      let a = (lo - o) / d, b = (hi - o) / d; if (a > b) [a, b] = [b, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+    }
+    if (t0 <= t1) root = Math.min(root, Math.max(0, t0 - 0.5));
+  }
+  P[0] = [M.x - ca * root, M.y - sa * root];
+  const MAX_STEP = 4;   // un punto de la cola no se mueve más que esto por cuadro (menos que el grosor del cartón)
   for (let i = 1; i <= TAIL_N; i++) {
-    const t = i / TAIL_N, [rx, ry] = rest(i), k = Math.min(1, dt * (28 - 20 * t));
-    let x = P[i][0] + (rx - P[i][0]) * k, y = P[i][1] + (ry - P[i][1]) * k;
+    // más floja hacia la punta: al girar o rotar en el lugar la cola queda barriendo atrás (inercia) y se endereza sola
+    // (atrapado: firme hasta la punta, así el sacudón se ve entero)
+    const t = i / TAIL_N, [rx, ry] = rest(i), k = Math.min(1, dt * (M.caught ? 40 : 20 - 17 * t));
+    let mx = (rx - P[i][0]) * k, my = (ry - P[i][1]) * k, ml = Math.hypot(mx, my);
+    if (ml > MAX_STEP) { mx *= MAX_STEP / ml; my *= MAX_STEP / ml; }   // aunque se trabe un cuadro, no salta paredes
+    let x = P[i][0] + mx, y = P[i][1] + my;
     // largo fijo del tramo + fuera de las paredes; se repite para que, si choca, se deslice a lo largo del muro
     const r = tailWidth(t) / 2 + 0.6;
     for (let pass = 0; pass < 3; pass++) {
@@ -708,6 +719,7 @@ function updateTail(dt) {
 // Gestos del ratón: golpe contra la pared, parpadeo y orejita cuando está quieto
 function animMouse(dt, active) {
   M.bumpT = Math.max(0, M.bumpT - dt);
+  M.stretchT = Math.max(0, (M.stretchT || 0) - dt);
   M.blinkT = Math.max(0, M.blinkT - dt);
   if ((M.blinkIn -= dt) <= 0) { M.blinkT = BLINK_T; M.blinkIn = 1.5 + Math.random() * 4; }
   M.twitch.t = Math.max(0, M.twitch.t - dt);
@@ -761,7 +773,7 @@ function loadStory(i) {
   G.solids = G.rects.concat(tubeSolids(G.items));
   G.cheeseTotal = G.items.filter(it => it.type === 'cheese').length;
   // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
-  const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 3;
+  const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5;   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
   G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
   G.attempts = 1;
   computeScale();
@@ -770,7 +782,7 @@ function loadStory(i) {
 function resetRun() {
   const m = G.maze;
   M.x = (m.W + 0.5) * C; M.y = (m.entRow + 0.5) * C; M.a = Math.PI; M.v = 0; M.turnV = 0; M.tail = null;
-  M.stickyT = 0; M.onTray = false; M.tunnel = null; M.feet = null; M.spin = 0; G.prints = [];
+  M.stickyT = 0; M.onTray = false; M.tunnel = null; M.feet = null; M.spin = 0; M.caught = false; G.prints = [];
   for (const it of G.items) { it.closed = false; it.t = 0; it.got = false; }   // trampas abiertas y quesos sin juntar
   G.cheese = 0; G.fx = []; G.dieReason = 'time'; G.siren = 0;
   G.timeLeft = G.timeLimit; G.lastTick = 99; G.light = 0;
@@ -1049,7 +1061,8 @@ if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 function collide() {
   let pushed = 0;
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
-  for (let it = 0; it < 3; it++) for (const [off, r] of [[0, RAD], [12, 7]]) {
+  // cuerpo, cabeza y cadera (la cadera evita que al girar pegado a una pared la cola se meta en el cartón)
+  for (let it = 0; it < 3; it++) for (const [off, r] of [[0, RAD], [12, 7], [-11, 6]]) {
     let cx = M.x + ca * off, cy = M.y + sa * off;
     for (const R of G.solids) {   // paredes + costados de los rollos
       if (cx + r < R.x || cx - r > R.x + R.w || cy + r < R.y || cy - r > R.y + R.h) continue;
@@ -1075,8 +1088,15 @@ function stickyFactor(dt) {
   const on = !M.tunnel && G.items.some(it => it.type === 'sticky' &&
     Math.hypot(M.x - clamp(M.x, it.x, it.x + it.w), M.y - clamp(M.y, it.y, it.y + it.h)) < RAD * 0.7);
   if (on && !M.onTray) Snd.squish();
+  if (!on && M.onTray) M.stretchT = STRETCH_T;   // se despega: estirón
   M.onTray = on;
-  if (on) { M.stickyT = STICKY_T; return STICKY_SLOW; }
+  if (on) {
+    // cuantas más patas apoyadas en el pegamento, más se clava: con las 4 adentro casi no avanza
+    const trays = G.items.filter(it => it.type === 'sticky');
+    const paws = (M.feet || []).filter(f => trays.some(it => f.p[0] > it.x && f.p[0] < it.x + it.w && f.p[1] > it.y && f.p[1] < it.y + it.h)).length;
+    M.stickyT = STICKY_T;
+    return STICKY_ON - STICKY_PAW * paws;
+  }
   if (M.stickyT > 0) {
     M.stickyT = Math.max(0, M.stickyT - dt);
     return STICKY_SLOW + (1 - STICKY_SLOW) * (1 - M.stickyT / STICKY_T);   // recupera la velocidad de a poco
@@ -1105,7 +1125,7 @@ function updateItems() {
         const lx = px * c + py * s, ly = -px * s + py * c;
         const qx = clamp(lx, -TRAP_L / 2, TRAP_L / 2), qy = clamp(ly, -TRAP_W / 2, TRAP_W / 2);
         if ((lx - qx) ** 2 + (ly - qy) ** 2 < r * r) {
-          it.closed = true; it.t = 0; Snd.trap(); M.v = 0; M.turnV = 0;
+          it.closed = true; it.t = 0; Snd.trap(); M.v = 0; M.turnV = 0; M.caught = true;   // atrapado: orejas y cola se agitan
           startDie('trap');
           return;
         }
@@ -1668,7 +1688,9 @@ function drawMouse(c, alpha) {
   const moving = clamp(Math.abs(M.v) / SPEED, 0, 1);
   const sway = Math.sin(M.phase * 1.1) * 0.7 * moving, bob = 1 + 0.02 * Math.abs(Math.sin(M.phase * 2.2)) * moving;
   c.save(); c.translate(0, sway); c.rotate(sway * 0.03);
-  c.translate(-2, 0); c.scale((1 - 0.13 * M.spin) * bob, (1 + 0.09 * M.spin) * bob); c.translate(2, 0);
+  const st = stretchAmount();   // estirón al despegarse del pegamento: más largo y más finito
+  const tsx = (1 - 0.13 * M.spin) * bob * (1 + 0.2 * st), tsy = (1 + 0.09 * M.spin) * bob * (1 - 0.13 * st);
+  c.translate(-2, 0); c.scale(tsx, tsy); c.translate(2, 0);
   // cuerpo en forma de pera redondeada: ancho atrás, hocico corto (cabeza y cuerpo en una sola silueta)
   // la cabeza gira sobre el cuello (x = NECK); entre el cuello y x = NECK + 4 el giro se reparte para que doble suave
   const NECK = 2;
@@ -1702,8 +1724,28 @@ function drawMouse(c, alpha) {
   c.strokeStyle = '#26262b'; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
   c.moveTo(1, -13); c.lineTo(1, 13); c.moveTo(-10, -13); c.lineTo(-10, 13); c.moveTo(-10, 0); c.lineTo(1, 0); c.stroke();
   c.restore();
+  // orejas: giran con la cabeza y van debajo de la linterna
+  c.save(); c.translate(NECK, 0); c.rotate(M.headA); c.translate(-NECK, 0);
+  for (const sy of [-1, 1]) {
+    // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
+    let ear = bump * Math.sin(G.time * 38 + sy) * 0.6;
+    if (M.twitch.t > 0 && M.twitch.side === sy) ear += Math.sin((1 - M.twitch.t / TWITCH_T) * Math.PI * 2) * 0.75;
+    if (M.caught) ear += Math.sin(G.time * 46 + sy * 1.3) * 0.55;   // atrapado: las dos orejas se agitan
+    c.save();
+    // un poco metida hacia el cuerpo, e inclinada hacia afuera con pivote en su base trasera (del lado del cuerpo)
+    c.translate(0, -sy * EAR_IN);
+    c.translate(hx(2.5), sy * 6.5); c.rotate(sy * EAR_TILT); c.translate(-hx(2.5), -sy * 6.5);
+    c.translate(hx(7.5), sy * 4.8); c.rotate(sy * ear); c.translate(-hx(7.5), -sy * 4.8);
+    c.fillStyle = '#cfa59f'; c.beginPath(); c.ellipse(hx(7), sy * 7.8, 5.4, 4.0, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#b27f7c'; c.beginPath(); c.ellipse(hx(7.5), sy * 7.0, 3.4, 2.4, 0, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+  c.restore();
   // linterna sobre el lomo: cuerpo gris azulado (cilindro, igual de ambos lados) con una barra de batería
-  // que muestra el tiempo que queda y se vacía hacia la cola
+  // que muestra el tiempo que queda y se vacía hacia la cola. Es rígida: no se estira ni se aplasta con el torso
+  // (se deshace la escala alrededor de su centro; acompaña al lomo en posición pero mantiene su forma)
+  const FCX = -2.2;
+  c.save(); c.translate(FCX, 0); c.scale(1 / tsx, 1 / tsy); c.translate(-FCX, 0);
   const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
   const FL = 4;   // medio ancho del cuerpo
   const lg = c.createLinearGradient(0, -FL, 0, FL);
@@ -1729,6 +1771,7 @@ function drawMouse(c, alpha) {
   c.fillStyle = hg; c.fillRect(4, -4.2, 3.4, 8.4);
   c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(6.6, -4.2, 0.5, 8.4);   // borde del aro, un poco más claro
   c.fillStyle = G.light > 0.2 ? '#fff4d2' : '#6b6450'; c.fillRect(7.4, -3.6, 1.2, 7.2);
+  c.restore();   // fin de la linterna (rígida)
   // cara (nariz, orejas, ojos, bigotes): gira entera con la cabeza
   c.save(); c.translate(NECK, 0); c.rotate(M.headA); c.translate(-NECK, 0);
   // nariz chiquita, un poco metida dentro del hocico
@@ -1736,16 +1779,7 @@ function drawMouse(c, alpha) {
   const eyesClosed = M.blinkT > 0 || bump > 0.2;
   for (const sy of [-1, 1]) {
     // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
-    let ear = bump * Math.sin(G.time * 38 + sy) * 0.6;
-    if (M.twitch.t > 0 && M.twitch.side === sy) ear += Math.sin((1 - M.twitch.t / TWITCH_T) * Math.PI * 2) * 0.75;
-    c.save();
-    // un poco metida hacia el cuerpo, e inclinada hacia afuera con pivote en su base trasera (del lado del cuerpo)
-    c.translate(0, -sy * EAR_IN);
-    c.translate(hx(2.5), sy * 6.5); c.rotate(sy * EAR_TILT); c.translate(-hx(2.5), -sy * 6.5);
-    c.translate(hx(7.5), sy * 4.8); c.rotate(sy * ear); c.translate(-hx(7.5), -sy * 4.8);
-    c.fillStyle = '#cfa59f'; c.beginPath(); c.ellipse(hx(7), sy * 7.8, 5.4, 4.0, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#b27f7c'; c.beginPath(); c.ellipse(hx(7.5), sy * 7.0, 3.4, 2.4, 0, 0, Math.PI * 2); c.fill();
-    c.restore();
+    // (las orejas se dibujan antes, debajo de la linterna)
     // ojo: cerca del hocico; rojo (albino) con brillito blanco, o cerrado (rayita de costado, curvada hacia el lomo)
     const ex = hx(11.7);
     if (eyesClosed) {
@@ -1821,10 +1855,6 @@ function render() {
       blurCtx.drawImage(bCv, 0, 0, bw, bh); blurCtx.filter = 'none';
       bctx.globalCompositeOperation = 'copy'; bctx.drawImage(blurCv, 0, 0, w, h);
       bctx.globalCompositeOperation = 'destination-in';
-    } else {   // sin filter (iPhone): desenfoque achicando y agrandando
-      bctx.imageSmoothingEnabled = true;
-      bctx.globalCompositeOperation = 'copy'; bctx.drawImage(cheapBlur(bCv, WALL_SOFT * scale), 0, 0, w, h);
-      bctx.globalCompositeOperation = 'destination-in';
     }
     bctx.drawImage(wallCv, 0, 0);
     bctx.globalCompositeOperation = 'source-over';
@@ -1839,10 +1869,7 @@ function render() {
       blurCtx.filter = `blur(${(SHADOW_SOFT * scale / 2).toFixed(1)}px)`;
       blurCtx.drawImage(aCv, 0, 0, bw, bh); blurCtx.filter = 'none';
       lctx.drawImage(blurCv, 0, 0, w, h);
-    } else {   // sin filter (iPhone): desenfoque achicando y agrandando
-      lctx.imageSmoothingEnabled = true;
-      lctx.drawImage(cheapBlur(aCv, SHADOW_SOFT * scale), 0, 0, w, h);
-    }
+    } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
     lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
     if (G.siren > 0.01) drawSiren(lctx, T6);
