@@ -57,13 +57,13 @@
   #card { z-index: 6; }   /* por encima del joystick, así los botones de la pausa se pueden tocar */
   #card .logo { display: block; width: min(100%, 400px); margin: -6px auto 6px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
   #card .menu { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-  #card .cbtn { font-family: 'Permanent Marker', cursive; font-size: 22px; color: #1e1208; background: #e2d6b8; border: 0;
+  .cbtn { font-family: 'Permanent Marker', cursive; font-size: 22px; color: #1e1208; background: #e2d6b8; border: 0;
     padding: 8px 22px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c, 0 4px 10px rgba(0,0,0,.35); transform: rotate(-1.5deg);
     -webkit-tap-highlight-color: transparent; }
-  #card .cbtn:nth-child(even) { transform: rotate(1.5deg); }
-  #card .cbtn.alt { background: #c8b893; font-size: 17px; }
-  #card .cbtn:hover { filter: brightness(1.06); }
-  #card .cbtn:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 0 #6b4c2c; }
+  .cbtn:nth-child(even) { transform: rotate(1.5deg); }
+  .cbtn.alt { background: #c8b893; font-size: 17px; }
+  .cbtn:hover { filter: brightness(1.06); }
+  .cbtn:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 0 #6b4c2c; }
   #card .levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 4px; }
   #card .lvl { background: #e2d6b8; border: 0; padding: 8px 4px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c;
     display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; color: #1e1208;
@@ -80,6 +80,41 @@
   #cheese { top: 66px; left: 14px; font-size: 20px; display: flex; align-items: center; gap: 6px; transform: rotate(1deg); padding: 3px 12px 1px; }
   #cheese svg { width: 22px; height: 22px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
+  /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
+  #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 20px; display: flex; align-items: center; gap: 6px;
+    transform: rotate(-1.5deg); padding: 3px 12px 1px; pointer-events: none; }
+  #coins.withHome { left: 66px; }
+  #coins .ci { width: 20px; height: 20px; }
+  #coins.pop { animation: coinPop .25s cubic-bezier(.2, .9, .3, 1.4) both; }
+  @keyframes coinPop { from { transform: rotate(-1.5deg) scale(1.3); } to { transform: rotate(-1.5deg) scale(1); } }
+  .ci { width: 1em; height: 1em; vertical-align: -0.14em; }
+  #card .menu.sub { margin-top: 10px; }
+  /* pantallas a pantalla completa (Ratitas, Máquina): fondo negro que entra y sale con un círculo desde el botón */
+  #screen { position: fixed; inset: 0; z-index: 7; background: #000; pointer-events: none;
+    clip-path: circle(0px at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
+    transition: clip-path .45s ease-in-out, -webkit-clip-path .45s ease-in-out; }
+  #screen.open { pointer-events: auto; clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); }
+  #screen .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
+    padding: 64px 12px calc(14px + env(safe-area-inset-bottom)); gap: 8px; opacity: 0; transition: opacity .25s; text-align: center; color: #e9dcc0; }
+  #screen.open .inner.show { opacity: 1; }
+  #screen .stitle { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; }
+  #screen .ssub { margin: 0; font-size: 15px; color: #bfae8c; }
+  #screen .sbtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; flex: 0 0 auto; }
+  /* ratitas: estantes de metal de punta a punta de la pantalla, sobre el negro; las jaulas centradas en cada estante */
+  .rack { flex: 1 1 auto; min-height: 0; overflow-y: auto; width: 100vw; margin: 0 -12px; }
+  .shelfrow { position: relative; display: flex; justify-content: center; }
+  .shelfrow::after { content: ''; position: absolute; left: 0; right: 0; top: 86%; height: 7%;
+    background: linear-gradient(#f7f8f9, #c3c8cc 45%, #8e959a); }
+  .rat { position: relative; z-index: 1; background: none; border: 0; padding: 0; cursor: pointer; display: block;
+    width: min(calc(100vw / var(--cols)), 280px); -webkit-tap-highlight-color: transparent; }
+  .rat canvas { display: block; width: 100%; aspect-ratio: 330 / 300; }
+  .rat:disabled { cursor: default; }
+  .rat:not(:disabled):active canvas { transform: scale(.96); }
+  /* máquina */
+  #gachaCv { display: block; width: min(60vh, 92vw); aspect-ratio: 1; flex: 0 1 auto; min-height: 0; }
+  #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; }
+  .gname { font-family: 'Permanent Marker', cursive; font-size: 30px; color: #f6e7bf; }
+  .cbtn:disabled { opacity: .5; cursor: default; }
   /* portada */
   #card .lead { margin: 4px 0 12px; }
   #card .lead p { margin: 2px 0; font-size: 16px; line-height: 1.35; text-wrap: balance; }
@@ -97,7 +132,7 @@
   #card td { padding: 2px 8px; }
 
   /* botones de arriba a la derecha (sonido, pausa, modo de giro) */
-  #topbtns { position: fixed; top: 12px; right: 14px; display: flex; gap: 8px; z-index: 5; }
+  #topbtns { position: fixed; top: 12px; right: 14px; display: flex; gap: 8px; z-index: 8; }
   .btn.tape { position: static; width: 44px; height: 44px; padding: 0; border: 0; display: grid; place-items: center;
     color: #2a1a0c; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .btn.tape:nth-child(odd) { transform: rotate(-2deg); } .btn.tape:nth-child(even) { transform: rotate(2deg); }
@@ -123,6 +158,8 @@
     #timer { top: 84px; font-size: 26px; }
     #cheese { top: 64px; font-size: 16px; }
     #card .levels { grid-template-columns: repeat(2, 1fr); }
+    #screen .stitle { font-size: 36px; }
+    .cbtn { font-size: 19px; padding: 7px 16px 5px; }
     #card { padding: 22px 16px 18px; }
     #card .lead p { font-size: 12.5px; }
     #card .ctl { gap: 10px; }
@@ -141,6 +178,7 @@
   <div id="timer" class="tape">0:00</div>
   <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><path d="M2 17 L21 7 L22 17 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 17 L22 17 L22 20 L2 20 Z" fill="#d9a62e" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><circle cx="14" cy="13.5" r="1.6" fill="#c98f1d"/><circle cx="18.5" cy="12" r="1.1" fill="#c98f1d"/></svg><span id="cheeseN">0/5</span></div>
 </div>
+<div id="coins" class="tape"><span id="coinsIco"></span><span id="coinsN">0</span></div>
 <div id="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> música · <kbd>F</kbd> efectos ·<kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
 <div id="hintTouch">Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir</div>
 <div id="stickZone"></div>
@@ -151,6 +189,7 @@
   <button id="btnSound" class="btn tape" type="button"></button>
 </div>
 <div id="card" class="hidden"></div>
+<div id="screen"></div>
 
 <script>
 'use strict';
@@ -209,6 +248,64 @@ const Story = {
     this.save();
   },
 };
+
+// ===================== MONEDAS Y RATITAS =====================
+// Monedas: se juntan en el laberinto y quedan guardadas aunque pierdas. Con COIN_SPIN se gira la máquina de ratitas
+// (como el Crossy Road): sale una al azar; si ya la tenías, te devuelve COIN_DUP.
+const COIN_SPIN = 10, COIN_DUP = COIN_SPIN / 2;   // provisorio para probar (la idea es 100 por giro)
+const Wallet = {
+  coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
+  add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
+};
+// Ratitas: nombre, pelaje, orejas, arnés, cuerpo de la linterna, ojos, patas y cola (y manchas, solo Pandita).
+// La 0 (Albina) viene de entrada; las demás salen de la máquina.
+const RATS = [
+  ['Albina',      '#e0d8ce', '#cfa59f', '#26262b', '#4a5960', '#ff0a1e', '#b98582'],
+  ['Vainilla',    '#ecdcae', '#f2b27a', '#6b4524', '#1d1e21', '#5a341a', '#f2b27a'],
+  ['Copito',      '#d6ecf7', '#8fcbe8', '#1d3566', '#4a4f57', '#2f6fd6', '#8fcbe8'],
+  ['Cenizón',     '#9a9894', '#d9b3b0', '#26262b', '#a9adb2', '#ff0a1e', '#a89090'],
+  ['Sombrita',    '#2b2a2c', '#4a484c', '#3e3d40', '#1a1a1c', '#ff0a1e', '#4a484c'],
+  ['Chispita',    '#f07a1f', '#f6b37a', '#4a2a14', '#1d1e21', '#ffb000', '#e8761e'],
+  ['Cacao',       '#5b3a24', '#b38763', '#1f1d1c', '#4a4f57', '#0d0b0a', '#7a5236'],
+  ['Pinky',       '#f4c2d0', '#e0379a', '#7a1834', '#1d1e21', '#9e0d1e', '#ef9fb6'],
+  ['Cheddar',     '#f5c518', '#f08a1c', '#1f1d1c', '#4a4f57', '#ff0a1e', '#e6b40f'],
+  ['Radiactín',   '#5cff3a', '#b6ff3a', '#1d4a1f', '#1d1e21', '#ff0a1e', '#5cff3a'],
+  ['Musguito',    '#2f5a2c', '#5f9a4f', '#1f1d1c', '#4a4f57', '#ffd400', '#2f5a2c'],
+  ['Voltio',      '#1f5fe0', '#8fd3f5', '#12285e', '#1d1e21', '#2ff3ff', '#1f5fe0'],
+  ['Mordisquito', '#8a2be2', '#c9a3f0', '#1f1d1c', '#4a4f57', '#ff7fbf', '#8a2be2'],
+  ['Fuego',       '#e01f1f', '#f27a6e', '#1f1d1c', '#4a4f57', '#ffd400', '#e01f1f'],
+  ['Burbuja',     '#2fc9c0', '#8fd8f0', '#12285e', '#1d1e21', '#2f6fd6', '#2fc9c0'],
+  ['Lila',        '#d9cdf2', '#b79be6', '#4b2a7a', '#4a4f57', '#7b3fd1', '#d9cdf2'],
+  ['Draculín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#ff0a1e', '#5e1020'],
+  ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#1d1c1b'],
+  ['Wasabi',      '#7d8a3a', '#a8d48a', '#1d4a1f', '#1d1e21', '#6b4524', '#7d8a3a'],
+  ['Toxito',      '#b5f02a', '#d6e85a', '#1f1d1c', '#1d4a1f', '#ff0a1e', '#b5f02a'],
+];
+const Skins = {
+  data: (() => { try { return JSON.parse(localStorage.getItem('raton.skins')); } catch (_) { return null; } })() || { owned: [0], sel: 0 },
+  save() { try { localStorage.setItem('raton.skins', JSON.stringify(this.data)); } catch (_) {} },
+  has(i) { return this.data.owned.includes(i); },
+};
+// Paleta completa de una ratita a partir de sus 6 colores (sombras y brillos se sacan mezclando con negro / blanco)
+const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixC = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const lum = h => { const [r, g, b] = hexRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+const skinCache = {};
+function skinOf(i) {
+  if (skinCache[i]) return skinCache[i];
+  const [name, fur, ears, harness, light, eyes, paws, spots] = RATS[i];
+  const shut = lum(fur) < 0.35 ? mixC(fur, '#ffffff', 0.5) : mixC(mixC(fur, '#000000', 0.55), eyes, 0.25);
+  return skinCache[i] = { name, spots, harness, eyes, tail: paws, ear: ears,
+    body: [mixC(fur, '#ffffff', 0.8), fur, mixC(fur, '#000000', 0.2), mixC(fur, '#000000', 0.45)],
+    limb: [mixC(fur, '#000000', 0.38), mixC(fur, '#000000', 0.15)],
+    earIn: mixC(ears, '#000000', 0.15), nose: mixC(ears, '#ff7f90', 0.35), eyeShut: shut, eyeRgb: hexRgb(eyes).join(','),
+    light: [mixC(light, '#000000', 0.75), light, mixC(light, '#ffffff', 0.55)],
+    foot: hexRgb(mixC(paws, '#000000', 0.17)) };
+}
+let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
+const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
+const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#f7c531" stroke="#b07a0c" stroke-width="2"/><circle cx="12" cy="12" r="6.8" fill="none" stroke="#e0a514" stroke-width="1.6"/><text x="12" y="16.3" font-size="11" text-anchor="middle" fill="#a8720b" font-family="Arial, sans-serif" font-weight="bold">$</text></svg>';
+const isMenu = () => ['title', 'select', 'ratitas', 'machine'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 
 // ===================== UTILIDADES =====================
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -304,6 +401,13 @@ const Snd = {
     }
     f.connect(g).connect(this.master);
   },
+  // moneda: "bling" de dos notas, como en los juegos de siempre
+  coin() { this.tone(988, 988, 0.06, 'square', 0.05); this.tone(1319, 1319, 0.2, 'square', 0.05, 0.06); },
+  // máquina de ratitas: matraca de la manija, la cápsula que cae, el traqueteo y el "pop" al abrirse
+  crank() { this.noise(0.02, 2600, 3, 0.22); this.tone(900, 700, 0.03, 'square', 0.03); },
+  thunk() { this.tone(170, 70, 0.16, 'sine', 0.4); this.noise(0.07, 600, 0.8, 0.3, 'lowpass'); },
+  rattle() { this.noise(0.04, 1500 + Math.random() * 800, 2, 0.16); },
+  popOpen() { this.noise(0.1, 1400, 0.7, 0.4); this.sweep(300, 2600, 0.28, 0.2); },
   tick(hi) { this.tone(hi ? 1600 : 1050, hi ? 1600 : 1050, 0.035, 'square', 0.07); },
   click() { this.noise(0.025, 3200, 2, 0.4); this.noise(0.02, 1800, 2, 0.3, 'bandpass', 0.05); },
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.22, 'triangle', 0.2, i * 0.11)); setTimeout(() => this.squeak(), 520); },
@@ -564,6 +668,29 @@ function placeItems(L, m, rng) {
     }
   }
   return items;
+}
+
+// Monedas: sueltas por los pasillos (más o menos 1 cada 5 celdas), a veces en hilera de 3 a lo largo de un pasillo recto.
+// Usan su propio rng, así no cambian dónde caen los otros items. No van en la entrada, la salida ni encima de otro item.
+function placeCoins(m, items, seed) {
+  const rng = mulberry32(seed), { W, H } = m, out = [];
+  const target = clamp(Math.round(W * H * 0.2), 6, 40);
+  const busy = (x, y) => items.some(it => Math.hypot((it.x ?? it.wx) - x, (it.y ?? it.wy) - y) < C * 0.75);
+  const cells = [];
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) cells.push([c, r]);
+  for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+  for (const [c, r] of cells) {
+    if (out.length >= target) break;
+    if ((c === W - 1 && r === m.entRow) || (c === 0 && r === m.exitRow)) continue;
+    const x = (c + 0.5) * C, y = (r + 0.5) * C;
+    if (busy(x, y)) continue;
+    const L = !m.vW[c][r], R = !m.vW[c + 1][r], U = !m.hW[r][c], D = !m.hW[r + 1][c];
+    const horiz = L && R && !U && !D, vert = U && D && !L && !R;
+    const coin = (cx, cy) => out.push({ type: 'coin', x: cx, y: cy, got: false, ph: rng() * 6 });
+    if ((horiz || vert) && rng() < 0.5) for (const k of [-1, 0, 1]) coin(x + (horiz ? k * 17 : 0), y + (vert ? k * 17 : 0));
+    else coin(x, y);
+  }
+  return out;
 }
 
 // Puertas: la pared se corta en el hueco (para chocar) y el hueco se vuelve un sólido de un solo sentido.
@@ -938,7 +1065,8 @@ function loadLevel(n) {
   G.mode = 'challenge'; G.level = n; G.viewLevel = n;
   const [W, H] = sizeFor(n);
   buildMaze(W, H, G.baseSeed + n * 7919, Math.min(0.05, 0.008 * (n - 1)));
-  G.items = []; G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
+  G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777); G.runCoins = 0;
+  G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
   G.timeLimit = timeFor(n, pathLen(G.maze));
   G.attempts = 1;
   computeScale();
@@ -950,6 +1078,7 @@ function loadStory(i) {
   G.mode = 'story'; G.story = i; G.level = i + 1; G.viewLevel = STORY_VIEW;
   const rng = buildMaze(L.size[0], L.size[1], L.seed, L.loops || 0);
   G.items = placeItems(L, G.maze, rng);
+  G.items = G.items.concat(placeCoins(G.maze, G.items, L.seed + 777)); G.runCoins = 0;
   G.solids = doorSolids(G.items, G.rects);
   G.holeRects = G.solids.filter(R => !R.door);   // paredes con los agujeros de las puertas (la luz pasa con la cortina levantada)
   const nCheese = G.items.filter(it => it.type === 'cheese').length;
@@ -965,7 +1094,8 @@ function resetRun() {
   const m = G.maze;
   M.x = (m.W + 0.5) * C; M.y = (m.entRow + 0.5) * C; M.a = Math.PI; M.v = 0; M.turnV = 0; M.tail = null;
   M.stickyT = 0; M.onTray = false; M.feet = null; M.spin = 0; M.caught = false; M.squash = 0; G.prints = [];
-  for (const it of G.items) { it.closed = false; it.t = 0; it.got = false; it.passing = false; it.ang = DOOR_REST; it.av = 0; it.rattle = 0; }   // trampas abiertas, quesos sin juntar, puertas cerradas
+  // las monedas que ya agarraste quedan agarradas (son tuyas aunque pierdas; no vuelven a aparecer al reintentar)
+  for (const it of G.items) { it.closed = false; it.t = 0; it.got = it.type === 'coin' && it.got; it.passing = false; it.ang = DOOR_REST; it.av = 0; it.rattle = 0; }   // trampas abiertas, quesos sin juntar, puertas cerradas
   G.cheese = 0; G.fx = []; G.dieReason = 'time'; G.siren = 0;
   G.timeLeft = G.timeLimit; G.lastTick = 99; G.light = 0;
   const t = camTarget(); cam.x = t.x; cam.y = t.y;
@@ -985,6 +1115,10 @@ function camTarget() {
 const $card = document.getElementById('card'), $hud = document.getElementById('hud');
 const $timer = document.getElementById('timer'), $level = document.getElementById('level');
 const $cheese = document.getElementById('cheese'), $cheeseN = document.getElementById('cheeseN');
+const $coins = document.getElementById('coins'), $coinsN = document.getElementById('coinsN');
+document.getElementById('coinsIco').outerHTML = COIN_ICON;
+function updateCoins() { $coinsN.textContent = Wallet.coins; }
+updateCoins();
 const $hint = document.getElementById('hint'), $hintTouch = document.getElementById('hintTouch');
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 document.body.classList.toggle('touch', isTouch);
@@ -1002,6 +1136,7 @@ function card(html) {
 function showCard(html) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in'); void $card.offsetWidth; $card.classList.add('in');
+  $card.querySelectorAll('canvas[data-rat]').forEach(drawThumb);   // jaulas de las ratitas
   Snd.cardIn();
 }
 function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
@@ -1036,6 +1171,7 @@ function showTitle() {
     </div>
     <div class="ctl">${keys}<span>${how}</span></div>
     <div class="menu"><button class="cbtn" data-act="story">Historia</button><button class="cbtn" data-act="challenge">Desafío</button></div>
+    <div class="menu sub"><button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>
     <div class="modes">
       <p><b>Historia:</b> niveles diseñados, con cosas nuevas en cada uno</p>
       <p><b>Desafío:</b> laberintos al azar, cada vez más grandes</p>
@@ -1060,6 +1196,407 @@ function showSelect() {
     ${isTouch ? '' : go('jugar el último nivel desbloqueado')}`);
   updateButtons();
 }
+
+// ---- Pantallas negras a pantalla completa (Ratitas y Máquina) ----
+// Se abren con un círculo negro que crece desde el botón que tocaste y se cierran achicándose hacia el mismo lugar
+// (la portada queda atrás, tal cual). Entre una y otra solo se cambia el contenido.
+const $scr = document.getElementById('screen');
+let scrTimer = 0;
+function openScreen(html, from) {
+  clearTimeout(scrTimer);
+  const fill = () => {
+    $scr.innerHTML = `<div class="inner">${html}</div>`;
+    $scr.querySelectorAll('canvas[data-rat]').forEach(drawThumb);
+    requestAnimationFrame(() => { const i = $scr.querySelector('.inner'); if (i) i.classList.add('show'); });
+  };
+  if ($scr.classList.contains('open')) { const i = $scr.querySelector('.inner'); if (i) i.classList.remove('show'); scrTimer = setTimeout(fill, 180); return; }
+  const r = from && from.getBoundingClientRect ? from.getBoundingClientRect() : null;
+  $scr.style.transition = 'none';   // el círculo cerrado se mueve al botón sin animar (si no, viajaba desde el lugar anterior)
+  $scr.style.setProperty('--x', (r ? r.left + r.width / 2 : innerWidth / 2) + 'px');
+  $scr.style.setProperty('--y', (r ? r.top + r.height / 2 : innerHeight / 2) + 'px');
+  $scr.innerHTML = ''; void $scr.offsetWidth; $scr.style.transition = '';
+  $scr.classList.add('open'); Snd.cardIn();
+  scrTimer = setTimeout(fill, 380);   // el contenido aparece cuando el círculo ya tapó todo
+}
+function closeScreen() {
+  clearTimeout(scrTimer);
+  const i = $scr.querySelector('.inner'); if (i) i.classList.remove('show');
+  $scr.classList.remove('open'); Snd.cardOut();
+  scrTimer = setTimeout(() => { $scr.innerHTML = ''; }, 460);
+}
+
+// ---- Ratitas: un mueble de estantes con las 20 jaulas; las que tenés se eligen tocándolas ----
+function showRatitas(from) {
+  if (!isMenu()) titleBackground();
+  G.state = 'ratitas';
+  // de a filas: cada fila es un estante que va de punta a punta de la pantalla (4 jaulas por fila; 3 en el celular)
+  const cols = innerWidth < 560 ? 3 : 4, cell = i => `<button class="rat" data-act="pick" data-i="${i}" ${Skins.has(i) ? '' : 'disabled'}>
+      <canvas width="330" height="300" data-rat="${i}"></canvas></button>`;
+  let rows = '';
+  for (let r = 0; r < RATS.length; r += cols) rows += `<div class="shelfrow">${RATS.slice(r, r + cols).map((_, j) => cell(r + j)).join('')}</div>`;
+  openScreen(`<h2 class="stitle">RATITAS</h2>
+    <p class="ssub">Tenés <b>${Skins.data.owned.length}</b> de ${RATS.length} · tocá una para jugar con ella</p>
+    <div class="rack" style="--cols: ${cols}">${rows}</div>
+    <div class="sbtns"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button><button class="cbtn alt" data-act="back">Volver</button></div>`, from);
+  updateButtons();
+}
+function pickRat(i) {
+  if (!Skins.has(i)) return;
+  Skins.data.sel = i; Skins.save(); Snd.click();
+  $scr.querySelectorAll('canvas[data-rat]').forEach(drawThumb);   // el cartel de la elegida se pinta de amarillo
+}
+// Retrato de una ratita de perfil (mirando a la izquierda), agachada, sin arnés ni linterna: para la galería, la grilla
+// de ratitas y la máquina. Estilo plano como la referencia: cabeza en cuña baja (el hocico casi toca el piso), oreja de
+// atrás de un color más intenso y la de adelante redonda con el pliegue marcado, ojo redondo, nariz que asoma en la punta,
+// líneas oscuras en el muslo y el hombro, patas largas con deditos y la cola que se va a la derecha y vuelve por abajo.
+// Usa la misma paleta que el juego. t anima: respira, parpadea, mueve la oreja y la cola (t = 0: quieta).
+// Coordenadas propias de unos 900 × 430; se centra en (x, y) y size es el ancho total en píxeles.
+// Colores del retrato (plano): pelaje, oreja de adelante, oreja de atrás e interior (earDark), línea del pliegue de la
+// oreja, nariz, patas y cola, y líneas del cuerpo. Salen de la tabla RATS con las mismas proporciones que la Albina
+// (que tiene sus colores elegidos a mano); para ajustar una ratita a mano, se agrega en PORTRAIT_COLORS.
+const PORTRAIT_COLORS = {
+  0: { fur: '#e5e5e5', ear: '#f5a192', earDark: '#f38471', earLine: '#9c5043', nose: '#f5a192', paws: '#f5a192', line: '#6c6c6c' },   // Albina
+};
+function portraitOf(i) {
+  if (PORTRAIT_COLORS[i]) return PORTRAIT_COLORS[i];
+  const [, fur, ears] = RATS[i], dark = lum(fur) < 0.3;
+  return { fur, ear: ears, earDark: mixC(ears, '#000000', 0.09), earLine: mixC(ears, '#000000', 0.42), nose: ears, paws: ears,   // cola, nariz y patitas del tono claro de la oreja
+    line: dark ? mixC(fur, '#ffffff', 0.45) : mixC(fur, '#000000', 0.53) };
+}
+function drawRatPortrait(c, x, y, size, i, t = 0) {
+  const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line;
+  const breath = 1 + 0.012 * Math.sin(t * 2.6), blink = t > 0 && (t % 3.7) < 0.13;
+  const twitch = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.14 : 0;
+  const sway = t > 0 ? Math.sin(t * 1.4) : 0;
+  const k = size / 930;
+  c.save(); c.translate(x, y); c.scale(k, k); c.translate(-540, -330);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  // cola: sale del anca hacia la derecha, baja y vuelve hacia la izquierda por abajo (se afina hacia la punta)
+  // (como en la referencia: gruesa, sale derecho a la derecha, da la vuelta redonda y baja en diagonal hasta la punta)
+  const tailPts = [[780, 334], [880, 338], [950, 368 + sway * 3], [984, 420 + sway * 5], [958, 466 + sway * 7], [880, 490 + sway * 8],
+    [740, 506 + sway * 9], [600, 524 + sway * 8], [468 + sway * 6, 546 + sway * 6]];
+  const tp = [];
+  for (let s = 0; s < tailPts.length - 1; s++) for (let u = 0; u < 1; u += 0.1) {   // Catmull-Rom entre los puntos
+    const p0 = tailPts[Math.max(0, s - 1)], p1 = tailPts[s], p2 = tailPts[s + 1], p3 = tailPts[Math.min(tailPts.length - 1, s + 2)];
+    const f = (a, b, cc, d) => 0.5 * (2 * b + (-a + cc) * u + (2 * a - 5 * b + 4 * cc - d) * u * u + (-a + 3 * b - 3 * cc + d) * u * u * u);
+    tp.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+  }
+  tp.push(tailPts[tailPts.length - 1]);
+  const edge = sgn => tp.map(([px, py], j) => {
+    const q = tp[Math.min(tp.length - 1, j + 1)], o = tp[Math.max(0, j - 1)], dx = q[0] - o[0], dy = q[1] - o[1], l = Math.hypot(dx, dy) || 1;
+    const u = j / (tp.length - 1), wdt = 1.8 + 13.5 * Math.pow(1 - u, 0.6);   // gruesa en la base, se afina parejo hasta la punta
+    return [px - dy / l * wdt * sgn, py + dx / l * wdt * sgn];
+  });
+  c.fillStyle = P.paws; c.beginPath(); [...edge(1), ...edge(-1).reverse()].forEach(([px, py], j) => j ? c.lineTo(px, py) : c.moveTo(px, py));
+  c.closePath(); c.fill();
+  c.beginPath(); c.arc(tp[tp.length - 1][0], tp[tp.length - 1][1], 2, 0, Math.PI * 2); c.fill();
+  // oreja de atrás: una hoja redondeada de color más intenso, inclinada hacia atrás (la base queda tapada por la cabeza)
+  c.fillStyle = P.earDark;
+  c.save(); c.translate(192, 252); c.rotate(0.62 + twitch * 0.5);   // pivote abajo, en la base: inclinada hacia atrás
+  c.beginPath(); c.ellipse(-8, -66, 62, 74, -0.3, 0, Math.PI * 2); c.fill();
+  c.restore();
+  // cuerpo y cabeza: una sola silueta lisa (cuña baja adelante, lomo alto y redondo, anca, panza plana en el piso)
+  c.save(); c.translate(520, 412); c.scale(1, breath); c.translate(-520, -412);
+  const body = new Path2D();
+  body.moveTo(80, 394);
+  body.bezierCurveTo(94, 318, 140, 250, 250, 214);    // hocico → frente (un poco abombada)
+  body.bezierCurveTo(330, 170, 420, 78, 560, 72);     // nuca → lomo
+  body.bezierCurveTo(700, 64, 812, 160, 816, 300);    // lomo → anca
+  body.bezierCurveTo(818, 362, 790, 408, 740, 411);   // anca → piso
+  body.lineTo(240, 412);                              // panza plana
+  body.bezierCurveTo(170, 412, 110, 410, 80, 394);    // pera → punta del hocico
+  c.fillStyle = fur; c.fill(body);
+  if (S.spots) {   // manchas (Pandita)
+    c.save(); c.clip(body); c.fillStyle = S.spots;
+    for (const [sx, sy, rx, ry, r] of [[560, 130, 95, 60, 0.1], [740, 320, 60, 80, 0], [420, 330, 50, 40, -0.2]]) { c.beginPath(); c.ellipse(sx, sy, rx, ry, r, 0, Math.PI * 2); c.fill(); }
+    c.restore();
+  }
+  // líneas: el muslo (una "C" grande) y el hombro (un paréntesis)
+  c.strokeStyle = ink; c.lineWidth = 6;
+  c.beginPath(); c.arc(650, 296, 106, -0.35 * Math.PI, 0.6 * Math.PI, true); c.stroke();
+  c.beginPath(); c.arc(408, 346, 66, -0.32 * Math.PI, 0.42 * Math.PI); c.stroke();
+  c.restore();
+  // patas largas, con deditos marcados en la punta
+  const paw = (px, w) => {
+    c.fillStyle = P.paws; c.beginPath(); c.ellipse(px, 398, w, 15, 0, Math.PI, 0); c.lineTo(px + w, 412); c.lineTo(px - w, 412); c.closePath(); c.fill();
+    c.strokeStyle = mixC(P.paws, '#000000', 0.35); c.lineWidth = 3.5; c.beginPath();
+    for (const d of [0, 16, 32]) { c.moveTo(px - w + 22 + d, 408); c.lineTo(px - w + 34 + d, 390); }
+    c.stroke();
+  };
+  paw(318, 66); paw(632, 86);
+  c.strokeStyle = ink; c.lineWidth = 5; c.beginPath(); c.moveTo(300, 380); c.quadraticCurveTo(340, 370, 388, 372); c.stroke();   // antebrazo
+  // oreja de adelante: redonda, con el interior un poco más oscuro y el pliegue marcado; es la que se mueve
+  c.save(); c.translate(296, 290); c.rotate(0.3 + twitch); c.translate(-296, -290);   // inclinada hacia atrás
+  c.fillStyle = P.ear; c.beginPath(); c.ellipse(306, 212, 80, 88, 0.1, 0, Math.PI * 2); c.fill();
+  c.fillStyle = P.earDark; c.beginPath(); c.ellipse(318, 224, 50, 58, 0.1, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = P.earLine; c.lineWidth = 4.5;
+  c.beginPath(); c.ellipse(318, 224, 50, 58, 0.1, 0.95 * Math.PI, 2.08 * Math.PI); c.stroke();   // pliegue: por arriba, de un costado al otro
+  c.restore();
+  // ojo redondo (con antifaz si es Pandita) y la nariz que asoma en la punta del hocico
+  if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(166, 330, 32, 26, 0.3, 0, Math.PI * 2); c.fill(); }
+  if (blink) { c.strokeStyle = S.eyeShut; c.lineWidth = 5; c.beginPath(); c.arc(163, 326, 14, 0.35, Math.PI - 0.35); c.stroke(); }
+  else {
+    c.fillStyle = S.eyes; c.beginPath(); c.arc(163, 330, 19, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.8)'; c.beginPath(); c.arc(168, 324, 4, 0, Math.PI * 2); c.fill();
+  }
+  // bigotes largos: salen del hocico, cerca de la nariz, y se abren hacia atrás y abajo pasando por el cachete
+  c.strokeStyle = ink; c.lineWidth = 2.4; c.globalAlpha = 0.85; c.beginPath();
+  const wy = Math.sin(t * 4) * 3;
+  for (const [x1, y1, cx, cy] of [[335, 372 + wy, 220, 350], [326, 432 + wy, 215, 382], [252, 480 + wy, 175, 404]]) {
+    c.moveTo(118, 368); c.quadraticCurveTo(cx, cy, x1, y1);
+  }
+  c.stroke(); c.globalAlpha = 1;
+  c.fillStyle = P.nose; c.beginPath(); c.ellipse(88, 390, 18, 12.5, 0, 0, Math.PI * 2); c.fill();   // nariz: óvalo acostado en la punta del hocico
+  c.restore();
+}
+// Jaula de laboratorio vista de frente, sobre un estante de metal (como las de la referencia): caja de plástico
+// transparente un poco más ancha arriba, viruta en el piso, tapa de reja y un cartelito con el nombre.
+// Adentro va la ratita de perfil; si todavía no la tenés, es una silueta oscura y el cartel dice "???".
+// Dibuja en (0, 0) con tamaño w × h; t anima a la ratita (0: quieta).
+const cageOff = document.createElement('canvas'), cageOffCtx = cageOff.getContext('2d');
+// shelf: dibuja su pedazo de estante (en la pantalla de Ratitas el estante lo pone el CSS, de punta a punta)
+function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true) {
+  const rnd = mulberry32(i * 977 + 13);
+  g.save();
+  const sy = h * 0.86, sh = h * 0.07;                                                // estante
+  if (shelf) {
+    const mg = g.createLinearGradient(0, sy, 0, sy + sh);
+    mg.addColorStop(0, '#f7f8f9'); mg.addColorStop(0.45, '#c3c8cc'); mg.addColorStop(1, '#8e959a');
+    g.fillStyle = mg; g.fillRect(0, sy, w, sh);
+  }
+  // caja
+  const x0 = w * 0.07, x1 = w * 0.93, top = h * 0.3, bot = sy, ins = w * 0.035;
+  const box = new Path2D(); box.moveTo(x0, top); box.lineTo(x1, top); box.lineTo(x1 - ins, bot); box.lineTo(x0 + ins, bot); box.closePath();
+  g.fillStyle = 'rgba(205,220,226,0.45)'; g.fill(box);
+  g.save(); g.clip(box);
+  const bed = bot - h * 0.13;                                                        // viruta
+  g.fillStyle = '#dcc69e'; g.beginPath(); g.moveTo(0, bot);
+  for (let x = 0; x <= w; x += w / 12) g.lineTo(x, bed + Math.sin(x * 0.2 + i) * h * 0.012);
+  g.lineTo(w, bot); g.closePath(); g.fill();
+  const flecks = ['#c9a873', '#ecdcb6', '#b38f5c', '#f3e9cf'];
+  for (let k = 0; k < 40; k++) {
+    g.fillStyle = flecks[k % 4];
+    g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), bed + rnd() * (bot - bed), w * (0.012 + rnd() * 0.02), h * (0.005 + rnd() * 0.008), rnd() * 3, 0, Math.PI * 2); g.fill();
+  }
+  // ratita parada sobre la viruta (las patas quedan 82 unidades del retrato debajo de su centro)
+  const size = (x1 - x0) * 0.8, k = size / 930, cx = w / 2 + w * 0.03, cy = bed + h * 0.035 - 82 * k;
+  if (owned) drawRatPortrait(g, cx, cy, size, i, t);
+  else {   // silueta oscura (se dibuja aparte para oscurecer solo a la ratita)
+    cageOff.width = Math.ceil(w); cageOff.height = Math.ceil(h);
+    cageOffCtx.setTransform(1, 0, 0, 1, 0, 0); cageOffCtx.clearRect(0, 0, cageOff.width, cageOff.height);
+    drawRatPortrait(cageOffCtx, cx, cy, size, i, 0);
+    cageOffCtx.globalCompositeOperation = 'source-atop'; cageOffCtx.fillStyle = '#3a3633'; cageOffCtx.fillRect(0, 0, w, h);
+    cageOffCtx.globalCompositeOperation = 'source-over';
+    g.drawImage(cageOff, 0, 0, w, h);
+  }
+  g.restore();
+  // plástico: brillo en diagonal y bordes
+  g.save(); g.clip(box);
+  g.fillStyle = 'rgba(255,255,255,0.16)';
+  g.beginPath(); g.moveTo(x0 + w * 0.12, top); g.lineTo(x0 + w * 0.3, top); g.lineTo(x0 + w * 0.08, bot); g.lineTo(x0 - w * 0.1, bot); g.closePath(); g.fill();
+  g.restore();
+  g.lineJoin = 'round';
+  g.strokeStyle = 'rgba(110,130,138,0.45)'; g.lineWidth = Math.max(1, w * 0.012); g.stroke(box);
+  g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = Math.max(1, w * 0.006); g.stroke(box);
+  // tapa de reja
+  const ly = top - h * 0.07;
+  g.strokeStyle = '#9aa2a8'; g.lineWidth = Math.max(1, w * 0.008);
+  g.beginPath();
+  for (let x = x0 + w * 0.02; x <= x1 - w * 0.02; x += w * 0.035) { g.moveTo(x, ly); g.lineTo(x, top); }
+  g.stroke();
+  g.strokeStyle = '#7f878d'; g.lineWidth = Math.max(1.5, w * 0.016);
+  g.beginPath(); g.moveTo(x0 - w * 0.02, ly); g.lineTo(x1 + w * 0.02, ly); g.moveTo(x0 - w * 0.02, top); g.lineTo(x1 + w * 0.02, top); g.stroke();
+  // cartelito con el nombre (amarillo si es la elegida)
+  const lw = w * 0.62, lh = h * 0.12, lx = (w - lw) / 2, lyy = top + h * 0.035;
+  g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(lx + 2, lyy + 2, lw, lh);
+  g.fillStyle = sel ? '#ffe17a' : '#fbf8ee'; g.fillRect(lx, lyy, lw, lh);
+  g.strokeStyle = sel ? '#c98a12' : '#a9adb0'; g.lineWidth = Math.max(1, w * 0.008); g.strokeRect(lx, lyy, lw, lh);
+  const name = owned ? RATS[i][0] : '???';
+  let fs = h * 0.075; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`;
+  while (g.measureText(name).width > lw * 0.9 && fs > 6) { fs -= 0.5; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`; }
+  g.fillStyle = '#2a2622'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(name, w / 2, lyy + lh / 2 + 1);
+  g.restore();
+}
+function drawThumb(cv) {
+  const i = +cv.dataset.rat, g = cv.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
+  drawRatCage(g, cv.width, cv.height, i, Skins.has(i), Skins.data.sel === i, 0, false);
+}
+
+// ---- Máquina de ratitas (como la del Crossy Road): girás la manija, cae una cápsula, se agranda, tiembla, se abre
+// y aparece la ratita girando sobre rayos de luz, con papelitos. Arte provisorio dibujado por código. ----
+const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], cap: '#e74c3c', caps: null };
+const GACHA_T = { crank: 1.0, drop: 0.75, shake: 1.0, open: 0.45 };
+const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
+function showMachine(from) {
+  if (!isMenu()) titleBackground();
+  G.state = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = [];
+  openScreen(`<h2 class="stitle">MÁQUINA</h2>
+    <canvas id="gachaCv" width="900" height="900"></canvas>
+    <p id="gachaRes">${gachaHint()}</p>
+    <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>`, from);
+  updateButtons();
+  cancelAnimationFrame(Gacha.raf);
+  let last = performance.now();
+  const step = now => {
+    if (G.state !== 'machine') return;
+    Gacha.raf = requestAnimationFrame(step);
+    gachaUpdate(Math.min(0.05, (now - last) / 1000)); last = now;
+    const cv2 = document.getElementById('gachaCv');
+    if (cv2) drawGacha(cv2.getContext('2d'), cv2.width);
+  };
+  Gacha.raf = requestAnimationFrame(step);
+}
+function gachaHint() {
+  return Wallet.coins >= COIN_SPIN ? `Cada giro cuesta ${COIN_SPIN} ${COIN_ICON}. ¡Puede salir cualquier ratita!`
+    : `Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para girar. Juntalas en los laberintos.`;
+}
+function gachaButtons(after) {
+  const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? 'Otra vez' : 'Girar'} · ${COIN_SPIN} ${COIN_ICON}</button>`;
+  return (after ? '<button class="cbtn" data-act="use">Usarla</button>' : '') + spin +
+    '<button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="back">Volver</button>';
+}
+function gachaSpin() {
+  if (G.state !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
+  Wallet.add(-COIN_SPIN); pop($coins);
+  Gacha.pick = 1 + Math.floor(Math.random() * (RATS.length - 1));   // la Albina ya la tenés de entrada
+  Gacha.dup = Skins.has(Gacha.pick);
+  if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
+  Gacha.cap = CAP_COLORS[Math.floor(Math.random() * CAP_COLORS.length)];
+  Gacha.phase = 'crank'; Gacha.t = 0; Gacha.tick = 0; Gacha.conf = [];
+  document.getElementById('gachaRes').textContent = '¡Girando la manija!';
+  document.getElementById('gachaBtns').innerHTML = '';
+}
+function gachaUpdate(dt) {
+  const P = Gacha, next = ph => { P.phase = ph; P.t = 0; P.tick = 0; };
+  P.t += dt; P.clock += dt;
+  if (P.phase === 'crank') {
+    if ((P.tick -= dt) <= 0) { P.tick = 0.09; Snd.crank(); }
+    if (P.t >= GACHA_T.crank) next('drop');
+  } else if (P.phase === 'drop') {
+    if (P.t >= GACHA_T.drop) { Snd.thunk(); next('shake'); document.getElementById('gachaRes').textContent = '¿Qué ratita será?'; }
+  } else if (P.phase === 'shake') {
+    if (P.t > 0.35 && (P.tick -= dt) <= 0) { P.tick = 0.11; Snd.rattle(); }
+    if (P.t >= GACHA_T.shake) {
+      Snd.popOpen(); next('open');
+      for (let k = 0; k < 70; k++) P.conf.push({ x: 150, y: 150, vx: (Math.random() - 0.5) * 300, vy: -60 - Math.random() * 220,
+        r: Math.random() * 6, vr: (Math.random() - 0.5) * 14, w: 4 + Math.random() * 4, h: 2 + Math.random() * 2.5,
+        col: CAP_COLORS[k % CAP_COLORS.length] });
+    }
+  } else if (P.phase === 'open') {
+    if (P.t >= GACHA_T.open) { next('reveal'); gachaResult(); }
+  }
+  for (const f of P.conf) { f.vy += 320 * dt; f.vx *= 1 - dt * 0.8; f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.vr * dt; }
+  P.conf = P.conf.filter(f => f.y < 330);
+}
+function gachaResult() {
+  const name = RATS[Gacha.pick][0];
+  if (Gacha.dup) { Wallet.add(COIN_DUP); Snd.coin(); }
+  else Snd.win();
+  document.getElementById('gachaRes').innerHTML = Gacha.dup
+    ? `<span class="gname">${name}</span><br>Ya la tenías: te devolvemos <b>${COIN_DUP}</b> ${COIN_ICON}`
+    : `<span class="gname">¡${name}!</span><br>¡Ratita nueva!`;
+  document.getElementById('gachaBtns').innerHTML = gachaButtons(true);
+}
+function drawGacha(g, n) {
+  const P = Gacha, t = P.t;
+  g.setTransform(n / 300, 0, 0, n / 300, 0, 0); g.clearRect(0, 0, 300, 300);
+  const ease = p => { p = clamp(p, 0, 1); return p * p * (3 - 2 * p); };
+  if (['idle', 'crank', 'drop', 'shake'].includes(P.phase)) {
+    const alpha = P.phase === 'shake' ? 1 - ease(t / 0.3) : 1;
+    if (alpha > 0) { g.globalAlpha = alpha; drawMachine(g); g.globalAlpha = 1; }
+  }
+  if (P.phase === 'drop') {   // sale por la boca de la máquina y rebota en el piso
+    const p = clamp(t / GACHA_T.drop, 0, 1);
+    capsule(g, 182 - 24 * p, 246 + 24 * p - Math.abs(Math.sin(p * Math.PI * 2.2)) * 20 * (1 - p), 10, P.cap, p * 7, 0);
+  } else if (P.phase === 'shake') {   // viene al centro, se agranda y tiembla cada vez más
+    const e = ease(t / 0.3), w = t > 0.3 ? Math.sin(t * 40) * 0.25 * Math.min(1, (t - 0.3) / 0.5) : 0;
+    capsule(g, 158 - 8 * e, 270 - 120 * e, 10 + 45 * e, P.cap, w, 0);
+  } else if (P.phase === 'open' || P.phase === 'reveal') {
+    const e = P.phase === 'open' ? ease(t / GACHA_T.open) : 1, rt = P.phase === 'open' ? t : t + GACHA_T.open;
+    drawRays(g, rt, e);
+    const pop = P.phase === 'open' ? e * (1 + 0.25 * Math.sin(e * Math.PI)) : 1;   // aparece creciendo con un rebote
+    drawRatPortrait(g, 150, 158, 250 * pop, P.pick, rt);
+    if (P.phase === 'open') {
+      g.globalAlpha = 1 - e; capsule(g, 150, 150, 55, P.cap, 0, 90 * e); g.globalAlpha = 1;
+      const fl = g.createRadialGradient(150, 150, 0, 150, 150, 40 + 160 * e);   // destello
+      fl.addColorStop(0, `rgba(255,255,255,${0.95 * (1 - e)})`); fl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = fl; g.fillRect(0, 0, 300, 300);
+    }
+  }
+  for (const f of P.conf) {   // papelitos
+    g.save(); g.translate(f.x, f.y); g.rotate(f.r); g.fillStyle = f.col; g.fillRect(-f.w / 2, -f.h / 2, f.w, f.h); g.restore();
+  }
+}
+// Cápsula: mitad de abajo blanca y mitad de arriba de color, con brillo; split separa las mitades al abrirse
+function capsule(g, x, y, r, col, rot, split) {
+  g.save(); g.translate(x, y); g.rotate(rot);
+  g.fillStyle = '#f4f1ea'; g.beginPath(); g.arc(0, split, r, 0, Math.PI); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(0,0,0,0.12)'; g.beginPath(); g.arc(0, split, r, 0.2, Math.PI - 0.2); g.closePath(); g.fill();
+  g.fillStyle = col; g.beginPath(); g.arc(0, -split, r, Math.PI, Math.PI * 2); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(-r * 0.38, -split - r * 0.5, r * 0.26, r * 0.14, -0.5, 0, Math.PI * 2); g.fill();
+  if (!split) { g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = Math.max(1, r * 0.06); g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke(); }
+  g.restore();
+}
+function drawRays(g, t, a) {
+  g.save(); g.translate(150, 150); g.rotate(t * 0.5); g.globalAlpha = a;
+  for (let i = 0; i < 12; i++) {
+    g.fillStyle = i % 2 ? 'rgba(255,236,170,0.5)' : 'rgba(255,205,110,0.22)';
+    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 200, i * Math.PI / 6, (i + 1) * Math.PI / 6); g.closePath(); g.fill();
+  }
+  const rg = g.createRadialGradient(0, 0, 10, 0, 0, 115);
+  rg.addColorStop(0, 'rgba(255,250,225,0.95)'); rg.addColorStop(1, 'rgba(255,250,225,0)');
+  g.fillStyle = rg; g.beginPath(); g.arc(0, 0, 115, 0, Math.PI * 2); g.fill();
+  // los rayos se desvanecen antes del borde (si no, se notaba el cuadrado del canvas)
+  const fade = g.createRadialGradient(0, 0, 60, 0, 0, 148);
+  fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+  g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in'; g.fillStyle = fade; g.fillRect(-150, -150, 300, 300);
+  g.restore();
+}
+// La máquina: base roja con la manija, la ranura y la boca; arriba la cúpula de vidrio llena de cápsulas
+function drawMachine(g) {
+  const P = Gacha, cranking = P.phase === 'crank';
+  const rp = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(150, 266, 72, 10, 0, 0, Math.PI * 2); g.fill();
+  const bg = g.createLinearGradient(92, 0, 208, 0); bg.addColorStop(0, '#e2513f'); bg.addColorStop(1, '#a42b1f');
+  g.fillStyle = bg; rp(92, 158, 116, 104, 9); g.fill();
+  g.fillStyle = '#8f2318'; rp(104, 148, 92, 16, 5); g.fill();                                   // cuello
+  // cúpula con cápsulas
+  const DX = 150, DY = 96, DR = 62;
+  if (!P.caps) {
+    P.caps = [];
+    for (let y = DY + DR - 14, row = 0; y > DY - 20; y -= 17, row++)
+      for (let x = DX - 60 + (row % 2) * 9; x < DX + 60; x += 19)
+        if (Math.hypot(x - DX, y - DY) < DR - 12) P.caps.push([x, y, CAP_COLORS[(P.caps.length * 5 + row) % CAP_COLORS.length], Math.random() * 6]);
+  }
+  g.save(); g.beginPath(); g.arc(DX, DY, DR, 0, Math.PI * 2); g.clip();
+  g.fillStyle = 'rgba(200,235,255,0.22)'; g.fillRect(DX - DR, DY - DR, DR * 2, DR * 2);
+  for (const [x, y, col, ph] of P.caps) {
+    const j = cranking ? 2.2 : 0.4;
+    capsule(g, x + Math.sin(P.clock * 31 + ph) * j, y + Math.cos(P.clock * 27 + ph) * j, 9, col, ph, 0);
+  }
+  g.restore();
+  g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 3; g.beginPath(); g.arc(DX, DY, DR, 0, Math.PI * 2); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 5; g.beginPath(); g.arc(DX, DY, DR - 12, 3.6, 4.3); g.stroke();   // brillo del vidrio
+  g.fillStyle = '#c8392b'; rp(112, 26, 76, 13, 5); g.fill();                                   // tapa
+  g.fillStyle = '#e2513f'; g.beginPath(); g.arc(150, 24, 7, 0, Math.PI * 2); g.fill();
+  // cartel, ranura de monedas y boca
+  g.fillStyle = '#fff3d6'; g.font = `15px 'Permanent Marker', cursive`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('RATITAS', 150, 178);
+  g.fillStyle = '#2a1208'; rp(104, 232, 20, 5, 2); g.fill();
+  g.fillStyle = '#ffd84a'; g.font = `bold 9px Arial, sans-serif`; g.fillText(COIN_SPIN + ' $', 114, 244);
+  g.fillStyle = '#2a1208'; rp(166, 234, 32, 22, 5); g.fill();
+  g.fillStyle = '#5a2a12'; rp(168, 236, 28, 6, 3); g.fill();
+  // manija: gira una vuelta y media al girar
+  const ca = cranking ? (t => t * t * (3 - 2 * t))(clamp(P.t / GACHA_T.crank, 0, 1)) * Math.PI * 3 : 0;
+  g.save(); g.translate(150, 213); g.fillStyle = '#f1c40f'; g.strokeStyle = '#b8860b'; g.lineWidth = 2.5;
+  g.beginPath(); g.arc(0, 0, 17, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.rotate(ca); g.fillStyle = '#b8860b'; g.fillRect(-3.5, -24, 7, 24);
+  g.fillStyle = '#f7e08a'; g.beginPath(); g.arc(0, -24, 6, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.restore();
+}
+
 function showIntro() {
   G.state = 'intro'; $hud.classList.remove('hidden');
   const m = G.maze, L = G.mode === 'story' ? LEVELS[G.story] : null;
@@ -1100,6 +1637,7 @@ function showWinCard() {
     card(`<h1>¡ESCAPASTE!</h1>
       <div class="stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></div>
       <p>${G.cheeseTotal ? `Quesos: <b>${G.cheese}/${G.cheeseTotal}</b> · ` : ''}Te sobraron <b>${Math.floor(G.timeLeft)} s</b></p>
+      ${G.runCoins ? `<p>${COIN_ICON} <b>+${G.runCoins}</b> monedas</p>` : ''}
       ${last ? '<p>¡Completaste los niveles de prueba!</p>' : ''}
       <div class="menu">${last ? '' : '<button class="cbtn" data-act="next">Siguiente nivel</button>'}<button class="cbtn alt" data-act="levels">Niveles</button></div>
       ${isTouch ? '' : go(last ? 'volver a los niveles' : 'el siguiente nivel')}`);
@@ -1107,6 +1645,7 @@ function showWinCard() {
   }
   card(`<h1>¡ESCAPASTE!</h1>
     <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
+    ${G.runCoins ? `<p>${COIN_ICON} <b>+${G.runCoins}</b> monedas</p>` : ''}
     ${go(`el nivel ${G.level + 1}`)}`);
 }
 function startDie(reason = 'time') {
@@ -1140,6 +1679,7 @@ function primaryAction() {
   Snd.init();
   if (G.state === 'title') act('story');
   else if (G.state === 'select') { loadStory(Math.min(Story.data.unlocked, LEVELS.length) - 1); showIntro(); }
+  else if (G.state === 'machine') gachaSpin();
   else if (G.state === 'intro') startPlay();
   else if (G.state === 'won' && G.winCard) {
     if (G.mode === 'story') act(G.story >= LEVELS.length - 1 ? 'levels' : 'next');
@@ -1156,8 +1696,13 @@ function act(a, el) {
   else if (a === 'level') { loadStory(+el.dataset.i); showIntro(); }
   else if (a === 'next') { loadStory(G.story + 1); showIntro(); }
   else if (a === 'levels') showSelect();
-  else if (a === 'back') showTitle();
+  else if (a === 'back') { if ($scr.classList.contains('open')) { G.state = 'title'; closeScreen(); updateButtons(); } else showTitle(); }
   else if (a === 'menu') { Music.resume(); showTitle(); }
+  else if (a === 'ratitas') showRatitas(el);
+  else if (a === 'machine') showMachine(el);
+  else if (a === 'spin') gachaSpin();
+  else if (a === 'pick') pickRat(+el.dataset.i);
+  else if (a === 'use') { Skins.data.sel = Gacha.pick; Skins.save(); showRatitas(); }
 }
 
 // ---- botones de sonido / pausa ----
@@ -1172,6 +1717,7 @@ const ICONS = {
 };
 const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnMusic = document.getElementById('btnMusic');
 function updateButtons() {
+  $coins.classList.toggle('withHome', !$hud.classList.contains('hidden'));
   $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
   $btnSound.title = Snd.muted ? 'Activar efectos (F)' : 'Silenciar efectos (F)';
   $btnMusic.innerHTML = Music.muted ? ICONS.musicOff : ICONS.music;
@@ -1232,7 +1778,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (k === ' ' || k === 'enter') primaryAction();
   else if (G.state === 'title' && (k === '1' || k === '2')) act(k === '1' ? 'story' : 'challenge');
-  else if (G.state === 'select' && (k === 'escape' || k === 'backspace')) act('back');
+  else if (['select', 'ratitas', 'machine'].includes(G.state) && (k === 'escape' || k === 'backspace')) act('back');
   else if (G.state === 'paused' && k === 'q') act('menu');
   else if (k === 'p' || k === 'escape') togglePause();
   else if (k === 'm') { Music.toggle(); updateButtons(); }
@@ -1250,7 +1796,7 @@ addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (b) { if (!b.disabled) act(b.dataset.act, b); return; }
   if (e.target.closest('.btn')) return;
-  if (G.state === 'title' || G.state === 'select') return;   // en los menús se elige con los botones
+  if (isMenu()) return;   // en los menús se elige con los botones
   primaryAction();
 });
 function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.state === 'play') togglePause(); }
@@ -1349,8 +1895,16 @@ function updateItems() {
           return;
         }
       }
+    } else if (it.type === 'coin' && !it.got) {
+      if (Math.hypot(M.x + ca * 6 - it.x, M.y + sa * 6 - it.y) < 23) {
+        it.got = true; G.runCoins++; Wallet.add(1); Snd.coin(); pop($coins);
+        for (let k = 0; k < 7; k++) {
+          const a = Math.random() * Math.PI * 2, v = 25 + Math.random() * 45;
+          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.3 + Math.random() * 0.2 });
+        }
+      }
     } else if (it.type === 'cheese' && !it.got) {
-      if (Math.hypot(M.x + ca * 10 - it.x, M.y + sa * 10 - it.y) < 14) {
+      if (Math.hypot(M.x + ca * 10 - it.x, M.y + sa * 10 - it.y) < 21) {
         it.got = true; G.cheese++; Snd.cheese(); pop($cheese);
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
@@ -1431,7 +1985,7 @@ function update(dt) {
     M.v = SPEED; M.a += (Math.PI - ((M.a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) * Math.min(1, dt * 4);
     M.x += Math.cos(M.a) * M.v * dt; M.y += Math.sin(M.a) * M.v * dt; M.phase += dt * SPEED * 0.12;
     G.light = 1 - exitDarkness();
-  } else if (G.state === 'title' || G.state === 'select') {
+  } else if (isMenu()) {
     menuFlicker(dt);
   } else if (G.state === 'intro' || G.state === 'lost') {
     G.light = 0;
@@ -1472,7 +2026,7 @@ function update(dt) {
   const z = safeZone(), w = cv.width, h = cv.height;
   cam.x = clamp(cam.x, M.x - (z.x1 - w / 2) / scale, M.x - (z.x0 - w / 2) / scale);
   cam.y = clamp(cam.y, M.y - (z.y1 - h / 2) / scale, M.y - (z.y0 - h / 2) / scale);
-  if (G.state === 'title' || G.state === 'select') {   // menús: cámara quieta en el centro del laberinto de fondo
+  if (isMenu()) {   // menús: cámara quieta en el centro del laberinto de fondo
     if (G.titleSize !== w + 'x' + h) titleBackground();
     cam.x = G.maze.W * C / 2; cam.y = G.maze.H * C / 2;
   }
@@ -1846,6 +2400,21 @@ function drawPrints(c) {
   }
 }
 
+// Moneda dorada (como las de referencia: borde claro, cara con un $ en relieve). Gira sobre sí misma: se angosta
+// y deja ver el canto más oscuro de un lado.
+const COIN_R = 6.5;
+function drawCoin(c, it) {
+  const s = Math.cos(G.time * 3 + it.ph), w = Math.max(0.16, Math.abs(s)), edge = (1 - w) * 1.8 * Math.sign(s || 1);
+  c.save(); c.translate(it.x, it.y);
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(1.2, 2.2, COIN_R * Math.max(w, 0.45), COIN_R * 0.75, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#c98a0e'; c.beginPath(); c.ellipse(edge, 0, COIN_R * w, COIN_R, 0, 0, Math.PI * 2); c.fill();      // canto
+  c.fillStyle = '#ffd84a'; c.beginPath(); c.ellipse(0, 0, COIN_R * w, COIN_R, 0, 0, Math.PI * 2); c.fill();         // borde
+  c.fillStyle = '#f9b80f'; c.beginPath(); c.ellipse(0, 0, COIN_R * 0.74 * w, COIN_R * 0.74, 0, 0, Math.PI * 2); c.fill();   // cara
+  c.scale(w, 1); c.fillStyle = '#ffe27a'; c.font = `bold 8px Arial, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('$', 0, 0.5);
+  c.restore();
+}
+
 function drawFloorItems(c, v) {
   drawPrints(c);
   for (const it of G.items) {
@@ -1854,6 +2423,7 @@ function drawFloorItems(c, v) {
     else if (it.type === 'trap') drawTrap(c, it);
     else if (it.type === 'cheese' && !it.got) drawCheese(c, it);
     else if (it.type === 'door') drawDoorShadow(c, it);
+    else if (it.type === 'coin' && !it.got) drawCoin(c, it);
   }
 }
 
@@ -1880,6 +2450,7 @@ function drawSiren(l, T6) {
 
 function drawMouse(c, alpha) {
   const bump = M.bumpT / BUMP_T;                       // 1 → 0 durante el golpe
+  const S = curSkin();                                 // colores de la ratita elegida
   c.save(); c.globalAlpha = alpha;
   c.save(); c.translate(M.x, M.y); c.rotate(M.a);
   // sombra debajo: centrada y con borde esfumado (gradiente radial aplastado en elipse)
@@ -1890,7 +2461,7 @@ function drawMouse(c, alpha) {
   c.restore();
   // cola: tramos que se van afinando (posiciones del mundo, calculadas en updateTail)
   if (M.tail) {
-    c.strokeStyle = '#b98582'; c.lineCap = 'round';
+    c.strokeStyle = S.tail; c.lineCap = 'round';
     for (let i = 1; i <= TAIL_N; i++) {
       c.lineWidth = tailWidth(i / TAIL_N);
       c.beginPath(); c.moveTo(M.tail[i - 1][0], M.tail[i - 1][1]); c.lineTo(M.tail[i][0], M.tail[i][1]); c.stroke();
@@ -1918,7 +2489,7 @@ function drawMouse(c, alpha) {
     if (front) { x = hx(x); frontFeet.push([x, y, side, lift]); } else backFeet.push([x, y, side, lift]);
     const [rx, ry, rot] = front ? [1.7, 2.0, side * 0.4] : [3.4, 1.9, side * (0.35 - 0.9 * sq)];
     const sc = 1 - 0.28 * lift, out = side * 0.35 * lift;
-    const col = `rgb(${154 + 30 * lift | 0}, ${98 + 26 * lift | 0}, ${94 + 24 * lift | 0})`;
+    const col = `rgb(${S.foot[0] + 30 * lift | 0}, ${S.foot[1] + 26 * lift | 0}, ${S.foot[2] + 24 * lift | 0})`;
     c.fillStyle = col; c.strokeStyle = col;
     c.save(); c.translate(x, y); c.rotate(rot + out); c.scale(sc, sc);
     c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); c.fill();
@@ -1941,7 +2512,7 @@ function drawMouse(c, alpha) {
     c.save(); c.translate(ax + dx * 0.38, ay + dy * 0.38); c.rotate(Math.atan2(dy, dx));
     const tg = c.createLinearGradient(0, -ry, 0, ry);
     // un poco más oscuros que el cuerpo (claro y oscuro parejo): están más abajo, lejos de la luz
-    tg.addColorStop(0, '#8a8177'); tg.addColorStop(0.5, '#bdb5ab'); tg.addColorStop(1, '#8a8177');
+    tg.addColorStop(0, S.limb[0]); tg.addColorStop(0.5, S.limb[1]); tg.addColorStop(1, S.limb[0]);
     c.fillStyle = tg; c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); c.fill();
     c.restore();
   };
@@ -1980,12 +2551,19 @@ function drawMouse(c, alpha) {
   // degradé ovalado a lo largo del cuerpo: la cabeza queda del mismo tono y solo se oscurecen los bordes
   c.save(); c.clip(body); c.translate(-2, 0); c.scale(1.6, 1);
   const g = c.createRadialGradient(0, 0, 0.5, 0, 0, 15);
-  g.addColorStop(0, '#fdfaf6'); g.addColorStop(0.45, '#e0d8ce'); g.addColorStop(0.8, '#b2a99f'); g.addColorStop(1, '#7d746b');
+  g.addColorStop(0, S.body[0]); g.addColorStop(0.45, S.body[1]); g.addColorStop(0.8, S.body[2]); g.addColorStop(1, S.body[3]);
   c.fillStyle = g; c.fillRect(-20, -20, 40, 40);
   c.restore();
+  if (S.spots) {   // manchas (Pandita): en el lomo y la cadera, recortadas a la silueta
+    c.save(); c.clip(body); c.fillStyle = S.spots;
+    for (const [x, y, rx, ry, r] of [[-13, -6.5, 5.5, 4.2, 0.3], [-5, 7, 4.6, 3.4, -0.4], [-18, 5, 3.4, 3, 0], [4, -6.5, 3, 2.4, 0.5]]) {
+      c.beginPath(); c.ellipse(x, y, rx, ry, r, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+  }
   // arnés (recortado a la silueta del cuerpo)
   c.save(); c.clip(body);
-  c.strokeStyle = '#26262b'; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
+  c.strokeStyle = S.harness; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
   c.moveTo(1, -13); c.lineTo(1, 13); c.moveTo(-10, -13); c.lineTo(-10, 13); c.moveTo(-10, 0); c.lineTo(1, 0); c.stroke();
   c.restore();
   // orejas: giran con la cabeza y van debajo de la linterna
@@ -2000,8 +2578,8 @@ function drawMouse(c, alpha) {
     c.translate(0, -sy * EAR_IN);
     c.translate(hx(2.5), sy * 6.5); c.rotate(sy * EAR_TILT); c.translate(-hx(2.5), -sy * 6.5);
     c.translate(hx(7.5), sy * 4.8); c.rotate(sy * ear); c.translate(-hx(7.5), -sy * 4.8);
-    c.fillStyle = '#cfa59f'; c.beginPath(); c.ellipse(hx(7), sy * 7.8, 5.4, 4.0, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#b27f7c'; c.beginPath(); c.ellipse(hx(7.5), sy * 7.0, 3.4, 2.4, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = S.ear; c.beginPath(); c.ellipse(hx(7), sy * 7.8, 5.4, 4.0, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = S.earIn; c.beginPath(); c.ellipse(hx(7.5), sy * 7.0, 3.4, 2.4, 0, 0, Math.PI * 2); c.fill();
     c.restore();
   }
   c.restore();
@@ -2013,12 +2591,12 @@ function drawMouse(c, alpha) {
   const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
   const FL = 4;   // medio ancho del cuerpo
   const lg = c.createLinearGradient(0, -FL, 0, FL);
-  lg.addColorStop(0, '#111215'); lg.addColorStop(0.24, '#4a5960'); lg.addColorStop(0.5, '#b2c1c8');
-  lg.addColorStop(0.76, '#4a5960'); lg.addColorStop(1, '#111215');
+  lg.addColorStop(0, S.light[0]); lg.addColorStop(0.24, S.light[1]); lg.addColorStop(0.5, S.light[2]);
+  lg.addColorStop(0.76, S.light[1]); lg.addColorStop(1, S.light[0]);
   c.fillStyle = lg; rr(-13, -FL, 17, FL * 2, 1.6); c.fill();   // pasa la segunda tira del arnés
   c.fillStyle = '#26282c'; c.fillRect(-12.2, -FL + 0.5, 0.9, FL * 2 - 1);   // tapa trasera
   c.fillStyle = '#121316'; rr(-11.3, -2.1, 10.4, 4.2, 1); c.fill();        // marco de la barra
-  const frac = G.state === 'title' ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
+  const frac = isMenu() ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
   const blinkOut = G.state === 'play' && G.timeLeft <= 10 && Math.sin(G.time * 14) < -0.3;
   if (frac > 0 && !blinkOut) {
     c.fillStyle = frac > 0.25 ? '#e2ea3a' : frac > 0.1 ? '#f2b53a' : '#f0563a';
@@ -2039,21 +2617,22 @@ function drawMouse(c, alpha) {
   // cara (nariz, orejas, ojos, bigotes): gira entera con la cabeza
   c.save(); c.translate(NECK, 0); c.rotate(M.headA); c.translate(-NECK, 0);
   // nariz chiquita, un poco metida dentro del hocico
-  c.fillStyle = '#d98f95'; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill();
+  c.fillStyle = S.nose; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill();
   const eyesClosed = M.blinkT > 0 || bump > 0.2 || (M.caught && !(M.caughtT > 0));   // atrapada: cuando deja de sacudirse, queda con los ojos cerrados
   for (const sy of [-1, 1]) {
     // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
     // (las orejas se dibujan antes, debajo de la linterna)
     // ojo: cerca del hocico; rojo (albino) con brillito blanco, o cerrado (rayita de costado, curvada hacia el lomo)
     const ex = hx(11.7);
+    if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(ex - 0.4, sy * 3, 2.6, 2, sy * 0.4, 0, Math.PI * 2); c.fill(); }   // antifaz de panda
     if (eyesClosed) {
-      c.strokeStyle = '#7a4644'; c.lineWidth = 0.6; c.lineCap = 'round'; c.beginPath();
+      c.strokeStyle = S.eyeShut; c.lineWidth = 0.6; c.lineCap = 'round'; c.beginPath();
       c.moveTo(ex, sy * 1.9); c.quadraticCurveTo(ex - 0.9, sy * 2.9, ex, sy * 3.9); c.stroke();
     } else {
       const eg = c.createRadialGradient(ex, sy * 2.9, 0.4, ex, sy * 2.9, 2.8);   // brillo rojo alrededor
-      eg.addColorStop(0, 'rgba(255,40,40,0.55)'); eg.addColorStop(1, 'rgba(255,40,40,0)');
+      eg.addColorStop(0, `rgba(${S.eyeRgb},0.55)`); eg.addColorStop(1, `rgba(${S.eyeRgb},0)`);
       c.fillStyle = eg; c.beginPath(); c.arc(ex, sy * 2.9, 2.8, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#ff0a1e'; c.beginPath(); c.arc(ex, sy * 2.9, 1.1, 0, Math.PI * 2); c.fill();
+      c.fillStyle = S.eyes; c.beginPath(); c.arc(ex, sy * 2.9, 1.1, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(ex + 0.4, sy * 2.5, 0.38, 0, Math.PI * 2); c.fill();
     }
     // bigotes: salen junto a la nariz y se abren bien a los costados; tiemblan apenas y mucho al chocar
@@ -2082,7 +2661,7 @@ function render() {
   const hw = w / (2 * scale), hh = h / (2 * scale);
   const v = { x0: cam.x - hw, y0: cam.y - hh, x1: cam.x + hw, y1: cam.y + hh };
   const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
-  const menu = G.state === 'title' || G.state === 'select';   // en los menús no hay rata
+  const menu = isMenu();   // en los menús no hay rata
   const lit = G.light > 0.01 || menu;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
 
   if (lit) {
@@ -2200,7 +2779,7 @@ function render() {
   cam.x -= shx; cam.y -= shy;
 
   // HUD
-  if (G.state !== 'title' && G.state !== 'select') {
+  if (!isMenu()) {
     $level.textContent = 'NIVEL ' + G.level;
     $timer.textContent = fmt(G.timeLeft);
     $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
@@ -2244,17 +2823,33 @@ function renderGallery() {
   cam.x = sc; cam.y = sy;
 }
 
+// ===================== GALERÍA DE RATITAS (index.html?ratas) =====================
+// Las 20 ratitas en sus jaulas, en estantes, todas desbloqueadas y animadas, para revisar los colores.
+const RAT_GALLERY = /ratas/i.test(location.search + location.hash);
+function renderRatGallery() {
+  const w = cv.width, h = cv.height, cols = w > h ? 5 : 4, rows = Math.ceil(RATS.length / cols);
+  const cw = w / cols, ch = h / rows;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  RATS.forEach((r, i) => {
+    ctx.save(); ctx.translate((i % cols) * cw, Math.floor(i / cols) * ch);
+    drawRatCage(ctx, cw, ch, i, true, false, G.time + i * 0.7);
+    ctx.restore();
+  });
+}
+
 // ===================== LOOP =====================
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (GALLERY) { G.time += dt; renderGallery(); return; }
+  if (RAT_GALLERY) { G.time += dt; renderRatGallery(); return; }
   update(dt); render();
 }
 resize();
 showTitle();
-if (GALLERY) { clearTimeout(cardTimer); $card.classList.add('hidden'); $hint.style.display = $hintTouch.style.display = 'none'; }
+if (GALLERY || RAT_GALLERY) { $coins.style.display = 'none'; clearTimeout(cardTimer); $card.classList.add('hidden'); $hint.style.display = $hintTouch.style.display = 'none'; }
 requestAnimationFrame(frame);
 </script>
 </body>

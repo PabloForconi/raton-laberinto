@@ -17,6 +17,7 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
   3. **Quesos:** hay 10 quesos dando vueltas; juntá 5 antes de salir (dan una estrella extra).
   4. **Puertas:** puertitas de un solo sentido. Del lado del agujero empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
 - **Desafío:** laberintos al azar, infinitos, cada vez más grandes y con la cámara más cerca.
+- **Monedas y ratitas:** juntá monedas en los laberintos (se guardan aunque pierdas). En la **Máquina** cada giro cuesta 10 monedas por ahora, para probar, y te da una de las 20 ratitas al azar (si sale repetida, te devuelve la mitad). Para ver las 20 juntas: `index.html?ratas`. En **Ratitas** elegís con cuál jugar.
 
 ## Jugar
 
