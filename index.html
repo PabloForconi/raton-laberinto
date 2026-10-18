@@ -160,6 +160,15 @@
   #knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
     background: rgba(217,207,178,.45); border: 2px solid rgba(240,228,205,.6); }
   body.touch { touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; }
+  /* en el celular (o con pantalla táctil) no se muestran las barras de scroll: se sigue pudiendo deslizar */
+  @media (max-width: 560px), (pointer: coarse) {
+    .rack, #card .levels, #card { scrollbar-width: none; }
+    .rack::-webkit-scrollbar, #card .levels::-webkit-scrollbar, #card::-webkit-scrollbar { display: none; }
+  }
+  /* botón provisorio para probar: luz general en el laberinto (arriba a la izquierda, debajo de las monedas) */
+  #btnLight { position: fixed; top: 60px; left: 14px; z-index: 5; width: auto; padding: 0 10px; gap: 4px; display: flex;
+    font-family: 'Permanent Marker', cursive; font-size: 14px; transform: rotate(1.5deg); }
+  #btnLight.on { background: #ffe17a; }
   @media (max-width: 560px) {
     #level { top: 62px; font-size: 13px; }
     #timer { top: 84px; font-size: 26px; }
@@ -192,6 +201,7 @@
 <div id="hintTouch">Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir</div>
 <div id="stickZone"></div>
 <div id="stick"><div id="knob"></div></div>
+<button id="btnLight" class="btn tape hidden" type="button" title="Luz general para probar (no cambia la linterna)"></button>
 <div id="topbtns">
   <button id="btnPause" class="btn tape hidden" type="button"></button>
   <button id="btnMusic" class="btn tape" type="button"></button>
@@ -1538,11 +1548,11 @@ function showMachine(from) {
   Gacha.raf = requestAnimationFrame(step);
 }
 function gachaHint() {
-  return Wallet.coins >= COIN_SPIN ? `Cada giro cuesta ${COIN_SPIN} ${COIN_ICON}. ¡Puede salir cualquier ratita!`
-    : `Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para girar. Juntalas en los laberintos.`;
+  return Wallet.coins >= COIN_SPIN ? `Activarla cuesta ${COIN_SPIN} ${COIN_ICON}. ¡Puede salir cualquier ratita!`
+    : `Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para activarla. Juntalas en los laberintos.`;
 }
 function gachaButtons(after) {
-  const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? 'Otra vez' : 'Girar'} · ${COIN_SPIN} ${COIN_ICON}</button>`;
+  const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? 'Otra vez' : 'Activar'} · ${COIN_SPIN} ${COIN_ICON}</button>`;
   return (after ? '<button class="cbtn" data-act="use">Usarla</button>' : '') + spin +
     '<button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="back">Volver</button>';
 }
@@ -1554,7 +1564,7 @@ function gachaSpin() {
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
   Gacha.cap = CAP_COLORS[Math.floor(Math.random() * CAP_COLORS.length)];
   Gacha.phase = 'crank'; Gacha.t = 0; Gacha.tick = 0; Gacha.conf = [];
-  document.getElementById('gachaRes').textContent = '¡Girando la manija!';
+  document.getElementById('gachaRes').textContent = '¡La máquina está trabajando!';
   document.getElementById('gachaBtns').innerHTML = '';
 }
 function gachaUpdate(dt) {
@@ -1598,10 +1608,11 @@ function drawGacha(g, n) {
   }
   if (P.phase === 'drop') {   // sale por la boca de la máquina y rebota en el piso
     const p = clamp(t / GACHA_T.drop, 0, 1);
-    capsule(g, 182 - 24 * p, 246 + 24 * p - Math.abs(Math.sin(p * Math.PI * 2.2)) * 20 * (1 - p), 10, P.cap, p * 7, 0);
-  } else if (P.phase === 'shake') {   // viene al centro, se agranda y tiembla cada vez más
+    const [dx0, dy0] = MACHINE_DOOR;   // aparece en la compuerta, baja por la rampita y rebota hacia adelante
+    capsule(g, dx0, dy0 + 36 * p - Math.abs(Math.sin(p * Math.PI * 2.2)) * 18 * (1 - p), 14 + 4 * p, P.cap, Math.sin(p * 9) * 0.3, 0);
+  } else if (P.phase === 'shake') {   // viene al centro, se agranda y tiembla cada vez más (la máquina se desvanece)
     const e = ease(t / 0.3), w = t > 0.3 ? Math.sin(t * 40) * 0.25 * Math.min(1, (t - 0.3) / 0.5) : 0;
-    capsule(g, 158 - 8 * e, 270 - 120 * e, 10 + 45 * e, P.cap, w, 0);
+    capsule(g, MACHINE_DOOR[0], MACHINE_DOOR[1] + 36 - (MACHINE_DOOR[1] + 36 - 150) * e, 18 + 37 * e, P.cap, w, 0);
   } else if (P.phase === 'open' || P.phase === 'reveal') {
     const e = P.phase === 'open' ? ease(t / GACHA_T.open) : 1, rt = P.phase === 'open' ? t : t + GACHA_T.open;
     drawRays(g, rt, e);
@@ -1618,14 +1629,25 @@ function drawGacha(g, n) {
     g.save(); g.translate(f.x, f.y); g.rotate(f.r); g.fillStyle = f.col; g.fillRect(-f.w / 2, -f.h / 2, f.w, f.h); g.restore();
   }
 }
-// Cápsula: mitad de abajo blanca y mitad de arriba de color, con brillo; split separa las mitades al abrirse
+// Cápsula como las de la referencia: mitad de abajo de color, mitad de arriba transparente (teñida), con una banda en
+// el medio y brillos; split separa las mitades al abrirse
 function capsule(g, x, y, r, col, rot, split) {
   g.save(); g.translate(x, y); g.rotate(rot);
-  g.fillStyle = '#f4f1ea'; g.beginPath(); g.arc(0, split, r, 0, Math.PI); g.closePath(); g.fill();
-  g.fillStyle = 'rgba(0,0,0,0.12)'; g.beginPath(); g.arc(0, split, r, 0.2, Math.PI - 0.2); g.closePath(); g.fill();
-  g.fillStyle = col; g.beginPath(); g.arc(0, -split, r, Math.PI, Math.PI * 2); g.closePath(); g.fill();
-  g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.ellipse(-r * 0.38, -split - r * 0.5, r * 0.26, r * 0.14, -0.5, 0, Math.PI * 2); g.fill();
-  if (!split) { g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = Math.max(1, r * 0.06); g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke(); }
+  const dark = mixC(col, '#000000', 0.25), light = mixC(col, '#ffffff', 0.55);
+  // mitad de arriba: plástico transparente teñido
+  g.globalAlpha *= 0.72;
+  const tg = g.createLinearGradient(0, -split - r, 0, -split);
+  tg.addColorStop(0, mixC(light, '#ffffff', 0.4)); tg.addColorStop(1, light);
+  g.fillStyle = tg; g.beginPath(); g.arc(0, -split, r, Math.PI, Math.PI * 2); g.closePath(); g.fill();
+  g.globalAlpha /= 0.72;
+  // mitad de abajo: color pleno, un poco más oscuro hacia abajo
+  const bg = g.createLinearGradient(0, split, 0, split + r);
+  bg.addColorStop(0, col); bg.addColorStop(1, dark);
+  g.fillStyle = bg; g.beginPath(); g.arc(0, split, r, 0, Math.PI); g.closePath(); g.fill();
+  if (!split) { g.fillStyle = dark; g.fillRect(-r, -r * 0.05, r * 2, r * 0.1); }   // banda donde se juntan
+  g.fillStyle = 'rgba(255,255,255,0.75)';                                               // brillos
+  g.beginPath(); g.ellipse(-r * 0.38, -split - r * 0.55, r * 0.24, r * 0.12, -0.5, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(-r * 0.05, -split - r * 0.7, r * 0.05, 0, Math.PI * 2); g.arc(r * 0.12, -split - r * 0.66, r * 0.035, 0, Math.PI * 2); g.fill();
   g.restore();
 }
 function drawRays(g, t, a) {
@@ -1643,46 +1665,177 @@ function drawRays(g, t, a) {
   g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in'; g.fillStyle = fade; g.fillRect(-150, -150, 300, 300);
   g.restore();
 }
-// La máquina: base roja con la manija, la ranura y la boca; arriba la cúpula de vidrio llena de cápsulas
+// La máquina de ratitas, como la referencia: tapa turquesa con baliza roja, dos tubos amarillos que brillan, cables,
+// cúpula de vidrio con cápsulas, base color crema con panel turquesa, compuerta en arco iluminada, logo de rata,
+// pantallita con barras y pulso, y franja de peligro. Se dibuja en las coordenadas de la referencia (≈1145 × 1374)
+// achicadas a MS dentro del canvas de 300 × 300. Al activarla: tiembla, la baliza destella, las barras se llenan y las
+// cápsulas se sacuden; la compuerta se ilumina más cuando sale la cápsula.
+const MS = 0.205, MX = 150 - 572 * MS, MY = 8;
+const MACHINE_DOOR = [150, MY + 1112 * MS];   // dónde aparece la cápsula (en el canvas de 300)
+const MACHINE_CAPS = [
+  [430, 470], [585, 455], [735, 468],
+  [330, 560], [480, 545], [650, 540], [805, 552],
+  [300, 662], [425, 640], [572, 622], [720, 632], [845, 655],
+  [360, 742], [510, 735], [655, 728], [800, 742],
+];
 function drawMachine(g) {
-  const P = Gacha, cranking = P.phase === 'crank';
-  const rp = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
-  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(150, 266, 72, 10, 0, 0, Math.PI * 2); g.fill();
-  const bg = g.createLinearGradient(92, 0, 208, 0); bg.addColorStop(0, '#e2513f'); bg.addColorStop(1, '#a42b1f');
-  g.fillStyle = bg; rp(92, 158, 116, 104, 9); g.fill();
-  g.fillStyle = '#8f2318'; rp(104, 148, 92, 16, 5); g.fill();                                   // cuello
-  // cúpula con cápsulas
-  const DX = 150, DY = 96, DR = 62;
-  if (!P.caps) {
-    P.caps = [];
-    for (let y = DY + DR - 14, row = 0; y > DY - 20; y -= 17, row++)
-      for (let x = DX - 60 + (row % 2) * 9; x < DX + 60; x += 19)
-        if (Math.hypot(x - DX, y - DY) < DR - 12) P.caps.push([x, y, CAP_COLORS[(P.caps.length * 5 + row) % CAP_COLORS.length], Math.random() * 6]);
-  }
-  g.save(); g.beginPath(); g.arc(DX, DY, DR, 0, Math.PI * 2); g.clip();
-  g.fillStyle = 'rgba(200,235,255,0.22)'; g.fillRect(DX - DR, DY - DR, DR * 2, DR * 2);
-  for (const [x, y, col, ph] of P.caps) {
-    const j = cranking ? 2.2 : 0.4;
-    capsule(g, x + Math.sin(P.clock * 31 + ph) * j, y + Math.cos(P.clock * 27 + ph) * j, 9, col, ph, 0);
-  }
+  const P = Gacha, t = P.clock, cranking = P.phase === 'crank', cp = cranking ? clamp(P.t / GACHA_T.crank, 0, 1) : 0;
+  const shake = cranking ? Math.sin(t * 70) * 5 * Math.sin(cp * Math.PI) : 0;
+  const doorGlow = P.phase === 'drop' ? 1 : cranking ? cp : 0;
+  g.save(); g.translate(MX + shake * MS, MY); g.scale(MS, MS);
+  // rebote de toda la máquina (desde la base): respira apenas quieta, vibra trabajando y se aplasta al soltar la cápsula
+  const sq = cranking ? 0.028 * Math.sin(t * 38) * Math.sin(cp * Math.PI)
+    : P.phase === 'drop' ? -0.06 * Math.max(0, 1 - P.t / 0.22) + 0.03 * Math.max(0, Math.sin(Math.min(1, P.t / 0.5) * Math.PI)) * (P.t > 0.22 ? 1 : 0)
+    : 0.006 * Math.sin(t * 2.2);
+  g.translate(572, 1290); g.scale(1 - sq * 0.6, 1 + sq); g.translate(-572, -1290);
+  // trabajando: las cápsulas dan vueltas adentro de la cúpula (dos vueltas, arrancan y frenan suave)
+  const swirl = cranking ? (1 - Math.cos(cp * Math.PI)) * 2 * Math.PI : 0;
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const rr = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+  const TEAL = '#2b8e9c', TEAL_D = '#1f6f7a', TEAL_L = '#3aa6b3', DARK = '#2b2d31', CREAM = '#efe7d0';
+  // sombra en el piso
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(572, 1300, 470, 20, 0, 0, Math.PI * 2); g.fill();
+  // cables de atrás
+  const cable = (col, w, pts) => {
+    g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(...pts[0]);
+    for (let i = 1; i < pts.length; i += 3) g.bezierCurveTo(...pts[i], ...pts[i + 1], ...pts[i + 2]);
+    g.stroke();
+  };
+  cable(DARK, 26, [[935, 520], [1015, 600], [1010, 760], [965, 800], [1060, 900], [1045, 1090], [962, 1105]]);
+  cable('#d9342b', 30, [[860, 285], [965, 285], [995, 400], [960, 520], [940, 610], [930, 700], [905, 785]]);
+  cable('#d9342b', 26, [[255, 700], [205, 730], [185, 800], [195, 850]]);
+  cable(DARK, 24, [[195, 850], [150, 900], [158, 985], [185, 1005]]);
+  cable('#d9342b', 22, [[655, 92], [700, 20], [790, 26], [800, 72]]);
+  g.fillStyle = '#9aa1a6';
+  for (const [x, y, a] of [[935, 520, 0.6], [196, 852, 0.2], [960, 1104, 1.4], [905, 780, 0.1]]) { g.save(); g.translate(x, y); g.rotate(a); rr(-22, -14, 44, 28, 6); g.fill(); g.restore(); }
+  // tubos amarillos que brillan (más fuerte al activarla)
+  const tube = (x0, y0, x1, y1, ph) => {
+    const a = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
+    const glow = clamp(0.7 + 0.3 * Math.sin(t * 4 + ph) + (cranking ? 0.3 * Math.sin(t * 30) : 0), 0, 1);
+    g.save(); g.translate(x0, y0); g.rotate(a);
+    const halo = g.createRadialGradient(len / 2, 0, 10, len / 2, 0, len * 0.65);
+    halo.addColorStop(0, `rgba(255,220,90,${0.35 * glow})`); halo.addColorStop(1, 'rgba(255,220,90,0)');
+    g.fillStyle = halo; g.fillRect(-60, -len * 0.6, len + 120, len * 1.2);
+    const tg = g.createLinearGradient(0, -30, 0, 30);
+    tg.addColorStop(0, '#d9a51a'); tg.addColorStop(0.5, mixC('#f6d34a', '#fffbe0', glow)); tg.addColorStop(1, '#c58f12');
+    g.fillStyle = tg; rr(50, -30, len - 100, 60, 14); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.55)'; rr(70, -18, len - 140, 10, 5); g.fill();
+    g.fillStyle = DARK; rr(-6, -36, 64, 72, 12); g.fill(); rr(len - 58, -36, 64, 72, 12); g.fill();
+    g.fillStyle = '#4a4e55'; rr(10, -36, 10, 72, 3); g.fill(); rr(len - 20, -36, 10, 72, 3); g.fill();
+    g.fillStyle = '#9aa1a6'; rr(len + 2, -26, 34, 52, 8); g.fill();   // conector a la tapa
+    g.restore();
+  };
+  tube(372, 52, 300, 290, 0); tube(772, 52, 844, 290, 2);
+  // cúpula de vidrio (atrás) con las cápsulas adentro
+  const GX = 572, GY = 560, GR = 357;
+  g.save(); g.beginPath(); g.arc(GX, GY, GR, 0, Math.PI * 2); g.clip();
+  g.fillStyle = 'rgba(190,220,232,0.22)'; g.fillRect(GX - GR, GY - GR, GR * 2, GR * 2);
+  const under = g.createRadialGradient(572, 330, 20, 572, 380, 330);   // luz que baja de la tapa
+  under.addColorStop(0, 'rgba(255,236,150,0.55)'); under.addColorStop(1, 'rgba(255,236,150,0)');
+  g.fillStyle = under; g.fillRect(GX - GR, GY - GR, GR * 2, GR * 2);
+  MACHINE_CAPS.forEach(([x0, y0], i) => {
+    const cs = Math.cos(swirl), sn = Math.sin(swirl), x = 572 + (x0 - 572) * cs - (y0 - 600) * sn, y = 600 + (x0 - 572) * sn + (y0 - 600) * cs;
+    const j = cranking ? 8 * Math.sin(cp * Math.PI) : 3;
+    capsule(g, x + Math.sin(t * (cranking ? 23 : 1.6) + i * 1.7) * j, y + Math.cos(t * (cranking ? 19 : 1.3) + i * 2.3) * j, 82, CAP_COLORS[(i * 3) % CAP_COLORS.length],
+      Math.sin(i * 2.1) * 0.5 + (cranking ? Math.sin(t * 9 + i) * 0.3 * cp : 0), 0);
+  });
   g.restore();
-  g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 3; g.beginPath(); g.arc(DX, DY, DR, 0, Math.PI * 2); g.stroke();
-  g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 5; g.beginPath(); g.arc(DX, DY, DR - 12, 3.6, 4.3); g.stroke();   // brillo del vidrio
-  g.fillStyle = '#c8392b'; rp(112, 26, 76, 13, 5); g.fill();                                   // tapa
-  g.fillStyle = '#e2513f'; g.beginPath(); g.arc(150, 24, 7, 0, Math.PI * 2); g.fill();
-  // cartel, ranura de monedas y boca
-  g.fillStyle = '#fff3d6'; g.font = `15px 'Permanent Marker', cursive`; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText('RATITAS', 150, 178);
-  g.fillStyle = '#2a1208'; rp(104, 232, 20, 5, 2); g.fill();
-  g.fillStyle = '#ffd84a'; g.font = `bold 9px Arial, sans-serif`; g.fillText(COIN_SPIN + ' $', 114, 244);
-  g.fillStyle = '#2a1208'; rp(166, 234, 32, 22, 5); g.fill();
-  g.fillStyle = '#5a2a12'; rp(168, 236, 28, 6, 3); g.fill();
-  // manija: gira una vuelta y media al girar
-  const ca = cranking ? (t => t * t * (3 - 2 * t))(clamp(P.t / GACHA_T.crank, 0, 1)) * Math.PI * 3 : 0;
-  g.save(); g.translate(150, 213); g.fillStyle = '#f1c40f'; g.strokeStyle = '#b8860b'; g.lineWidth = 2.5;
-  g.beginPath(); g.arc(0, 0, 17, 0, Math.PI * 2); g.fill(); g.stroke();
-  g.rotate(ca); g.fillStyle = '#b8860b'; g.fillRect(-3.5, -24, 7, 24);
-  g.fillStyle = '#f7e08a'; g.beginPath(); g.arc(0, -24, 6, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 18;                               // brillos del vidrio
+  g.beginPath(); g.arc(GX, GY, GR - 40, 3.55, 3.95); g.stroke();
+  g.beginPath(); g.arc(GX, GY, GR - 40, 5.35, 5.6); g.stroke();
+  g.lineWidth = 8; g.beginPath(); g.arc(GX, GY, GR - 40, 2.55, 2.75); g.stroke();
+  g.strokeStyle = 'rgba(220,240,248,0.6)'; g.lineWidth = 7; g.beginPath(); g.arc(GX, GY, GR, 0, Math.PI * 2); g.stroke();
+  // tapa turquesa con la luz abajo, el cartel de peligro y la baliza
+  const lg = g.createRadialGradient(572, 330, 10, 572, 330, 210);
+  lg.addColorStop(0, '#fffbe0'); lg.addColorStop(0.5, '#ffe58a'); lg.addColorStop(1, 'rgba(255,220,100,0)');
+  g.fillStyle = lg; g.beginPath(); g.ellipse(572, 335, 230, 42, 0, 0, Math.PI * 2); g.fill();
+  const cg = g.createLinearGradient(0, 130, 0, 320); cg.addColorStop(0, TEAL_L); cg.addColorStop(1, TEAL);
+  g.fillStyle = cg; g.beginPath(); g.moveTo(318, 318); g.bezierCurveTo(328, 190, 420, 132, 572, 132);
+  g.bezierCurveTo(724, 132, 816, 190, 826, 318); g.closePath(); g.fill();
+  g.fillStyle = TEAL_D; rr(300, 290, 545, 44, 22); g.fill();
+  g.fillStyle = '#fff3b0'; g.beginPath(); g.ellipse(572, 334, 190, 16, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = TEAL_D; for (const x of [408, 736]) { g.beginPath(); g.arc(x, 215, 13, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = '#f2c230'; g.strokeStyle = '#f2c230'; g.lineWidth = 16;                      // cartel de peligro
+  g.beginPath(); g.moveTo(572, 168); g.lineTo(636, 268); g.lineTo(508, 268); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = DARK; g.beginPath(); g.ellipse(578, 244, 26, 15, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(553, 236, 12, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(556, 221, 8, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = DARK; g.lineWidth = 4; g.beginPath(); g.moveTo(602, 250); g.quadraticCurveTo(625, 262, 612, 268); g.stroke();
+  // baliza roja: titila; trabajando destella rápido y gira dos haces de luz
+  if (cranking) {
+    g.save(); g.translate(572, 72);
+    for (const k of [0, Math.PI]) {
+      const a = t * 9 + k, hg = g.createRadialGradient(0, 0, 10, 0, 0, 420);
+      hg.addColorStop(0, `rgba(255,70,50,${0.45 * Math.sin(cp * Math.PI)})`); hg.addColorStop(1, 'rgba(255,70,50,0)');
+      g.fillStyle = hg; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 420, a - 0.28, a + 0.28); g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+  g.fillStyle = DARK; rr(478, 96, 190, 50, 14); g.fill();
+  const on = cranking ? Math.sin(t * 30) > 0 : Math.sin(t * 3) > -0.2;
+  if (on) {
+    const bh = g.createRadialGradient(572, 70, 10, 572, 70, cranking ? 190 : 120);
+    bh.addColorStop(0, 'rgba(255,60,40,0.55)'); bh.addColorStop(1, 'rgba(255,60,40,0)');
+    g.fillStyle = bh; g.beginPath(); g.arc(572, 70, cranking ? 190 : 120, 0, Math.PI * 2); g.fill();
+  }
+  const bg2 = g.createRadialGradient(560, 50, 5, 572, 75, 60);
+  bg2.addColorStop(0, on ? '#ffd0c8' : '#e88a80'); bg2.addColorStop(0.35, on ? '#ff3b2f' : '#c4281f'); bg2.addColorStop(1, '#8e1a14');
+  g.fillStyle = bg2; g.beginPath(); g.moveTo(518, 98); g.lineTo(518, 70); g.bezierCurveTo(518, 22, 626, 22, 626, 70); g.lineTo(626, 98); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(556, 56, 9, 14, -0.3, 0, Math.PI * 2); g.fill();
+  // base: borde turquesa arriba, cuerpo crema, zócalo turquesa con patas
+  g.fillStyle = TEAL_D; rr(262, 772, 620, 56, 14); g.fill();
+  g.fillStyle = TEAL; rr(262, 772, 620, 34, 14); g.fill();
+  const bodyG = g.createLinearGradient(178, 0, 968, 0); bodyG.addColorStop(0, '#f7f0dc'); bodyG.addColorStop(1, '#ddd2b6');
+  g.fillStyle = bodyG; rr(178, 816, 790, 400, 32); g.fill();
+  g.fillStyle = DARK; rr(215, 1272, 90, 30, 6); g.fill(); rr(840, 1272, 90, 30, 6); g.fill();
+  g.fillStyle = TEAL; rr(158, 1192, 830, 92, 26); g.fill();
+  g.fillStyle = TEAL_D; rr(158, 1258, 830, 26, 14); g.fill();
+  g.fillStyle = '#8f979c'; for (const x of [216, 930]) { g.beginPath(); g.arc(x, 1238, 16, 0, Math.PI * 2); g.fill(); }
+  // panel del medio y compuerta en arco (se ilumina más cuando sale la cápsula)
+  g.fillStyle = TEAL; g.fillRect(402, 816, 342, 470);
+  g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(402, 816, 12, 470); g.fillRect(732, 816, 12, 470);
+  g.fillStyle = '#8f979c'; for (const x of [440, 706]) { g.beginPath(); g.arc(x, 856, 13, 0, Math.PI * 2); g.fill(); }
+  const doorP = new Path2D(); doorP.moveTo(448, 1190); doorP.lineTo(448, 1010); doorP.arc(572, 1010, 124, Math.PI, 0); doorP.lineTo(696, 1190); doorP.closePath();
+  const dg = g.createRadialGradient(572, 960, 10, 572, 1000, 170);
+  dg.addColorStop(0, mixC('#ffe48a', '#fffbe8', doorGlow)); dg.addColorStop(1, mixC('#e39a12', '#ffc83a', doorGlow));
+  g.fillStyle = dg; g.fill(doorP);
+  const ig = g.createLinearGradient(0, 1040, 0, 1180); ig.addColorStop(0, '#6b4513'); ig.addColorStop(1, '#2a1a08');
+  g.fillStyle = ig; g.beginPath(); g.moveTo(468, 1180); g.lineTo(468, 1075); g.bezierCurveTo(500, 1040, 644, 1040, 676, 1075); g.lineTo(676, 1180); g.closePath(); g.fill();
+  g.fillStyle = '#f2b51e'; rr(470, 1162, 204, 40, 6); g.fill();                              // rampita amarilla
+  g.fillStyle = '#d29412'; rr(470, 1162, 204, 10, 4); g.fill();
+  g.strokeStyle = '#9aa3a8'; g.lineWidth = 30;                                               // marco gris de la compuerta
+  g.beginPath(); g.moveTo(434, 1250); g.lineTo(434, 1010); g.arc(572, 1010, 138, Math.PI, 0); g.lineTo(710, 1250); g.stroke();
+  g.fillStyle = '#9aa3a8'; rr(548, 858, 48, 36, 6); g.fill();
+  g.save(); rr(458, 1206, 228, 78, 6); g.clip();                                             // franja de peligro
+  g.fillStyle = '#f2c230'; g.fillRect(458, 1206, 228, 78);
+  g.fillStyle = DARK; for (let x = 420; x < 720; x += 48) { g.beginPath(); g.moveTo(x, 1284); g.lineTo(x + 24, 1284); g.lineTo(x + 70, 1206); g.lineTo(x + 46, 1206); g.closePath(); g.fill(); }
+  g.restore();
+  // logo de rata y rejillas a la izquierda
+  g.fillStyle = DARK;
+  g.beginPath(); g.arc(250, 950, 40, 0, Math.PI * 2); g.arc(362, 950, 40, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(306, 1002, 62, 56, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = CREAM; for (const x of [284, 328]) { g.beginPath(); g.arc(x, 994, 7, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = '#f0a0a0'; g.beginPath(); g.arc(306, 1018, 7, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = DARK; g.lineWidth = 4;
+  g.beginPath(); for (const s of [-1, 1]) for (const dy of [-8, 4, 16]) { g.moveTo(306 + s * 40, 1016 + dy * 0.3); g.lineTo(306 + s * 92, 1010 + dy); } g.stroke();
+  g.fillStyle = DARK; for (let i = 0; i < 4; i++) { rr(240, 1104 + i * 26, 130, 13, 6); g.fill(); }
+  // pantallita a la derecha: barras verdes (se llenan al activarla) y un pulso que corre
+  g.fillStyle = DARK; rr(764, 880, 152, 208, 16); g.fill();
+  const bars = cranking ? Math.floor(cp * 4.99) : 4;
+  for (let i = 0; i < 4; i++) { g.fillStyle = i < bars ? '#53e04f' : '#264a28'; rr(790 + i * 30, 906, 20, 32, 3); g.fill(); }
+  g.fillStyle = '#16231b'; rr(782, 962, 116, 84, 8); g.fill();
+  g.strokeStyle = '#3d434a'; g.lineWidth = 5; g.stroke();
+  g.save(); rr(786, 966, 108, 76, 6); g.clip();
+  g.strokeStyle = '#53e04f'; g.lineWidth = 4; g.beginPath();
+  const speed = cranking ? 160 : 50, off = (t * speed) % 108;
+  for (let k = -1; k <= 1; k++) {
+    const x0 = 786 + k * 108 - off;
+    g.moveTo(x0, 1004); g.lineTo(x0 + 30, 1004); g.lineTo(x0 + 40, 1012); g.lineTo(x0 + 52, 978); g.lineTo(x0 + 62, 1030);
+    g.lineTo(x0 + 72, 1000); g.lineTo(x0 + 80, 1004); g.lineTo(x0 + 108, 1004);
+  }
+  g.stroke(); g.restore();
+  g.fillStyle = '#5a6068'; for (const x of [790, 890]) { g.beginPath(); g.arc(x, 1068, 8, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = DARK; for (let i = 0; i < 3; i++) { rr(790, 1112 + i * 26, 112, 13, 6); g.fill(); }
+  g.fillStyle = '#d9342b'; rr(962, 980, 24, 46, 8); g.fill();                              // botoncito rojo al costado
   g.restore();
 }
 
@@ -1722,9 +1875,9 @@ function starsFor() {
 // un botón directo a la Máquina; si no, una barrita con cuánto te falta. Se actualiza al volver de la Máquina.
 function prizeBlock() {
   if (Wallet.coins >= COIN_SPIN)
-    return `<div class="menu"><button class="cbtn prize" data-act="machine">¡Girá la máquina! · ${COIN_SPIN} ${COIN_ICON}</button></div>`;
+    return `<div class="menu"><button class="cbtn prize" data-act="machine">¡Activá la máquina! · ${COIN_SPIN} ${COIN_ICON}</button></div>`;
   return `<div class="prizebar"><i style="width:${Wallet.coins / COIN_SPIN * 100}%"></i>
-    <span>${COIN_ICON} ${Wallet.coins} / ${COIN_SPIN} · te faltan ${COIN_SPIN - Wallet.coins} para la máquina</span></div>`;
+    <span>${COIN_ICON} ${Wallet.coins} / ${COIN_SPIN} · te faltan ${COIN_SPIN - Wallet.coins} para activar la máquina</span></div>`;
 }
 function refreshPrize() { const el = document.getElementById('prizeSlot'); if (el) el.innerHTML = prizeBlock(); }
 function showWinCard() {
@@ -1819,6 +1972,7 @@ const ICONS = {
 };
 const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnMusic = document.getElementById('btnMusic');
 function updateButtons() {
+  $btnLight.classList.toggle('hidden', !isMenu());   // el botón de la luz de prueba solo está en la portada y el selector
   $coins.classList.toggle('withHome', !$hud.classList.contains('hidden'));
   $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
   $btnSound.title = Snd.muted ? 'Activar efectos (F)' : 'Silenciar efectos (F)';
@@ -1833,6 +1987,20 @@ function updateButtons() {
 $btnSound.addEventListener('click', e => { e.stopPropagation(); Snd.init(); Snd.toggle(); updateButtons(); });
 $btnMusic.addEventListener('click', e => { e.stopPropagation(); Music.toggle(); updateButtons(); });
 $btnPause.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+// Luz general provisoria (para probar los niveles): ilumina todo el laberinto parejo, sin tocar la linterna.
+// Se prende y apaga desde la portada y queda guardada.
+const DEBUG_AMBIENT = 0.7;
+let debugLight = (() => { try { return localStorage.getItem('raton.debugLight') === '1'; } catch (_) { return false; } })();
+const $btnLight = document.getElementById('btnLight');
+function updateLightBtn() {
+  $btnLight.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" ${debugLight ? 'fill="#f7c531"' : ''}/></svg>Luz ${debugLight ? 'ON' : 'OFF'}`;
+  $btnLight.classList.toggle('on', debugLight);
+}
+$btnLight.addEventListener('click', e => {
+  e.stopPropagation(); debugLight = !debugLight; Snd.click(); updateLightBtn();
+  try { localStorage.setItem('raton.debugLight', debugLight ? '1' : '0'); } catch (_) {}
+});
+updateLightBtn();
 const $btnHome = document.getElementById('btnHome');
 $btnHome.innerHTML = ICONS.home;
 $btnHome.addEventListener('click', e => { e.stopPropagation(); act('menu'); });   // casita: vuelve a la portada
@@ -2764,7 +2932,7 @@ function render() {
   const v = { x0: cam.x - hw, y0: cam.y - hh, x1: cam.x + hw, y1: cam.y + hh };
   const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
   const menu = isMenu();   // en los menús no hay rata
-  const lit = G.light > 0.01 || menu;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
+  const lit = G.light > 0.01 || menu || debugLight;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
 
   if (lit) {
     // 1) escena completamente iluminada
@@ -2820,7 +2988,8 @@ function render() {
     } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
     lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
-    if (menu) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + MENU_AMBIENT + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
+    const amb = menu ? MENU_AMBIENT : debugLight ? DEBUG_AMBIENT : 0;   // menús: fondo tenue · luz de prueba: todo el laberinto a la vista
+    if (amb) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + amb + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
     if (G.siren > 0.01) drawSiren(lctx, T6);
 
     // 3) oscuridad total salvo lo que toca la luz
