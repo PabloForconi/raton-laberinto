@@ -11,13 +11,14 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
 
 ## Modos
 
-- **Historia:** niveles diseñados (siempre iguales), cada uno presenta una mecánica nueva. Se guardan los niveles desbloqueados y las estrellas (1 a 3). Por ahora hay 4 niveles de prueba:
-  1. **La trampera:** trampas al fondo de los callejones sin salida; si tocás una, perdés.
-  2. **Pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
-  3. **Quesos:** hay 10 quesos dando vueltas; juntá 5 antes de salir (dan una estrella extra).
-  4. **Puertas:** puertitas de un solo sentido. Del lado del agujero empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
+- **Historia:** 40 niveles diseñados (siempre iguales). Se guardan los niveles desbloqueados y las estrellas (1 a 3). Las mecánicas aparecen de a una y después se combinan, con laberintos cada vez más grandes:
+  - **1–6, quesos:** juntalos antes de salir (dan una estrella extra); a veces hay más de los que hacen falta.
+  - **7–12, pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
+  - **13–20, trampas:** al fondo de los callejones sin salida; si tocás una, perdés.
+  - **21–28, puertas:** puertitas de un solo sentido. Del lado de la cinta empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
+  - **29–40:** todo junto.
 - **Desafío:** laberintos al azar, infinitos, cada vez más grandes y con la cámara más cerca.
-- **Monedas y ratitas:** juntá monedas en los laberintos (se guardan aunque pierdas). En la **Máquina** cada giro cuesta 10 monedas por ahora, para probar, y te da una de las 20 ratitas al azar (si sale repetida, te devuelve la mitad). Para ver las 20 juntas: `index.html?ratas`. En **Ratitas** elegís con cuál jugar.
+- **Monedas y ratitas:** juntá monedas en los laberintos (se guardan aunque pierdas). En la **Máquina** cada giro cuesta 2 monedas por ahora, para probar rápido, y te da una de las 20 ratitas al azar (si sale repetida, te devuelve la mitad). Para ver las 20 juntas: `index.html?ratas`. En **Ratitas** elegís con cuál jugar.
 
 ## Jugar
 

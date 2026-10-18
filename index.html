@@ -64,7 +64,7 @@
   .cbtn.alt { background: #c8b893; font-size: 17px; }
   .cbtn:hover { filter: brightness(1.06); }
   .cbtn:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 0 #6b4c2c; }
-  #card .levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 4px; }
+  #card .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 14px 0 4px; max-height: 52vh; overflow-y: auto; padding: 4px 6px 8px; }
   #card .lvl { background: #e2d6b8; border: 0; padding: 8px 4px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c;
     display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; color: #1e1208;
     -webkit-tap-highlight-color: transparent; }
@@ -115,6 +115,13 @@
   #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; }
   .gname { font-family: 'Permanent Marker', cursive; font-size: 30px; color: #f6e7bf; }
   .cbtn:disabled { opacity: .5; cursor: default; }
+  /* aviso de premio en el cartel de fin de nivel */
+  .cbtn.prize { background: #ffd84a; animation: prizePulse 1s ease-in-out infinite alternate; }
+  @keyframes prizePulse { to { filter: brightness(1.12); transform: rotate(-1.5deg) scale(1.05); } }
+  .prizebar { position: relative; width: min(340px, 90%); height: 24px; margin: 12px auto 4px; background: rgba(40,25,10,.35);
+    border: 2px solid #6b4c2c; overflow: hidden; }
+  .prizebar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ffe27a, #e0a514); }
+  .prizebar span { position: relative; display: block; line-height: 22px; font-size: 13px; color: #1e1208; white-space: nowrap; }
   /* portada */
   #card .lead { margin: 4px 0 12px; }
   #card .lead p { margin: 2px 0; font-size: 16px; line-height: 1.35; text-wrap: balance; }
@@ -157,7 +164,9 @@
     #level { top: 62px; font-size: 13px; }
     #timer { top: 84px; font-size: 26px; }
     #cheese { top: 64px; font-size: 16px; }
-    #card .levels { grid-template-columns: repeat(2, 1fr); }
+    #card .levels { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+    #card .lvl b { font-size: 21px; }
+    #card .lvl small { font-size: 9px; }
     #screen .stitle { font-size: 36px; }
     .cbtn { font-size: 19px; padding: 7px 16px 5px; }
     #card { padding: 22px 16px 18px; }
@@ -222,19 +231,97 @@ function timeFor(n, pathCells) {
 }
 
 // ===================== MODO HISTORIA =====================
-// Niveles diseñados: semilla fija (siempre el mismo laberinto) y las mecánicas de cada uno.
-// Los 4 primeros son de prueba: mismo tamaño (16×9, como el nivel 5 de Desafío) y una mecánica nueva cada uno.
+// 40 niveles diseñados: semilla fija (siempre el mismo laberinto). Cada mecánica se presenta sola y después se combina:
+// 1–6 quesos · 7–12 pegote (y algún queso) · 13–20 trampas (con pegote y quesos) · 21–28 puertas (con todo lo anterior) ·
+// 29–40 todo junto, con laberintos cada vez más grandes y más cosas. El tiempo se calcula solo (camino + extras).
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
 // traps / sticky / cheese / doors (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional: pisa el tiempo calculado).
 const LEVELS = [
-  { name: 'La trampera', seed: 1101, size: [16, 9], loops: 0, traps: 12,
+  // --- quesos ---
+  { name: 'Primer bocado', seed: 1101, size: [10, 6], loops: 0.04, cheese: 3,
+    intro: 'Hay quesos escondidos en el laberinto. Juntalos todos antes de salir y te llevás una estrella más.' },
+  { name: 'Olor a queso', seed: 1207, size: [11, 6], loops: 0.04, cheese: 4, cheeseGoal: 3,
+    intro: 'Hay 4 quesos, pero con 3 alcanza. Seguí tu nariz.' },
+  { name: 'Gruyère', seed: 1313, size: [12, 7], loops: 0.03, cheese: 5, cheeseGoal: 4,
+    intro: 'Más agujeros que queso... y más quesos que antes.' },
+  { name: 'Picada', seed: 1429, size: [12, 7], loops: 0.06, cheese: 5,
+    intro: 'Cinco quesos y algunos pasillos que se cruzan: buscá el mejor recorrido.' },
+  { name: 'Tabla de quesos', seed: 1531, size: [14, 8], loops: 0.03, cheese: 7, cheeseGoal: 5,
+    intro: 'Un laberinto más grande y una tabla entera para picar.' },
+  { name: 'Queso rallado', seed: 1637, size: [14, 8], loops: 0.04, cheese: 7, cheeseGoal: 6,
+    intro: 'Seis quesos repartidos por todos lados. No te olvides de ninguno.' },
+  // --- pegote ---
+  { name: 'Pegote', seed: 2203, size: [12, 7], loops: 0.02, sticky: 3,
+    intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito. Si podés, rodealas.' },
+  { name: 'Patas pegajosas', seed: 2311, size: [13, 7], loops: 0.03, sticky: 4, cheese: 3, cheeseGoal: 2,
+    intro: 'Pegamento y unos quesitos. A veces el queso está del otro lado del pegote.' },
+  { name: 'Engrudo', seed: 2417, size: [14, 8], loops: 0.02, sticky: 5,
+    intro: 'Cinco bandejas en el camino. Cada segundo cuenta.' },
+  { name: 'Plasticola', seed: 2521, size: [14, 8], loops: 0.04, sticky: 5, cheese: 5, cheeseGoal: 4,
+    intro: 'Quesos para juntar y pegamento para esquivar.' },
+  { name: 'Mermelada', seed: 2633, size: [15, 8], loops: 0.03, sticky: 6, cheese: 4, cheeseGoal: 3,
+    intro: 'Todo pegajoso. Elegí bien por dónde pasar.' },
+  { name: 'Pantano', seed: 2741, size: [16, 9], loops: 0.03, sticky: 8, cheese: 5, cheeseGoal: 4,
+    intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
+  // --- trampas ---
+  { name: 'La trampera', seed: 3307, size: [12, 7], loops: 0, traps: 4,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
-  { name: 'Pegote', seed: 2203, size: [16, 9], loops: 0.02, sticky: 6,
-    intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito.' },
-  { name: 'Quesos', seed: 3307, size: [16, 9], loops: 0.02, cheese: 10, cheeseGoal: 5,
-    intro: 'Hay 10 quesos dando vueltas: juntá 5 antes de salir para ganar más estrellas.' },
-  { name: 'Puertas', seed: 4409, size: [16, 9], loops: 0, doors: 4,
-    intro: 'Hay puertitas en las paredes: del lado del agujero empujás la cortina y pasás. Del otro lado, por más que empujes, no se abren.' },
+  { name: 'Callejones', seed: 3413, size: [14, 8], loops: 0, traps: 6,
+    intro: 'Muchos callejones sin salida, y en el fondo de varios hay una trampa.' },
+  { name: 'Cebo', seed: 3527, size: [14, 8], loops: 0.02, traps: 6, cheese: 5, cheeseGoal: 4,
+    intro: 'Hay quesos de verdad... y quesos de cebo en las trampas. No te confundas.' },
+  { name: 'Clic', seed: 3631, size: [15, 8], loops: 0, traps: 8,
+    intro: 'Ocho trampas. Mirá bien antes de meterte en un pasillo.' },
+  { name: 'Peligro dulce', seed: 3739, size: [15, 9], loops: 0.02, traps: 6, sticky: 4,
+    intro: 'Trampas en los callejones y pegamento en los pasillos.' },
+  { name: 'Campo minado', seed: 3847, size: [16, 9], loops: 0, traps: 10,
+    intro: 'Diez trampas. Paso a paso.' },
+  { name: 'Trampa y pegote', seed: 3953, size: [16, 9], loops: 0.02, traps: 8, sticky: 5, cheese: 4, cheeseGoal: 3,
+    intro: 'Todo lo que aprendiste hasta ahora, en un mismo laberinto.' },
+  { name: 'Ratonera', seed: 4057, size: [17, 9], loops: 0.01, traps: 12, cheese: 5, cheeseGoal: 4,
+    intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
+  // --- puertas ---
+  { name: 'Puertas', seed: 4409, size: [14, 8], loops: 0, doors: 2,
+    intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado, por más que empujes, no se abren.' },
+  { name: 'Atajos', seed: 4517, size: [15, 8], loops: 0, doors: 3,
+    intro: 'Las puertas son atajos hacia la salida. Encontralas.' },
+  { name: 'Ida sin vuelta', seed: 4621, size: [16, 9], loops: 0.01, doors: 3, cheese: 5, cheeseGoal: 4,
+    intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
+  { name: 'Cortinas', seed: 4733, size: [16, 9], loops: 0.02, doors: 4, sticky: 4,
+    intro: 'Puertas y pegamento. El atajo puede estar pegajoso.' },
+  { name: 'Pasadizo', seed: 4841, size: [17, 9], loops: 0, doors: 4, traps: 6,
+    intro: 'Pasadizos secretos y trampas en los callejones.' },
+  { name: 'Laberinto de puertas', seed: 4951, size: [18, 10], loops: 0.01, doors: 5, cheese: 6, cheeseGoal: 5,
+    intro: 'Cinco puertas. Planeá el recorrido para no dejar quesos atrás.' },
+  { name: 'Puerta trampa', seed: 5059, size: [18, 10], loops: 0.01, doors: 4, traps: 8, sticky: 3,
+    intro: 'Detrás de alguna puerta puede haber problemas.' },
+  { name: 'Contramano', seed: 5167, size: [18, 10], loops: 0.02, doors: 5, traps: 6, cheese: 6, cheeseGoal: 5,
+    intro: 'Puertas de un solo sentido, trampas y quesos. Ojo con el orden.' },
+  // --- todo junto ---
+  { name: 'Combo', seed: 6101, size: [18, 10], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3,
+    intro: 'Quesos, pegamento, trampas y puertas. Todo junto.' },
+  { name: 'Hora pico', seed: 6211, size: [19, 10], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3,
+    intro: 'El laboratorio está lleno de cosas. Y el tiempo corre.' },
+  { name: 'Laboratorio', seed: 6317, size: [19, 11], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4,
+    intro: 'Un piso entero del laboratorio para escapar.' },
+  { name: 'Experimento', seed: 6421, size: [20, 11], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4,
+    intro: 'Te están mirando. Demostrales lo que sabés.' },
+  { name: 'Sótano', seed: 6529, size: [20, 11], loops: 0.01, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4,
+    intro: 'Más trampas y menos pasillos que se crucen.' },
+  { name: 'Depósito', seed: 6637, size: [21, 12], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5,
+    intro: 'Cajas y cajas de cartón. Y en algún lado, la salida.' },
+  { name: 'Contrarreloj', seed: 6743, size: [21, 12], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5,
+    intro: 'Muchos caminos posibles. Elegí rápido.' },
+  { name: 'Laberinto mayor', seed: 6857, size: [22, 12], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5,
+    intro: 'El más grande hasta ahora.' },
+  { name: 'Pegatrampas', seed: 6961, size: [22, 13], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5,
+    intro: 'Pegamento por todos lados y trampas en cada callejón.' },
+  { name: 'Sin vuelta atrás', seed: 7069, size: [23, 13], loops: 0.01, traps: 14, sticky: 9, cheese: 8, cheeseGoal: 7, doors: 6,
+    intro: 'Seis puertas de un solo sentido. Pensá antes de cruzar.' },
+  { name: 'Casi libre', seed: 7177, size: [24, 13], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6,
+    intro: 'Ya se huele el aire de afuera.' },
+  { name: 'La gran fuga', seed: 7283, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6,
+    intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
 
@@ -252,7 +339,7 @@ const Story = {
 // ===================== MONEDAS Y RATITAS =====================
 // Monedas: se juntan en el laberinto y quedan guardadas aunque pierdas. Con COIN_SPIN se gira la máquina de ratitas
 // (como el Crossy Road): sale una al azar; si ya la tenías, te devuelve COIN_DUP.
-const COIN_SPIN = 10, COIN_DUP = COIN_SPIN / 2;   // provisorio para probar (la idea es 100 por giro)
+const COIN_SPIN = 2, COIN_DUP = COIN_SPIN / 2;   // provisorio para probar rápido (la idea es 100 por giro); la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
@@ -305,7 +392,8 @@ function skinOf(i) {
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
 const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
 const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#f7c531" stroke="#b07a0c" stroke-width="2"/><circle cx="12" cy="12" r="6.8" fill="none" stroke="#e0a514" stroke-width="1.6"/><text x="12" y="16.3" font-size="11" text-anchor="middle" fill="#a8720b" font-family="Arial, sans-serif" font-weight="bold">$</text></svg>';
-const isMenu = () => ['title', 'select', 'ratitas', 'machine'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
+const isMenu = () => ['title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
+// Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
 // ===================== UTILIDADES =====================
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -353,10 +441,10 @@ const Snd = {
     s.connect(f).connect(g).connect(this.master); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.02);
   },
   // paso: cada uno distinto (volumen, tono, duración y "brillo" al azar) para que suene orgánico
-  step() {
+  step() {   // apagado: ruido filtrado con pasabajos (sin los agudos) y un golpecito grave, como una patita sobre cartón
     const r = Math.random;
-    this.noise(0.022 + r() * 0.03, 1500 + r() * 3200, 0.9 + r() * 1.4, 0.016 + r() * 0.028);
-    if (r() < 0.3) this.noise(0.015 + r() * 0.015, 4500 + r() * 2500, 2, 0.007 + r() * 0.009, 'bandpass', 0.008);   // uñita
+    this.noise(0.03 + r() * 0.03, 380 + r() * 520, 0.6 + r() * 0.5, 0.03 + r() * 0.035, 'lowpass');
+    if (r() < 0.6) this.tone(150 + r() * 70, 70 + r() * 30, 0.04 + r() * 0.02, 'sine', 0.025 + r() * 0.02);
   },
   // chillido de rata asustada: tres chirridos agudos con vibrato, el tono sube y baja
   squeal() {
@@ -654,8 +742,9 @@ function placeItems(L, m, rng) {
     const chosen = [];
     for (const p of pairs) {
       if (chosen.length >= L.doors) break;
-      const busy = used.concat(...chosen.map(q => [q.a, q.b]));
-      if (busy.some(u => Math.abs(u[0] - p.a[0]) + Math.abs(u[1] - p.a[1]) < 3 || Math.abs(u[0] - p.b[0]) + Math.abs(u[1] - p.b[1]) < 3)) continue;
+      // separadas entre sí (3 celdas); con los otros items alcanza con no compartir celda (si no, en los niveles cargados no entraban)
+      const near = (list, dmin) => list.some(u => Math.abs(u[0] - p.a[0]) + Math.abs(u[1] - p.a[1]) < dmin || Math.abs(u[0] - p.b[0]) + Math.abs(u[1] - p.b[1]) < dmin);
+      if (near(used, 1) || near([].concat(...chosen.map(q => [q.a, q.b])), 3)) continue;
       chosen.push(p);
     }
     for (const p of chosen) {
@@ -1190,7 +1279,7 @@ function showSelect() {
       <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
   }).join('');
   card(`<h1>HISTORIA</h1>
-    <p>Niveles de prueba: cada uno presenta algo nuevo.</p>
+    <p>40 niveles: primero los quesos, después el pegote, las trampas y las puertas, y al final todo junto.</p>
     <div class="levels">${btns}</div>
     <div class="menu"><button class="cbtn alt" data-act="back">Volver</button></div>
     ${isTouch ? '' : go('jugar el último nivel desbloqueado')}`);
@@ -1227,13 +1316,14 @@ function closeScreen() {
 
 // ---- Ratitas: un mueble de estantes con las 20 jaulas; las que tenés se eligen tocándolas ----
 function showRatitas(from) {
-  if (!isMenu()) titleBackground();
-  G.state = 'ratitas';
+  G.screen = 'ratitas';
   // de a filas: cada fila es un estante que va de punta a punta de la pantalla (4 jaulas por fila; 3 en el celular)
   const cols = innerWidth < 560 ? 3 : 4, cell = i => `<button class="rat" data-act="pick" data-i="${i}" ${Skins.has(i) ? '' : 'disabled'}>
       <canvas width="330" height="300" data-rat="${i}"></canvas></button>`;
   let rows = '';
-  for (let r = 0; r < RATS.length; r += cols) rows += `<div class="shelfrow">${RATS.slice(r, r + cols).map((_, j) => cell(r + j)).join('')}</div>`;
+  // sin lugar fijo: primero las que tenés, en el orden en que las fuiste sacando (la Albina primero); después las que faltan
+  const order = [...Skins.data.owned, ...RATS.map((_, i) => i).filter(i => !Skins.has(i))];
+  for (let r = 0; r < order.length; r += cols) rows += `<div class="shelfrow">${order.slice(r, r + cols).map(cell).join('')}</div>`;
   openScreen(`<h2 class="stitle">RATITAS</h2>
     <p class="ssub">Tenés <b>${Skins.data.owned.length}</b> de ${RATS.length} · tocá una para jugar con ella</p>
     <div class="rack" style="--cols: ${cols}">${rows}</div>
@@ -1430,8 +1520,7 @@ const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf
 const GACHA_T = { crank: 1.0, drop: 0.75, shake: 1.0, open: 0.45 };
 const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
 function showMachine(from) {
-  if (!isMenu()) titleBackground();
-  G.state = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = [];
+  G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = [];
   openScreen(`<h2 class="stitle">MÁQUINA</h2>
     <canvas id="gachaCv" width="900" height="900"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
@@ -1440,7 +1529,7 @@ function showMachine(from) {
   cancelAnimationFrame(Gacha.raf);
   let last = performance.now();
   const step = now => {
-    if (G.state !== 'machine') return;
+    if (G.screen !== 'machine') return;
     Gacha.raf = requestAnimationFrame(step);
     gachaUpdate(Math.min(0.05, (now - last) / 1000)); last = now;
     const cv2 = document.getElementById('gachaCv');
@@ -1458,7 +1547,7 @@ function gachaButtons(after) {
     '<button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="back">Volver</button>';
 }
 function gachaSpin() {
-  if (G.state !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
+  if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
   Gacha.pick = 1 + Math.floor(Math.random() * (RATS.length - 1));   // la Albina ya la tenés de entrada
   Gacha.dup = Skins.has(Gacha.pick);
@@ -1629,6 +1718,15 @@ function starsFor() {
   const frac = G.timeLeft / G.timeLimit, hasCheese = G.cheeseTotal > 0;
   return 1 + ((hasCheese ? G.cheese >= G.cheeseTotal : frac > 1 / 3) ? 1 : 0) + ((hasCheese ? frac > 1 / 3 : frac > 1 / 2) ? 1 : 0);
 }
+// Aviso de premio en el cartel de fin de nivel (como el "Get a prize!" del Crossy Road): si te alcanzan las monedas,
+// un botón directo a la Máquina; si no, una barrita con cuánto te falta. Se actualiza al volver de la Máquina.
+function prizeBlock() {
+  if (Wallet.coins >= COIN_SPIN)
+    return `<div class="menu"><button class="cbtn prize" data-act="machine">¡Girá la máquina! · ${COIN_SPIN} ${COIN_ICON}</button></div>`;
+  return `<div class="prizebar"><i style="width:${Wallet.coins / COIN_SPIN * 100}%"></i>
+    <span>${COIN_ICON} ${Wallet.coins} / ${COIN_SPIN} · te faltan ${COIN_SPIN - Wallet.coins} para la máquina</span></div>`;
+}
+function refreshPrize() { const el = document.getElementById('prizeSlot'); if (el) el.innerHTML = prizeBlock(); }
 function showWinCard() {
   G.winCard = true;
   if (G.mode === 'story') {
@@ -1638,7 +1736,8 @@ function showWinCard() {
       <div class="stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></div>
       <p>${G.cheeseTotal ? `Quesos: <b>${G.cheese}/${G.cheeseTotal}</b> · ` : ''}Te sobraron <b>${Math.floor(G.timeLeft)} s</b></p>
       ${G.runCoins ? `<p>${COIN_ICON} <b>+${G.runCoins}</b> monedas</p>` : ''}
-      ${last ? '<p>¡Completaste los niveles de prueba!</p>' : ''}
+      <div id="prizeSlot">${prizeBlock()}</div>
+      ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
       <div class="menu">${last ? '' : '<button class="cbtn" data-act="next">Siguiente nivel</button>'}<button class="cbtn alt" data-act="levels">Niveles</button></div>
       ${isTouch ? '' : go(last ? 'volver a los niveles' : 'el siguiente nivel')}`);
     return;
@@ -1646,6 +1745,7 @@ function showWinCard() {
   card(`<h1>¡ESCAPASTE!</h1>
     <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
     ${G.runCoins ? `<p>${COIN_ICON} <b>+${G.runCoins}</b> monedas</p>` : ''}
+    <div id="prizeSlot">${prizeBlock()}</div>
     ${go(`el nivel ${G.level + 1}`)}`);
 }
 function startDie(reason = 'time') {
@@ -1658,9 +1758,11 @@ function lost() {
   card(G.dieReason === 'trap'
     ? `<h1 class="red">¡ATRAPADO!</h1>
        <p>La trampa se cerró. Volvés a la entrada del mismo laberinto.</p>
+       <div id="prizeSlot">${prizeBlock()}</div>
        ${go('reintentar')}`
     : `<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
        <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
+       <div id="prizeSlot">${prizeBlock()}</div>
        ${go('reintentar')}`);
   updateButtons();
 }
@@ -1677,9 +1779,9 @@ function togglePause() {
 // Acción principal: ESPACIO en teclado o tocar la pantalla
 function primaryAction() {
   Snd.init();
+  if (G.screen) { if (G.screen === 'machine') gachaSpin(); return; }   // en la Máquina, ESPACIO gira
   if (G.state === 'title') act('story');
   else if (G.state === 'select') { loadStory(Math.min(Story.data.unlocked, LEVELS.length) - 1); showIntro(); }
-  else if (G.state === 'machine') gachaSpin();
   else if (G.state === 'intro') startPlay();
   else if (G.state === 'won' && G.winCard) {
     if (G.mode === 'story') act(G.story >= LEVELS.length - 1 ? 'levels' : 'next');
@@ -1696,7 +1798,7 @@ function act(a, el) {
   else if (a === 'level') { loadStory(+el.dataset.i); showIntro(); }
   else if (a === 'next') { loadStory(G.story + 1); showIntro(); }
   else if (a === 'levels') showSelect();
-  else if (a === 'back') { if ($scr.classList.contains('open')) { G.state = 'title'; closeScreen(); updateButtons(); } else showTitle(); }
+  else if (a === 'back') { if (G.screen) { G.screen = null; closeScreen(); refreshPrize(); updateButtons(); } else showTitle(); }
   else if (a === 'menu') { Music.resume(); showTitle(); }
   else if (a === 'ratitas') showRatitas(el);
   else if (a === 'machine') showMachine(el);
@@ -1778,7 +1880,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (k === ' ' || k === 'enter') primaryAction();
   else if (G.state === 'title' && (k === '1' || k === '2')) act(k === '1' ? 'story' : 'challenge');
-  else if (['select', 'ratitas', 'machine'].includes(G.state) && (k === 'escape' || k === 'backspace')) act('back');
+  else if ((G.screen || G.state === 'select') && (k === 'escape' || k === 'backspace')) act('back');
   else if (G.state === 'paused' && k === 'q') act('menu');
   else if (k === 'p' || k === 'escape') togglePause();
   else if (k === 'm') { Music.toggle(); updateButtons(); }
@@ -1796,7 +1898,7 @@ addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (b) { if (!b.disabled) act(b.dataset.act, b); return; }
   if (e.target.closest('.btn')) return;
-  if (isMenu()) return;   // en los menús se elige con los botones
+  if (isMenu() || G.screen) return;   // en los menús (y en Ratitas / Máquina) se elige con los botones
   primaryAction();
 });
 function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.state === 'play') togglePause(); }
