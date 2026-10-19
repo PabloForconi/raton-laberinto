@@ -505,7 +505,7 @@ const COIN_BANDS_BACK = [-0.5, 0, 0.5].flatMap(m => [[m - 0.13, m - 0.06, '#4b51
 const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><defs><clipPath id="coinClip"><circle cx="12" cy="12" r="10.5"/></clipPath></defs>' +
   `<circle cx="12" cy="12" r="10.5" fill="${COIN_FACE}"/><g clip-path="url(#coinClip)">` +
   COIN_BANDS.map(([a, b, col]) => `<rect x="0" y="${(12 + a * 10.5).toFixed(2)}" width="24" height="${((b - a) * 10.5 + 0.05).toFixed(2)}" fill="${col}"/>`).join('') +
-  '</g></svg>';
+  '</g><circle cx="12" cy="12" r="10.5" fill="none" stroke="#6b7179" stroke-width="1.3"/></svg>';   // borde gris, del mismo ancho que el del queso del HUD
 const isMenu = () => ['title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 // Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
