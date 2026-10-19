@@ -144,6 +144,9 @@
   #screen.open .inner.show { opacity: 1; }
   #screen .stitle { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
   #screen .ssub { margin: 0; font-size: 15px; color: #bfae8c; }
+  /* Bioterio y Máquina: el título sube a la altura de la flechita y el engranaje; los estantes arrancan debajo de las monedas */
+  #screen .stitle.up { margin-top: -52px; }
+  #screen .stitle.up + .ssub + .rack { margin-top: 30px; }
   #screen .sbtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; flex: 0 0 auto; }
   /* ratitas: estantes de metal de punta a punta de la pantalla, sobre el negro; las jaulas centradas en cada estante */
   .rack { flex: 1 1 auto; min-height: 0; overflow-y: auto; width: 100vw; margin: 0 -12px; }
@@ -156,12 +159,16 @@
   .rat:disabled { cursor: default; }
   .rat:not(:disabled):active canvas { transform: scale(.96); }
   /* máquina */
-  #gachaCv { display: block; width: min(60vh, 92vw); aspect-ratio: 1; flex: 0 1 auto; min-height: 0; }
+  /* la máquina grande y un poco más abajo; el espacio que sobra se reparte arriba de ella y antes del botón Bioterio */
+  #gachaCv { display: block; width: min(calc(100vh - 230px), 100vw); aspect-ratio: 1; flex: 0 0 auto; margin-top: auto; }
+  #gachaNav { margin-top: auto; }
+  #gachaBtns { min-height: 48px; }   /* aunque esté vacío (mientras anda) ocupa lo mismo: la máquina no se corre */
+  #gachaRes:empty { min-height: 0; }   /* sin texto (en reposo) el botón Activar queda justo debajo de la máquina */
   /* luz de la baliza: un canvas a pantalla completa detrás del título, el texto y los botones */
   #gachaFx, #gachaFx2 { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
   #gachaFx2 { z-index: 2; mix-blend-mode: screen; }   /* los haces rojos pasan por delante de la máquina */
   #screen .inner > :not(#gachaFx):not(#gachaFx2) { position: relative; z-index: 1; }
-  #screen .inner > .stitle, #gachaRes, #gachaBtns { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
+  #screen .inner > .stitle, #gachaRes, #gachaBtns, #gachaNav { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
   #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; text-shadow: 0 0 6px #000, 0 2px 4px #000, 0 0 14px rgba(0,0,0,0.8); }
   .gname { font-family: 'Permanent Marker', cursive; font-size: 30px; color: #f6e7bf; }
   .cbtn:disabled { opacity: .5; cursor: default; }
@@ -1415,7 +1422,7 @@ function showTitle() {
   card(`<img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
     <div class="ctl">${keys}<span>${how}</span></div>
     <div class="menu"><button class="cbtn" data-act="story">Historia</button><button class="cbtn" data-act="challenge">Desafío</button></div>
-    <div class="menu sub"><button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>
+    <div class="menu sub"><button class="cbtn alt" data-act="ratitas">Bioterio</button><button class="cbtn alt" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>
 `);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
@@ -1465,15 +1472,16 @@ function closeScreen() {
 // ---- Ratitas: un mueble de estantes con las 20 jaulas; las que tenés se eligen tocándolas ----
 function showRatitas(from) {
   G.screen = 'ratitas';
-  // de a filas: cada fila es un estante que va de punta a punta de la pantalla (4 jaulas por fila; 3 en el celular)
-  const cols = innerWidth < 560 ? 3 : 4, cell = i => `<button class="rat" data-act="pick" data-i="${i}" ${Skins.has(i) ? '' : 'disabled'}>
+  // de a filas: cada fila es un estante que va de punta a punta de la pantalla (3 jaulas por fila, en la PC y en el celular)
+  const cols = 3, cell = i => `<button class="rat" data-act="pick" data-i="${i}" ${Skins.has(i) ? '' : 'disabled'}>
       <canvas width="330" height="300" data-rat="${i}"></canvas></button>`;
   let rows = '';
   // sin lugar fijo: primero las que tenés, en el orden en que las fuiste sacando (la Albina primero); después las que faltan
   const order = [...Skins.data.owned, ...RATS.map((_, i) => i).filter(i => !Skins.has(i))];
+  order.push(-1);   // y una jaula vacía de más al final
   for (let r = 0; r < order.length; r += cols) rows += `<div class="shelfrow">${order.slice(r, r + cols).map(cell).join('')}</div>`;
-  openScreen(`<h2 class="stitle">RATITAS</h2>
-    <p class="ssub">Tenés <b>${Skins.data.owned.length}</b> de ${RATS.length} · tocá una para jugar con ella</p>
+  openScreen(`<h2 class="stitle up">BIOTERIO</h2>
+    <p class="ssub">${Skins.data.owned.length}/${RATS.length}</p>
     <div class="rack" style="--cols: ${cols}">${rows}</div>
     <div class="sbtns"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la flechita de arriba a la izquierda
   updateButtons();
@@ -1657,7 +1665,7 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true) {
   const box = new Path2D(); box.moveTo(x0, top); box.lineTo(x1, top); box.lineTo(x1 - ins, bot); box.lineTo(x0 + ins, bot); box.closePath();
   g.fillStyle = 'rgba(205,220,226,0.45)'; g.fill(box);
   g.save(); g.clip(box);
-  const bed = bot - h * 0.13;                                                        // viruta
+  const bed = bot - h * 0.085;                                                       // viruta (bien abajo, casi al ras del estante)
   g.fillStyle = '#dcc69e'; g.beginPath(); g.moveTo(0, bot);
   for (let x = 0; x <= w; x += w / 12) g.lineTo(x, bed + Math.sin(x * 0.2 + i) * h * 0.012);
   g.lineTo(w, bot); g.closePath(); g.fill();
@@ -1668,15 +1676,7 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true) {
   }
   // ratita parada sobre la viruta (las patas quedan 82 unidades del retrato debajo de su centro)
   const size = (x1 - x0) * 0.8, k = size / 930, cx = w / 2 + w * 0.03, cy = bed + h * 0.035 - 82 * k;
-  if (owned) drawRatPortrait(g, cx, cy, size, i, t);
-  else {   // silueta oscura (se dibuja aparte para oscurecer solo a la ratita)
-    cageOff.width = Math.ceil(w); cageOff.height = Math.ceil(h);
-    cageOffCtx.setTransform(1, 0, 0, 1, 0, 0); cageOffCtx.clearRect(0, 0, cageOff.width, cageOff.height);
-    drawRatPortrait(cageOffCtx, cx, cy, size, i, 0);
-    cageOffCtx.globalCompositeOperation = 'source-atop'; cageOffCtx.fillStyle = '#3a3633'; cageOffCtx.fillRect(0, 0, w, h);
-    cageOffCtx.globalCompositeOperation = 'source-over';
-    g.drawImage(cageOff, 0, 0, w, h);
-  }
+  if (owned) drawRatPortrait(g, cx, cy, size, i, t);   // las que no tenés: la jaula vacía, sin silueta
   g.restore();
   // plástico: brillo en diagonal y bordes
   g.save(); g.clip(box);
@@ -1698,12 +1698,17 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true) {
   const lw = w * 0.62, lh = h * 0.12, lx = (w - lw) / 2, lyy = top + h * 0.035;
   g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(lx + 2, lyy + 2, lw, lh);
   g.fillStyle = sel ? '#ffe17a' : '#fbf8ee'; g.fillRect(lx, lyy, lw, lh);
-  g.strokeStyle = sel ? '#c98a12' : '#a9adb0'; g.lineWidth = Math.max(1, w * 0.008); g.strokeRect(lx, lyy, lw, lh);
-  const name = owned ? RATS[i][0] : '???';
-  let fs = h * 0.075; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`;
-  while (g.measureText(name).width > lw * 0.9 && fs > 6) { fs -= 0.5; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`; }
-  g.fillStyle = '#2a2622'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(name, w / 2, lyy + lh / 2 + 1);
+  if (owned) {   // el nombre en mayúsculas; la jaula vacía lleva la etiqueta en blanco
+    const name = RATS[i][0].toUpperCase();
+    let fs = h * 0.084; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`;
+    while (g.measureText(name).width > lw * 0.86 && fs > 6) { fs -= 0.5; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`; }
+    // centrado de verdad, con la altura real de las letras (en mayúsculas no hay nada por debajo de la línea)
+    const m = g.measureText(name), asc = m.actualBoundingBoxAscent || fs * 0.7, desc = m.actualBoundingBoxDescent || 0;
+    const ty = lyy + lh / 2 + (asc - desc) / 2;
+    g.fillStyle = g.strokeStyle = '#2a2622'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.lineWidth = fs * 0.06; g.lineJoin = 'round';   // negrita: la Special Elite no tiene, así que se repasa con un trazo fino
+    g.fillText(name, w / 2, ty); g.strokeText(name, w / 2, ty);
+  }
   g.restore();
 }
 function drawThumb(cv) {
@@ -1736,11 +1741,12 @@ const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf
 function showMachine(from) {
   G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = []; Gacha.spark = []; Gacha.caps = null; Gacha.level = 0;   // al volver, la cúpula está llena otra vez
   openScreen(`<canvas id="gachaFx"></canvas>
-    <h2 class="stitle">MÁQUINA</h2>
+    <h2 class="stitle up">MÁQUINA</h2>
     <canvas id="gachaCv" width="900" height="900"></canvas>
     <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
-    <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>`, from);
+    <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>
+    <div class="sbtns" id="gachaNav"><button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio
   updateButtons();
   cancelAnimationFrame(Gacha.raf);
   let last = performance.now();
@@ -1754,13 +1760,12 @@ function showMachine(from) {
   Gacha.raf = requestAnimationFrame(step);
 }
 function gachaHint() {
-  return Wallet.coins >= COIN_SPIN ? `Activarla cuesta ${COIN_SPIN} ${COIN_ICON}. ¡Puede salir cualquier ratita!`
+  return Wallet.coins >= COIN_SPIN ? ''   // el precio ya está en el botón Activar
     : `Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para activarla. Juntalas en los laberintos.`;
 }
 function gachaButtons(after) {
   const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? 'Otra vez' : 'Activar'} · ${COIN_SPIN} ${COIN_ICON}</button>`;
-  return (after ? '<button class="cbtn" data-act="use">Usarla</button>' : '') + spin +
-    '<button class="cbtn alt" data-act="ratitas">Ratitas</button>';   // volver: la flechita de arriba a la izquierda
+  return spin;   // solo Activar / Otra vez, en el mismo lugar; Bioterio va abajo de todo (#gachaNav)
 }
 function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
@@ -1777,7 +1782,7 @@ function gachaSpin() {
   if (Gacha.reappear) { Gacha.caps = null; Object.assign(Gacha.L, { beacon: 0.12, tubeL: 0.15, tubeR: 0.15, inner: 0.3, door: 0 }); }
   Gacha.conf = []; Gacha.spark = [];
   Gacha.beaconOn = false;
-  document.getElementById('gachaRes').textContent = '¡La máquina se despierta!';
+  document.getElementById('gachaRes').textContent = '';   // sin textos mientras anda: así la máquina no se corre
   document.getElementById('gachaBtns').innerHTML = ''; updateButtons();   // mientras anda, sin flechita
   gachaStage('wake');
 }
@@ -1785,7 +1790,6 @@ function gachaSpin() {
 function gachaStage(id) {
   const P = Gacha; P.phase = id; P.t = 0; P.tick = 0;
   if (id === 'wake') Snd.powerUp();
-  else if (id === 'run') document.getElementById('gachaRes').textContent = '¿Qué ratita será?';
   else if (id === 'clack') {
     Snd.clack();
     // cayó la cápsula premiada adentro: el montón de la pecera baja un nivel (se va la fila de arriba; quedan al menos dos)
@@ -1956,9 +1960,7 @@ function gachaResult() {
   const name = RATS[Gacha.pick][0];
   if (Gacha.dup) { Wallet.add(COIN_DUP); Snd.coin(); }
   else Snd.win();
-  document.getElementById('gachaRes').innerHTML = Gacha.dup
-    ? `<span class="gname">${name}</span><br>Ya la tenías: te devolvemos <b>${COIN_DUP}</b> ${COIN_ICON}`
-    : `<span class="gname">¡${name}!</span><br>¡Ratita nueva!`;
+  // el nombre (y si es nueva o repetida) se dibuja en el canvas, debajo de la ratita (drawGacha)
   document.getElementById('gachaBtns').innerHTML = gachaButtons(true); updateButtons();
 }
 // Posición de la cápsula premiada mientras salta hacia la cámara: [x, y, radio, giro]
@@ -2061,7 +2063,7 @@ function drawGacha(g, n) {
     // (drawRatFrontPose con curl 1 → 0): en el camino cada pieza se desplaza a su lugar, no hay cambio de dibujo.
     // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco dando un giro
     // completo y cae sentada mirando a la cámara, con el rebote del aterrizaje
-    const TRAVEL = 0.8, KF1 = { x: 150, y: 158, size: 64 }, KF2 = { x: 150, y: 166, size: 172 };
+    const TRAVEL = 0.8, KF1 = { x: 150, y: 158, size: 64 }, KF2 = { x: 150, y: 166, size: 172 }, NAME_Y = 262;
     const turn = (c, cx, cy, a, fn) => { c.save(); c.translate(cx, cy); c.rotate(a); c.translate(-cx, -cy); fn(c); c.restore(); };
     const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
     const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
@@ -2070,6 +2072,22 @@ function drawGacha(g, n) {
     const curl = 1 - ease(mix);                                                            // 1 bolita → 0 sentada
     const sz = lerp(KF1.size * 935 / (BALL_R * 2) * (1 + 0.35 * e), KF2.size, 1 - curl);   // y va creciendo
     turn(g, x, y, a, c2 => drawRatFrontPose(c2, x, y, sz, P.pick, t, t - TRAVEL, curl));    // al caer (t > TRAVEL) rebota
+    // el nombre debajo de la ratita: aparece con un saltito cuando aterriza; con borde oscuro para leerse sobre los rayos
+    const na = clamp((t - TRAVEL) / 0.3, 0, 1);
+    if (na > 0) {
+      const name = P.dup ? RATS[P.pick][0] : `¡${RATS[P.pick][0]}!`;
+      const sub = P.dup ? `Ya la tenías: te devolvemos ${COIN_DUP} monedas` : '¡Ratita nueva!';
+      const s = 0.7 + 0.3 * (1 + 2.7 * Math.pow(na - 1, 3) + 1.7 * Math.pow(na - 1, 2));   // crece y se pasa un poquito
+      g.save(); g.globalAlpha = na; g.translate(150, NAME_Y); g.scale(s, s);
+      g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
+      g.font = "26px 'Permanent Marker', cursive";
+      g.strokeStyle = '#140c05'; g.lineWidth = 6; g.strokeText(name, 0, 0);
+      g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
+      g.font = "11px 'Special Elite', 'Courier New', monospace";
+      g.lineWidth = 3.5; g.strokeText(sub, 0, 17);
+      g.fillStyle = '#ffffff'; g.fillText(sub, 0, 17);
+      g.restore();
+    }
   }
   // la cápsula premiada
   if (['launch', 'hover'].includes(P.phase)) {   // (mientras se abre la compuerta, la dibuja drawMachine adentro)
@@ -2601,6 +2619,8 @@ function updateButtons() {
   const back = G.screen === 'ratitas' || (G.screen === 'machine' && ['idle', 'reveal'].includes(Gacha.phase)) ||
     (!G.screen && (G.state === 'select' || (G.state === 'won' && G.winCard)));
   $btnBack.classList.toggle('hidden', !back);
+  const nav = document.getElementById('gachaNav');
+  if (nav) nav.style.visibility = back ? '' : 'hidden';   // mientras anda la máquina, tampoco el botón Bioterio
   $coins.classList.toggle('below', back);   // las monedas en la esquina; con flechita, debajo de ella
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
