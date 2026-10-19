@@ -43,7 +43,7 @@
   #level.pop { animation: lvlPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   @keyframes lvlPop { from { transform: translateX(-50%) rotate(-8deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(-2deg) scale(1); opacity: 1; } }
   /* botón casita (volver al menú), arriba a la izquierda; en los resultados de Historia, ahí mismo va la flechita a los niveles */
-  #btnHome, #btnBack { position: fixed; top: 12px; left: 14px; z-index: 5; transform: rotate(-2deg); }
+  #btnBack { position: fixed; top: 12px; left: 14px; z-index: 5; transform: rotate(-2deg); }
   #btnBack { z-index: 9; }   /* por encima de las pantallas negras (Ratitas) */
   @keyframes timerPop { from { transform: translateX(-50%) rotate(6deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(1.5deg) scale(1); opacity: 1; } }
   .btn.tape { transition: transform .12s; }
@@ -121,14 +121,15 @@
 
 
   /* columna de la izquierda: la casita (o la flechita), debajo las monedas y debajo el queso, más grandes */
-  #cheese { top: 114px; left: 14px; font-size: 24px; display: flex; align-items: center; gap: 7px; transform: rotate(1deg); padding: 3px 12px 1px; }
+  #cheese { top: 64px; left: 14px; font-size: 24px; display: flex; align-items: center; gap: 7px; transform: rotate(1deg); padding: 3px 12px 1px; }
   #cheese svg { width: 27px; height: 27px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
-  #coins { position: fixed; top: 64px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* siempre acá: debajo de la casita / la flechita */
+  #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
     transform: rotate(-1.5deg); padding: 3px 12px 1px; pointer-events: none; }
 
   #coins .ci { width: 25px; height: 25px; }
+  #coins.below { top: 64px; }   /* en las pantallas con flechita de volver, debajo de ella */
   #coins.pop { animation: coinPop .25s cubic-bezier(.2, .9, .3, 1.4) both; }
   @keyframes coinPop { from { transform: rotate(-1.5deg) scale(1.3); } to { transform: rotate(-1.5deg) scale(1); } }
   .ci { width: 1em; height: 1em; vertical-align: -0.14em; }
@@ -186,8 +187,34 @@
   #card table { margin: 10px auto 0; border-collapse: collapse; font-size: 14px; text-align: left; }
   #card td { padding: 2px 8px; }
 
-  /* botones de arriba a la derecha (sonido, pausa, modo de giro) */
+  /* arriba a la derecha: la ruedita (jugando pausa; en los menús abre las opciones) */
   #topbtns { position: fixed; top: 12px; right: 14px; display: flex; gap: 8px; z-index: 8; }
+  #btnGear svg { width: 27px; height: 27px; }
+  /* ventana de pausa / opciones: Música y Sonido con interruptores, y abajo la casita y Reanudar (o Cerrar) */
+  #opts { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
+  #opts.hidden { display: none; }
+  #opts .box { width: min(360px, calc(100vw - 40px)); box-sizing: border-box; padding: 18px 20px 20px; text-align: center; transform: rotate(-1deg);
+    background: #a27b4f; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
+      radial-gradient(ellipse at 30% 20%, rgba(255,230,190,.25), transparent 60%);
+    border: 2px solid #6b4c2c; box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5);
+    animation: optsIn .22s cubic-bezier(.2, .9, .3, 1.25) both; }
+  @keyframes optsIn { from { transform: rotate(-5deg) scale(.6); opacity: 0; } to { transform: rotate(-1deg) scale(1); opacity: 1; } }
+  #opts h2 { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 34px; margin: 0 0 12px; color: #1e1208; }
+  #opts .rows { background: rgba(255,245,220,.35); padding: 4px 14px; margin: 0 0 16px; }
+  #opts .opt { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; font-size: 19px; color: #1e1208; }
+  #opts .opt + .opt { border-top: 1px dashed rgba(60,40,20,.25); }
+  #opts .opt span { display: flex; align-items: center; gap: 10px; }
+  #opts .opt svg { width: 24px; height: 24px; }
+  #opts .tog { position: relative; width: 56px; height: 30px; border: 0; border-radius: 15px; background: #7d6a52; cursor: pointer;
+    box-shadow: inset 0 2px 3px rgba(0,0,0,.35); -webkit-tap-highlight-color: transparent; transition: background .15s; }
+  #opts .tog::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #e2d6b8;
+    box-shadow: 0 2px 2px rgba(0,0,0,.35); transition: left .15s; }
+  #opts .tog.on { background: #6f9e3c; } #opts .tog.on::after { left: 29px; }
+  #opts .obtns { display: flex; gap: 12px; justify-content: center; }
+  #opts .obtns .cbtn { transform: none; }
+  #opts .obtns .home { width: 58px; padding: 0; display: grid; place-items: center; }
+  #opts .obtns .home svg { width: 26px; height: 26px; }
+  #opts .obtns .wide { flex: 1; }
   .btn.tape { position: static; width: 44px; height: 44px; padding: 0; border: 0; display: grid; place-items: center;
     color: #2a1a0c; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .btn.tape:nth-child(odd) { transform: rotate(-2deg); } .btn.tape:nth-child(even) { transform: rotate(2deg); }
@@ -213,14 +240,14 @@
     .rack, #card .levels, #card { scrollbar-width: none; }
     .rack::-webkit-scrollbar, #card .levels::-webkit-scrollbar, #card::-webkit-scrollbar { display: none; }
   }
-  /* botón provisorio para probar: luz general en el laberinto (arriba a la izquierda, debajo de las monedas) */
-  #btnLight { position: fixed; top: 114px; left: 14px; z-index: 5; width: auto; padding: 0 10px; gap: 4px; display: flex;
+  /* botón provisorio para probar: luz general en el laberinto (abajo a la derecha) */
+  #btnLight { position: fixed; bottom: 14px; right: 14px; z-index: 8; width: auto; padding: 0 10px; gap: 4px; display: flex;
     font-family: 'Permanent Marker', cursive; font-size: 14px; transform: rotate(1.5deg); }
   #btnLight.on { background: #ffe17a; }
   @media (max-width: 560px) {
-    #level { top: 62px; font-size: 13px; }
-    #timer { top: 84px; font-size: 26px; }
-    #cheese { top: 112px; font-size: 21px; }
+    #level { font-size: 13px; }
+    #timer { top: 32px; font-size: 26px; }
+    #cheese { font-size: 21px; }
     #card .levels { grid-template-columns: repeat(4, 1fr); gap: 7px; }
     #card .lvl b { font-size: 21px; }
     #card .lvl small { font-size: 9px; }
@@ -239,7 +266,7 @@
 <canvas id="game"></canvas>
 <div id="vignette"></div>
 <div id="hud" class="hidden">
-  <button id="btnHome" class="btn tape" type="button" title="Volver al menú"></button>
+
   <div id="level" class="tape">NIVEL 1</div>
   <div id="timer" class="tape">0:00</div>
 
@@ -253,10 +280,9 @@
 <button id="btnLight" class="btn tape hidden" type="button" title="Luz general para probar (no cambia la linterna)"></button>
 <button id="btnBack" class="btn tape hidden" type="button" title="Niveles" aria-label="Niveles"></button>
 <div id="topbtns">
-  <button id="btnPause" class="btn tape hidden" type="button"></button>
-  <button id="btnMusic" class="btn tape" type="button"></button>
-  <button id="btnSound" class="btn tape" type="button"></button>
+  <button id="btnGear" class="btn tape" type="button" title="Pausa y opciones (P)"></button>
 </div>
+<div id="opts" class="hidden"></div>
 <div id="card" class="hidden"></div>
 <div id="screen"></div>
 
@@ -467,6 +493,8 @@ const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
 const COIN_FACE = '#bcc3ca';
 const COIN_BANDS = [[-0.5, -0.43, '#4b515a'], [-0.43, -0.26, '#656c78'], [-0.26, -0.19, '#e1e6ea'],
   [0.25, 0.32, '#4b515a'], [0.32, 0.49, '#656c78'], [0.49, 0.56, '#e1e6ea']];
+// la cara de atrás (más oscura, en drawCoin) tiene tres ranuras más finas, parejas, según otra referencia del usuario
+const COIN_BANDS_BACK = [-0.5, 0, 0.5].flatMap(m => [[m - 0.13, m - 0.06, '#4b515a'], [m - 0.06, m + 0.07, '#656c78'], [m + 0.07, m + 0.13, '#e1e6ea']]);
 const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><defs><clipPath id="coinClip"><circle cx="12" cy="12" r="10.5"/></clipPath></defs>' +
   `<circle cx="12" cy="12" r="10.5" fill="${COIN_FACE}"/><g clip-path="url(#coinClip)">` +
   COIN_BANDS.map(([a, b, col]) => `<rect x="0" y="${(12 + a * 10.5).toFixed(2)}" width="24" height="${((b - a) * 10.5 + 0.05).toFixed(2)}" fill="${col}"/>`).join('') +
@@ -1385,18 +1413,10 @@ function showTitle() {
     : `<span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>`;
   const how = isTouch ? 'arrastrá el dedo para moverte: <br>el ratón gira hacia donde apuntás' : 'moverte: el ratón gira <br>hacia donde apuntás';
   card(`<img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
-    <div class="lead">
-      <p>Estás en un laberinto de cartón, a oscuras.</p>
-      <p>Solo tenés la linterna que llevás atada al lomo.</p>
-      <p>Encontrá la salida antes de que se termine el tiempo.</p>
-    </div>
     <div class="ctl">${keys}<span>${how}</span></div>
     <div class="menu"><button class="cbtn" data-act="story">Historia</button><button class="cbtn" data-act="challenge">Desafío</button></div>
     <div class="menu sub"><button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>
-    <div class="modes">
-      <p><b>Historia:</b> niveles diseñados, con cosas nuevas en cada uno</p>
-      <p><b>Desafío:</b> laberintos al azar, cada vez más grandes</p>
-    </div>`);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
+`);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
 // Selector de niveles de Historia: los bloqueados aparecen apagados; se ven las mejores estrellas de cada uno
@@ -1409,8 +1429,7 @@ function showSelect() {
     return `<button class="lvl" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
       <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
   }).join('');
-  card(`<h1>HISTORIA</h1>
-    <p>40 niveles: primero los quesos, después el pegote, las trampas y las puertas, y al final todo junto.</p>
+  card(`<h1>NIVELES</h1>
     <div class="levels">${btns}</div>`);   // volver: la flechita de arriba a la izquierda (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
 }
@@ -2492,14 +2511,42 @@ function lost() {
   updateButtons();
 }
 function togglePause() {
-  if (G.state === 'play') {
-    G.state = 'paused'; Music.pause();
-    card(`<h1>PAUSA</h1>
-      <div class="menu"><button class="cbtn" data-act="resume">Seguir</button><button class="cbtn alt" data-act="menu">Salir al menú</button></div>`);
-  }
-  else if (G.state === 'paused') { G.state = 'play'; card(null); Music.resume(); }
+  if (G.state === 'play') { G.state = 'paused'; Music.pause(); openOpts(); }
+  else if (G.state === 'paused') { G.state = 'play'; closeOpts(); Music.resume(); }
   updateButtons();
 }
+// Ventana de pausa / opciones (la ruedita de arriba a la derecha). Jugando es la pausa: Música, Sonido, la casita (a la
+// portada) y Reanudar. En las demás pantallas son solo las opciones, con Cerrar (no tapa ni cambia el cartel de atrás).
+const $opts = document.getElementById('opts');
+const optsOpen = () => !$opts.classList.contains('hidden');
+function renderOpts() {
+  const paused = G.state === 'paused', box = $opts.querySelector('.box');
+  if (box && box.dataset.paused === String(paused)) {   // ya está armado: solo se mueven los switches (sin rehacer el cartel)
+    $opts.querySelector('[data-o="music"]').classList.toggle('on', !Music.muted);
+    $opts.querySelector('[data-o="sound"]').classList.toggle('on', !Snd.muted);
+    return;
+  }
+  $opts.innerHTML = `<div class="box" data-paused="${paused}"><h2>${paused ? 'PAUSA' : 'OPCIONES'}</h2>
+    <div class="rows">
+      <div class="opt"><span>${ICONS.music} Música</span><button class="tog${Music.muted ? '' : ' on'}" data-o="music" aria-label="Música"></button></div>
+      <div class="opt"><span>${ICONS.sound} Sonido</span><button class="tog${Snd.muted ? '' : ' on'}" data-o="sound" aria-label="Sonido"></button></div>
+    </div>
+    <div class="obtns">${paused
+      ? `<button class="cbtn alt home" data-o="home" title="Salir al menú (Q)">${ICONS.home}</button><button class="cbtn wide" data-o="resume">▶ Reanudar</button>`
+      : '<button class="cbtn wide" data-o="close">Cerrar</button>'}</div></div>`;
+}
+function openOpts() { $opts.innerHTML = ''; renderOpts(); $opts.classList.remove('hidden'); Snd.click(); }
+function closeOpts() { $opts.classList.add('hidden'); }
+$opts.addEventListener('click', e => {
+  e.stopPropagation(); Snd.init();
+  const b = e.target.closest('[data-o]'), o = b && b.dataset.o;
+  if (!b) { if (G.state !== 'paused') closeOpts(); return; }   // tocar afuera cierra las opciones (la pausa no, para no seguir sin querer)
+  if (o === 'music') { Music.toggle(); renderOpts(); updateButtons(); }
+  else if (o === 'sound') { Snd.toggle(); renderOpts(); updateButtons(); }
+  else if (o === 'resume') togglePause();
+  else if (o === 'close') closeOpts();
+  else if (o === 'home') { closeOpts(); act('menu'); }
+});
 // Acción principal: ESPACIO en teclado o tocar la pantalla
 function primaryAction() {
   Snd.init();
@@ -2526,7 +2573,7 @@ function act(a, el) {
   else if (a === 'resume') togglePause();
   else if (a === 'retry') { G.attempts++; resetRun(); startPlay(); }   // el mismo laberinto, de nuevo
   else if (a === 'back') { if (G.screen) { G.screen = null; closeScreen(); refreshPrize(); updateButtons(); } else showTitle(); }
-  else if (a === 'menu') { Music.resume(); showTitle(); }
+  else if (a === 'menu') { closeOpts(); Music.resume(); showTitle(); }
   else if (a === 'ratitas') showRatitas(el);
   else if (a === 'machine') showMachine(el);
   else if (a === 'spin') gachaSpin();
@@ -2544,7 +2591,8 @@ const ICONS = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5h13V10" fill="currentColor" fill-opacity=".18"/><path d="M10 19.5v-5h4v5"/></svg>',
   musicOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/><path d="M3 3l18 18" stroke-width="2.6"/></svg>',
 };
-const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnMusic = document.getElementById('btnMusic');
+const $btnGear = document.getElementById('btnGear');
+$btnGear.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 const $btnBack = document.getElementById('btnBack');
 $btnBack.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
 function updateButtons() {
@@ -2553,22 +2601,17 @@ function updateButtons() {
   const back = G.screen === 'ratitas' || (G.screen === 'machine' && ['idle', 'reveal'].includes(Gacha.phase)) ||
     (!G.screen && (G.state === 'select' || (G.state === 'won' && G.winCard)));
   $btnBack.classList.toggle('hidden', !back);
-  document.getElementById('btnHome').classList.toggle('hidden', back);   // la casita deja el lugar a la flechita
-
-  $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
-  $btnSound.title = Snd.muted ? 'Activar efectos (F)' : 'Silenciar efectos (F)';
-  $btnMusic.innerHTML = Music.muted ? ICONS.musicOff : ICONS.music;
-  $btnMusic.title = Music.muted ? 'Activar música (M)' : 'Silenciar música (M)';
-  $btnPause.innerHTML = G.state === 'paused' ? ICONS.play : ICONS.pause;
-  $btnPause.title = G.state === 'paused' ? 'Seguir (P)' : 'Pausa (P)';
-  $btnPause.classList.toggle('hidden', !['play', 'paused'].includes(G.state));
+  $coins.classList.toggle('below', back);   // las monedas en la esquina; con flechita, debajo de ella
+  if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
   if (G.state !== 'play') stickEnd();
 }
-$btnSound.addEventListener('click', e => { e.stopPropagation(); Snd.init(); Snd.toggle(); updateButtons(); });
-$btnMusic.addEventListener('click', e => { e.stopPropagation(); Music.toggle(); updateButtons(); });
-$btnPause.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+$btnGear.addEventListener('click', e => {   // jugando: pausa; si no, abre / cierra las opciones
+  e.stopPropagation(); Snd.init();
+  if (G.state === 'play' || G.state === 'paused') togglePause();
+  else if (optsOpen()) closeOpts(); else openOpts();
+});
 $btnBack.addEventListener('click', e => { e.stopPropagation(); Snd.init(); if (G.screen) act('back'); else if (G.state === 'select' || G.mode === 'challenge') showTitle(); else act('levels'); });   // en Ratitas cierra la pantalla   // del selector y del Desafío a la portada; de los resultados de Historia a los niveles
 // Luz general provisoria (para probar los niveles): ilumina todo el laberinto parejo, sin tocar la linterna.
 // Se prende y apaga desde la portada y queda guardada.
@@ -2584,9 +2627,7 @@ $btnLight.addEventListener('click', e => {
   try { localStorage.setItem('raton.debugLight', debugLight ? '1' : '0'); } catch (_) {}
 });
 updateLightBtn();
-const $btnHome = document.getElementById('btnHome');
-$btnHome.innerHTML = ICONS.home;
-$btnHome.addEventListener('click', e => { e.stopPropagation(); act('menu'); });   // casita: vuelve a la portada
+
 
 // ---- joystick flotante (celular) ----
 // Aparece donde apoyás el dedo; el ratón gira hacia la dirección del stick y avanza según cuánto lo empujás.
@@ -2629,6 +2670,7 @@ addEventListener('keydown', e => {
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   keys[k] = true; Snd.init();
   if (e.repeat) return;
+  if (optsOpen() && G.state !== 'paused') { if (k === 'escape' || k === ' ' || k === 'enter') closeOpts(); return; }   // con las opciones abiertas
   if (k === ' ' || k === 'enter') primaryAction();
   else if (G.state === 'title' && (k === '1' || k === '2')) act(k === '1' ? 'story' : 'challenge');
   else if ((G.screen || G.state === 'select') && (k === 'escape' || k === 'backspace')) act('back');
@@ -3266,7 +3308,7 @@ function drawCoin(c, it) {
   // gira más lento al pasar de canto (sin frenarse) y normal cuando muestra una cara: el ángulo avanza parejo (f) pero
   // se deforma con un seno doble, así la velocidad es 1,56 de frente y 0,44 de canto
   const f = G.time * 3 + it.ph, th = f + 0.28 * Math.sin(2 * f), w = Math.abs(Math.cos(th)), d = COIN_T * Math.sin(th), R = COIN_R;
-  if (!coinBack) coinBack = { face: mixC(COIN_FACE, '#000000', 0.32), bands: COIN_BANDS.map(([a, b, col]) => [a, b, mixC(col, '#000000', 0.32)]) };
+  if (!coinBack) coinBack = { face: mixC(COIN_FACE, '#000000', 0.32), bands: COIN_BANDS_BACK.map(([a, b, col]) => [a, b, mixC(col, '#000000', 0.32)]) };
   const back = Math.cos(th) < 0, face = back ? coinBack.face : COIN_FACE, bands = back ? coinBack.bands : COIN_BANDS;   // al girar se ve una cara y después la otra
   // además rota despacio sobre su centro, como si tuviera un pivote en el medio (el eje del giro va dando vueltas)
   const spin = G.time * COIN_ROLL + it.ph * 1.7;
@@ -3278,7 +3320,8 @@ function drawCoin(c, it) {
   c.beginPath(); c.ellipse(d, 0, R * w + 0.01, R, 0, 0, Math.PI * 2); c.rect(Math.min(0, d), -R, Math.abs(d), R * 2);
   c.fillStyle = '#7b838d'; c.fill();
   c.save(); c.clip();
-  for (const [a, b, col] of COIN_BANDS) if (col !== '#e1e6ea') { c.fillStyle = col; c.fillRect(-R - COIN_T, a * R, (R + COIN_T) * 2, (b - a) * R + 0.05); }
+  // siguen las ranuras de la cara que se ve
+  for (const [a, b, col] of back ? COIN_BANDS_BACK : COIN_BANDS) if (col !== '#e1e6ea') { c.fillStyle = col; c.fillRect(-R - COIN_T, a * R, (R + COIN_T) * 2, (b - a) * R + 0.05); }
   c.restore();
   if (w < 0.02) { c.restore(); return; }   // de canto: solo el costado
   c.scale(w, 1);
