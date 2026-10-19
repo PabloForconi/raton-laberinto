@@ -11,8 +11,8 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
 
 ## Modos
 
-- **Historia:** 40 niveles diseñados (siempre iguales). Se guardan los niveles desbloqueados y las estrellas (1 a 3). Las mecánicas aparecen de a una y después se combinan, con laberintos cada vez más grandes:
-  - **1–6, quesos:** juntalos antes de salir (dan una estrella extra); a veces hay más de los que hacen falta.
+- **Historia:** 40 niveles diseñados (siempre iguales). Se guardan los niveles desbloqueados, las estrellas (1 a 3) y tu mejor tiempo de cada nivel. Una estrella por escapar, dos por bajar de un tiempo y tres por bajar de un tiempo más exigente (con todos los quesos, si el nivel tiene). Cada estrella nueva da 5 monedas, y al terminar ves tu tiempo, tu récord y tu próximo objetivo. En el camino directo hay pocas monedas; los tesoros más grandes están en los desvíos y los callejones: juntarlos rinde más pero cuesta tiempo. Las mecánicas aparecen de a una y después se combinan, con laberintos cada vez más grandes:
+  - **1–6, quesos:** juntalos antes de salir (los pide la tercera estrella); a veces hay más de los que hacen falta.
   - **7–12, pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
   - **13–20, trampas:** al fondo de los callejones sin salida; si tocás una, perdés.
   - **21–28, puertas:** puertitas de un solo sentido. Del lado de la cinta empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.

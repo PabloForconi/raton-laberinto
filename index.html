@@ -77,6 +77,42 @@
   #card .stars { font-size: 46px; color: #e0a21a; text-shadow: 0 2px 0 #6b4c2c; letter-spacing: 6px; line-height: 1.1; }
   #card .stars span { color: rgba(60,40,20,.25); text-shadow: none; }
   #card .small { font-size: 13px; opacity: .8; }
+  /* resultados de Historia: en el estilo del juego (cartón, cinta, marcador), no como un formulario */
+  #card .lvlname { margin: -4px 0 4px; font-size: 14px; letter-spacing: .5px; opacity: .7; }
+  #card .rstars { display: flex; justify-content: center; gap: 4px; margin: 2px 0 8px; }
+  #card .rstars i { font-style: normal; font-size: 50px; line-height: 1; color: rgba(60,40,20,.22); }
+  #card .rstars i.on { color: #f2b51e; text-shadow: 0 3px 0 #6b4c2c, 0 0 14px rgba(255,210,90,.55);
+    animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
+  #card .rstars i:nth-child(2) { transform: translateY(-6px); font-size: 58px; }
+  #card .rstars i.on:nth-child(2) { animation-name: starDropMid; }
+  @keyframes starDrop { from { transform: scale(2.4) rotate(-40deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+  @keyframes starDropMid { from { transform: translateY(-6px) scale(2.4) rotate(-40deg); opacity: 0; } to { transform: translateY(-6px) scale(1) rotate(0); opacity: 1; } }
+  #card .times { position: relative; display: flex; justify-content: center; gap: 10px; margin: 4px 0 10px; }
+  #card .tcell { flex: 1; max-width: 190px; background: #e2d6b8; padding: 6px 8px 4px; box-shadow: 0 3px 0 #6b4c2c; transform: rotate(-1.5deg); }
+  #card .tcell.best { transform: rotate(1.2deg); background: #d4c6a2; }
+  #card .tcell small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
+  #card .tcell b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 30px; line-height: 1.15; }
+  #card .stamp { position: absolute; right: -8px; top: -27px; font-family: 'Permanent Marker', cursive; font-size: 18px; color: #b3140f;
+    border: 3px solid #b3140f; border-radius: 6px; padding: 0 8px; background: rgba(255,235,220,.55); transform: rotate(12deg);
+    animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
+  @keyframes stamp { from { transform: rotate(30deg) scale(2.2); opacity: 0; } to { transform: rotate(12deg) scale(1); opacity: 1; } }
+  #card .chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+  #card .chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(30,18,8,.18); border-radius: 20px; padding: 3px 12px; font-size: 15px; }
+  #card .chip b { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 18px; }
+  #card .chip small { font-size: 12px; opacity: .8; }
+  #card .chip svg { width: 18px; height: 18px; }
+  #card .note { position: relative; margin: 6px auto 4px; max-width: 360px; background: #f3d66e; color: #2a1c08; padding: 12px 14px 8px;
+    transform: rotate(-1deg); box-shadow: 0 4px 8px rgba(0,0,0,.3); }
+  #card .note::before { content: ''; position: absolute; left: 50%; top: -9px; width: 86px; height: 20px; transform: translateX(-50%) rotate(2deg);
+    background: rgba(255,255,255,.45); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  #card .note small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .65; }
+  #card .note b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 21px; line-height: 1.2; margin: 2px 0; }
+  #card .note span { font-size: 13px; opacity: .8; }
+  #card .minis { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+  #card .mini { font: inherit; font-size: 14px; color: #1e1208; background: rgba(226,214,184,.7); border: 0; padding: 4px 12px; cursor: pointer;
+    box-shadow: 0 2px 0 #6b4c2c; transform: rotate(-1deg); -webkit-tap-highlight-color: transparent; }
+  #card .mini:nth-child(even) { transform: rotate(1deg); }
+  #card .mini:active { transform: translateY(2px); box-shadow: 0 0 0 #6b4c2c; }
   #cheese { top: 66px; left: 14px; font-size: 20px; display: flex; align-items: center; gap: 6px; transform: rotate(1deg); padding: 3px 12px 1px; }
   #cheese svg { width: 22px; height: 22px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
@@ -340,16 +376,22 @@ const LEVELS = [
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
 
-// Progreso de Historia (niveles desbloqueados y mejores estrellas), guardado en el navegador
+// Progreso de Historia (niveles desbloqueados, mejores estrellas y mejor tiempo de cada nivel), guardado en el navegador
 const Story = {
   data: (() => { try { return JSON.parse(localStorage.getItem('raton.story')); } catch (_) { return null; } })() || { unlocked: 1, stars: [] },
   save() { try { localStorage.setItem('raton.story', JSON.stringify(this.data)); } catch (_) {} },
-  finish(i, stars) {
-    this.data.stars[i] = Math.max(this.data.stars[i] || 0, stars);
-    this.data.unlocked = Math.max(this.data.unlocked, Math.min(LEVELS.length, i + 2));
+  // guarda el resultado y devuelve lo que había antes (para el récord y las estrellas nuevas)
+  finish(i, stars, time) {
+    const d = this.data; d.best = d.best || [];
+    const prev = { stars: d.stars[i] || 0, best: d.best[i] };
+    d.stars[i] = Math.max(prev.stars, stars);
+    d.best[i] = prev.best == null ? time : Math.min(prev.best, time);
+    d.unlocked = Math.max(d.unlocked, Math.min(LEVELS.length, i + 2));
     this.save();
+    return prev;
   },
 };
+const STAR_COINS = 5;   // monedas por cada estrella que conseguís por primera vez en un nivel
 
 // ===================== MONEDAS Y RATITAS =====================
 // Monedas: se juntan en el laberinto y quedan guardadas aunque pierdas. Con COIN_SPIN se gira la máquina de ratitas
@@ -369,7 +411,7 @@ const RATS = [
   ['Sombrita',    '#2b2a2c', '#4a484c', '#3e3d40', '#1a1a1c', '#ff0a1e', '#4a484c'],
   ['Chispita',    '#f07a1f', '#f6b37a', '#4a2a14', '#1d1e21', '#ffb000', '#e8761e'],
   ['Cacao',       '#5b3a24', '#b38763', '#1f1d1c', '#4a4f57', '#0d0b0a', '#7a5236'],
-  ['Pinky',       '#f4c2d0', '#e0379a', '#7a1834', '#1d1e21', '#9e0d1e', '#ef9fb6'],
+  ['Pinky',       '#f4c2d0', '#ef89c3', '#7a1834', '#1d1e21', '#9e0d1e', '#ef89c3'],
   ['Cheddar',     '#f5c518', '#f08a1c', '#1f1d1c', '#4a4f57', '#ff0a1e', '#e6b40f'],
   ['Radiactín',   '#5cff3a', '#b6ff3a', '#1d4a1f', '#1d1e21', '#ff0a1e', '#5cff3a'],
   ['Musguito',    '#2f5a2c', '#5f9a4f', '#1f1d1c', '#4a4f57', '#ffd400', '#2f5a2c'],
@@ -380,8 +422,8 @@ const RATS = [
   ['Lila',        '#d9cdf2', '#b79be6', '#4b2a7a', '#4a4f57', '#7b3fd1', '#d9cdf2'],
   ['Draculín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#ff0a1e', '#5e1020'],
   ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#1d1c1b'],
-  ['Wasabi',      '#7d8a3a', '#a8d48a', '#1d4a1f', '#1d1e21', '#6b4524', '#7d8a3a'],
-  ['Toxito',      '#b5f02a', '#d6e85a', '#1f1d1c', '#1d4a1f', '#ff0a1e', '#b5f02a'],
+  ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#6b4524', '#c1d268'],
+  ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#ff0a1e', '#a8ba20'],
 ];
 const Skins = {
   data: (() => { try { return JSON.parse(localStorage.getItem('raton.skins')); } catch (_) { return null; } })() || { owned: [0], sel: 0 },
@@ -392,6 +434,8 @@ const Skins = {
 const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mixC = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 const lum = h => { const [r, g, b] = hexRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+// nariz de la ratita del laberinto elegida a mano (si no, sale de la oreja mezclada con rosa)
+const RAT_NOSE = { 7: '#ef89c3', 18: '#c1d268', 19: '#879617' };   // Pinky, Wasabi, Radium (la de Radium, del color de adentro de la oreja)
 const skinCache = {};
 function skinOf(i) {
   if (skinCache[i]) return skinCache[i];
@@ -400,17 +444,23 @@ function skinOf(i) {
   return skinCache[i] = { name, spots, harness, eyes, tail: paws, ear: ears,
     body: [mixC(fur, '#ffffff', 0.8), fur, mixC(fur, '#000000', 0.2), mixC(fur, '#000000', 0.45)],
     limb: [mixC(fur, '#000000', 0.38), mixC(fur, '#000000', 0.15)],
-    earIn: mixC(ears, '#000000', 0.15), nose: mixC(ears, '#ff7f90', 0.35), eyeShut: shut, eyeRgb: hexRgb(eyes).join(','),
+    earIn: mixC(ears, '#000000', 0.15), nose: RAT_NOSE[i] || mixC(ears, '#ff7f90', 0.35), eyeShut: shut,
+    eyeGlow: i === 0 ? hexRgb(eyes).join(',') : null,   // brillo rojo alrededor de los ojos: solo la Albina
     light: [mixC(light, '#000000', 0.75), light, mixC(light, '#ffffff', 0.55)],
     foot: hexRgb(mixC(paws, '#000000', 0.17)) };
 }
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
 const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
-// moneda plateada como el diseño de concept/coin.png: dos ranuras oscuras y una barra clara cruzando el medio, sin borde
-const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#a3abb3"/>' +
-  '<rect x="3.6" y="6.4" width="16.8" height="2.6" rx="0.6" fill="#4b515a"/><rect x="3.3" y="14.2" width="17.4" height="2.7" rx="0.6" fill="#4b515a"/>' +
-  '<rect x="1.8" y="9" width="20.4" height="5.2" rx="1.2" fill="#bcc3ca"/><rect x="2.4" y="9" width="19.2" height="0.8" rx="0.4" fill="#e1e6ea"/>' +
-  '<rect x="5" y="16.9" width="14" height="0.7" rx="0.35" fill="#d3d9de"/></svg>';
+// moneda plateada (según el diseño de referencia): toda del mismo gris claro, con dos ranuras de lado a lado; cada ranura es
+// una línea oscura arriba, el fondo gris y una línea clara abajo. Sin borde. COIN_BANDS: [desde, hasta, color] en
+// fracciones del radio (y para abajo), las usan el ícono y la moneda del laberinto
+const COIN_FACE = '#bcc3ca';
+const COIN_BANDS = [[-0.5, -0.43, '#4b515a'], [-0.43, -0.26, '#656c78'], [-0.26, -0.19, '#e1e6ea'],
+  [0.25, 0.32, '#4b515a'], [0.32, 0.49, '#656c78'], [0.49, 0.56, '#e1e6ea']];
+const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><defs><clipPath id="coinClip"><circle cx="12" cy="12" r="10.5"/></clipPath></defs>' +
+  `<circle cx="12" cy="12" r="10.5" fill="${COIN_FACE}"/><g clip-path="url(#coinClip)">` +
+  COIN_BANDS.map(([a, b, col]) => `<rect x="0" y="${(12 + a * 10.5).toFixed(2)}" width="24" height="${((b - a) * 10.5 + 0.05).toFixed(2)}" fill="${col}"/>`).join('') +
+  '</g></svg>';
 const isMenu = () => ['title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 // Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
@@ -792,25 +842,53 @@ function placeItems(L, m, rng) {
   return items;
 }
 
-// Monedas: sueltas por los pasillos (más o menos 1 cada 5 celdas), a veces en hilera de 3 a lo largo de un pasillo recto.
-// Usan su propio rng, así no cambian dónde caen los otros items. No van en la entrada, la salida ni encima de otro item.
+// Monedas que hacen elegir, no juntar por juntar: en el camino más corto hay pocas y sueltas (la ruta directa es la más
+// rápida pero rinde poco), y fuera del camino van en tesoros de 2 a 5 monedas, más grandes cuanto más lejos quedan
+// del camino (el desvío cuesta tiempo, y la tercera estrella pide un tiempo justo, pero rinde más). Así ni ir directo
+// ni explorar todo es siempre lo mejor. Usan su propio rng, así no cambian dónde caen los otros items. No van en la
+// entrada, la salida ni encima de otro item.
+const COIN_PATH_GAP = 7;     // en el camino: una moneda suelta cada tantas celdas, más o menos
+const COIN_DETOUR_S = 2.5;   // en los tesoros: una moneda por cada tantos segundos de desvío (de 2 a 8)
 function placeCoins(m, items, seed) {
   const rng = mulberry32(seed), { W, H } = m, out = [];
-  const target = clamp(Math.round(W * H * 0.2), 6, 40);
-  const busy = (x, y) => items.some(it => Math.hypot((it.x ?? it.wx) - x, (it.y ?? it.wy) - y) < C * 0.75);
-  const cells = [];
-  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) cells.push([c, r]);
-  for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
-  for (const [c, r] of cells) {
-    if (out.length >= target) break;
-    if ((c === W - 1 && r === m.entRow) || (c === 0 && r === m.exitRow)) continue;
-    const x = (c + 0.5) * C, y = (r + 0.5) * C;
-    if (busy(x, y)) continue;
-    const L = !m.vW[c][r], R = !m.vW[c + 1][r], U = !m.hW[r][c], D = !m.hW[r + 1][c];
-    const horiz = L && R && !U && !D, vert = U && D && !L && !R;
-    const coin = (cx, cy) => out.push({ type: 'coin', x: cx, y: cy, got: false, ph: rng() * 6 });
-    if ((horiz || vert) && rng() < 0.5) for (const k of [-1, 0, 1]) coin(x + (horiz ? k * 17 : 0), y + (vert ? k * 17 : 0));
-    else coin(x, y);
+  const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), D = dE[m.exitRow * W];
+  const busy = (x, y) => items.some(it => Math.hypot((it.x ?? it.wx) - x, (it.y ?? it.wy) - y) < C * 0.75) ||
+    out.some(o => Math.hypot(o.x - x, o.y - y) < C * 0.75);
+  const isEnd = (c, r) => (c === W - 1 && r === m.entRow) || (c === 0 && r === m.exitRow);
+  const coin = (x, y) => out.push({ type: 'coin', x, y, got: false, ph: rng() * 6 });
+  // 1) en el camino más corto: sueltas y espaciadas
+  const path = [];
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (dE[r * W + c] >= 0 && dE[r * W + c] + dX[r * W + c] === D) path.push([c, r, dE[r * W + c]]);
+  path.sort((a, b) => a[2] - b[2]);
+  for (let k = 2 + Math.floor(rng() * 3); k < path.length - 1; k += COIN_PATH_GAP - 1 + Math.floor(rng() * 3)) {
+    const [c, r] = path[k], x = (c + 0.5) * C, y = (r + 0.5) * C;
+    if (!isEnd(c, r) && !busy(x, y)) coin(x, y);
+  }
+  // 2) tesoros fuera del camino: los callejones pesan más; cada uno vale más cuanto más largo es el desvío
+  const off = [];
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const i = r * W + c, det = dE[i] + dX[i] - D;   // celdas de más que hay que caminar para pasar por acá
+    if (dE[i] < 0 || det < 3 || isEnd(c, r)) continue;
+    const walls = [m.vW[c][r], m.vW[c + 1][r], m.hW[r][c], m.hW[r + 1][c]].filter(Boolean).length;
+    off.push({ c, r, det, w: (walls === 3 ? 2.5 : 1) * Math.min(det, 12) });
+  }
+  const nStash = clamp(Math.round(W * H / 26), 3, 10), stash = [];
+  while (stash.length < nStash && off.length) {
+    let tot = off.reduce((a, o) => a + o.w, 0), pick = rng() * tot, j = 0;
+    while (j < off.length - 1 && (pick -= off[j].w) > 0) j++;
+    const s = off.splice(j, 1)[0], x = (s.c + 0.5) * C, y = (s.r + 0.5) * C;
+    if (stash.some(o => Math.abs(o.c - s.c) + Math.abs(o.r - s.r) < 3) || busy(x, y)) continue;
+    stash.push(s);
+    const n = clamp(Math.round(s.det * C / SPEED / COIN_DETOUR_S), 2, 8);   // una moneda cada COIN_DETOUR_S segundos de desvío
+    const L = !m.vW[s.c][s.r], R = !m.vW[s.c + 1][s.r], U = !m.hW[s.r][s.c], Dn = !m.hW[s.r + 1][s.c];
+    const horiz = L && R && !U && !Dn, vert = U && Dn && !L && !R;
+    if (horiz || vert) {   // en hilera a lo largo del pasillo (de a dos filas si son más de 4)
+      const rows = n > 4 ? 2 : 1, per = Math.ceil(n / rows);
+      for (let k = 0; k < n; k++) {
+        const row = Math.floor(k / per), cnt = row ? n - per : per, o = (k % per - (cnt - 1) / 2) * 15, side = rows > 1 ? (row ? 9 : -9) : 0;
+        coin(x + (horiz ? o : side), y + (vert ? o : side));
+      }
+    } else { const rad = n > 4 ? 19 : 13; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2 - Math.PI / 2; coin(x + Math.cos(a) * rad, y + Math.sin(a) * rad); } }   // en ronda
   }
   return out;
 }
@@ -1187,7 +1265,7 @@ function loadLevel(n) {
   G.mode = 'challenge'; G.level = n; G.viewLevel = n;
   const [W, H] = sizeFor(n);
   buildMaze(W, H, G.baseSeed + n * 7919, Math.min(0.05, 0.008 * (n - 1)));
-  G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777); G.runCoins = 0;
+  G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777); G.runCoins = 0; G.coinsTotal = G.items.length;
   G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
   G.timeLimit = timeFor(n, pathLen(G.maze));
   G.attempts = 1;
@@ -1201,6 +1279,7 @@ function loadStory(i) {
   const rng = buildMaze(L.size[0], L.size[1], L.seed, L.loops || 0);
   G.items = placeItems(L, G.maze, rng);
   G.items = G.items.concat(placeCoins(G.maze, G.items, L.seed + 777)); G.runCoins = 0;
+  G.coinsTotal = G.items.filter(it => it.type === 'coin').length;
   G.solids = doorSolids(G.items, G.rects);
   G.holeRects = G.solids.filter(R => !R.door);   // paredes con los agujeros de las puertas (la luz pasa con la cortina levantada)
   const nCheese = G.items.filter(it => it.type === 'cheese').length;
@@ -1208,6 +1287,11 @@ function loadStory(i) {
   // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
   const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5;   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
   G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
+  // tiempos de las estrellas: desde el camino ideal (el más corto, a velocidad máxima) con un margen, más el mismo extra
+  // por quesos y pegamento. ★★ por debajo de star2 y ★★★ por debajo de star3 (y con todos los quesos)
+  const ideal = pathLen(G.maze) * C / SPEED, niceT = x => x < 20 ? Math.ceil(x) : Math.ceil(x / 5) * 5;
+  G.star2 = Math.min(niceT(ideal * 1.8 + extra * 1.3), G.timeLimit - 5);
+  G.star3 = Math.min(niceT(ideal * 1.3 + extra), G.star2 - 5);
   G.attempts = 1;
   computeScale();
   resetRun();
@@ -1379,12 +1463,19 @@ function pickRat(i) {
 // (que tiene sus colores elegidos a mano); para ajustar una ratita a mano, se agrega en PORTRAIT_COLORS.
 const PORTRAIT_COLORS = {
   0: { fur: '#e5e5e5', ear: '#f5a192', earDark: '#f38471', earLine: '#9c5043', nose: '#f5a192', paws: '#f5a192', line: '#6c6c6c' },   // Albina
+  7: { ear: '#ef89c3', earDark: '#da7ab1', legLine: '#c28999' },   // Pinky: orejas, nariz, patitas y cola / interior de la oreja y oreja de atrás / líneas de las patas
+  18: { ear: '#c1d268', earDark: '#9ead53' },   // Wasabi: orejas, nariz, patitas y cola / interior de la oreja y oreja de atrás
+  19: { ear: '#a8ba20', earDark: '#879617', legLine: '#658121' },   // Radium: orejas, nariz, patitas y cola / interior de la oreja y oreja de atrás / líneas de las patas
 };
+// Colores del retrato (y de la ratita de frente): se sacan de RATS, y PORTRAIT_COLORS puede pisar algunos o todos.
+// ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás y el interior de la oreja,
+// line las líneas de la cara (bigotes, boca) y legLine las de las patas (muslo, hombro, bracitos; si no, igual que line)
 function portraitOf(i) {
-  if (PORTRAIT_COLORS[i]) return PORTRAIT_COLORS[i];
-  const [, fur, ears] = RATS[i], dark = lum(fur) < 0.3;
-  return { fur, ear: ears, earDark: mixC(ears, '#000000', 0.09), earLine: mixC(ears, '#000000', 0.42), nose: ears, paws: ears,   // cola, nariz y patitas del tono claro de la oreja
-    line: dark ? mixC(fur, '#ffffff', 0.45) : mixC(fur, '#000000', 0.53) };
+  const o = PORTRAIT_COLORS[i] || {}, [, rf, rears] = RATS[i], fur = o.fur || rf, ear = o.ear || rears, dark = lum(fur) < 0.3;
+  const line = o.line || (dark ? mixC(fur, '#ffffff', 0.45) : mixC(fur, '#000000', 0.53));
+  return { fur, ear, earDark: o.earDark || mixC(ear, '#000000', 0.09), earLine: o.earLine || mixC(ear, '#000000', 0.42),
+    nose: o.nose || ear, paws: o.paws || ear,   // cola, nariz y patitas del tono claro de la oreja
+    line, legLine: o.legLine || line };
 }
 function drawRatPortrait(c, x, y, size, i, t = 0) {
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line;
@@ -1435,7 +1526,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0) {
     c.restore();
   }
   // líneas: el muslo (una "C" grande) y el hombro (un paréntesis)
-  c.strokeStyle = ink; c.lineWidth = 6;
+  c.strokeStyle = P.legLine; c.lineWidth = 6;
   c.beginPath(); c.arc(650, 296, 106, -0.35 * Math.PI, 0.6 * Math.PI, true); c.stroke();
   c.beginPath(); c.arc(408, 346, 66, -0.32 * Math.PI, 0.42 * Math.PI); c.stroke();
   c.restore();
@@ -1447,7 +1538,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0) {
     c.stroke();
   };
   paw(318, 66); paw(632, 86);
-  c.strokeStyle = ink; c.lineWidth = 5; c.beginPath(); c.moveTo(300, 380); c.quadraticCurveTo(340, 370, 388, 372); c.stroke();   // antebrazo
+  c.strokeStyle = P.legLine; c.lineWidth = 5; c.beginPath(); c.moveTo(300, 380); c.quadraticCurveTo(340, 370, 388, 372); c.stroke();   // antebrazo
   // oreja de adelante: redonda, con el interior un poco más oscuro y el pliegue marcado; es la que se mueve
   c.save(); c.translate(296, 290); c.rotate(0.3 + twitch); c.translate(-296, -290);   // inclinada hacia atrás
   c.fillStyle = P.ear; c.beginPath(); c.ellipse(306, 212, 80, 88, 0.1, 0, Math.PI * 2); c.fill();
@@ -1605,7 +1696,10 @@ function drawThumb(cv) {
 //   reveal las dos mitades salen disparadas y en el mismo momento la ratita salta del keyframe 1 (bolita) al
 //          keyframe 2 (pose normal) dando un giro; rayos de luz, destellos y papelitos
 const GACHA_STAGES = ['wake', 'run', 'clack', 'door', 'launch', 'hover', 'reveal'];
-const GACHA_T = { wake: 0.7, run: 3.4, clack: 0.4, door: 1.35, launch: 0.85, hover: 0.22 };const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
+const GACHA_T = { wake: 0.7, run: 3.4, clack: 0.4, door: 2.1, launch: 0.85, hover: 0.22 };
+// en 'door': la puerta sube en DOOR_OPEN_T; la rampa arranca casi junto con ella y baja más despacio, terminando después
+const DOOR_OPEN_T = 1.15, RAMP_FROM = 0.05, RAMP_TO = 2.0;
+const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
   caps: null, onStage: null, L: { beacon: 0, tubeL: 0, tubeR: 0, inner: 0, door: 0 }, vib: [0, 0] };
 function showMachine(from) {
@@ -1666,7 +1760,7 @@ function gachaStage(id) {
     // cayó la cápsula premiada adentro: el montón de la pecera baja un nivel (se va la fila de arriba; quedan al menos dos)
     capsDrop();
   }
-  else if (id === 'door') Snd.hiss(GACHA_T.door - 0.2);
+  else if (id === 'door') Snd.hiss(DOOR_OPEN_T);
   else if (id === 'reveal') {
     Snd.popOpen(); gachaResult();
     for (let k = 0; k < 90; k++) {   // papelitos
@@ -1808,9 +1902,11 @@ function gachaUpdate(dt) {
     if (t > 0.3 && L.tubeL < 0.5) { L.tubeL = 1; Snd.click(); }
     if (t > 0.55 && L.tubeR < 0.5) { L.tubeR = 1; Snd.click(); }
     if (t > 0.3) on('inner', 1, 2.2);                                                             // la luz de la tapa, suave
-  } else if (P.phase === 'run') {   // parpadean con el motor (la baliza y la luz de la tapa, sin saltos)
+  } else if (P.phase === 'run') {   // la luz de la tapa titila apenas; los tubos de los costados parpadean a destiempo
     const fl = () => 1 - Math.random() * 0.45 * I;
-    on('beacon', 1, 6); L.tubeL = fl(); L.tubeR = fl(); on('inner', 0.85 + 0.15 * fl(), 3);
+    // cada tubo prende y apaga TUBE_HZ veces por segundo (con bordes suaves), uno cuando el otro está apagado
+    const blink = ph => clamp(0.5 + 1.8 * Math.cos(P.clock * Math.PI * 2 * TUBE_HZ + ph), 0, 1), dep = 0.7 * Math.min(1, 0.4 + I);
+    on('beacon', 1, 6); L.tubeL = 1 - dep * (1 - blink(0)); L.tubeR = 1 - dep * (1 - blink(Math.PI)); on('inner', 0.85 + 0.15 * fl(), 3);
   } else if (P.phase === 'clack') { L.tubeL = L.tubeR = 1; on('beacon', 0.3, 0.9); on('inner', 1, 6); }
   else if (P.phase === 'door') { on('door', 1, 4); on('beacon', 0.3, 0.9); }   // la baliza se sigue apagando despacio
   if (dur && P.t >= dur) gachaStage(GACHA_STAGES[GACHA_STAGES.indexOf(P.phase) + 1]);
@@ -1852,10 +1948,10 @@ function recedeScale(t) {
   if (P.phase === 'launch') return 1 - (1 - MACHINE_RECEDE) * (t => t * t * (3 - 2 * t))(clamp(t / GACHA_T.launch, 0, 1));
   return ['hover', 'reveal'].includes(P.phase) ? MACHINE_RECEDE : 1;
 }
-// Luz de la baliza en toda la pantalla (detrás del título, el texto y los botones): mientras la máquina se agita,
-// dos haces rojos giran desde la baliza y barren la pantalla, y todo se tiñe apenas de rojo cuando parpadea.
-// Ángulo de la baliza (el del haz de pantalla completa y el del espejo de adentro): gira parejo, sin acelerar ni frenar
-const BEACON_T = 1.6;   // segundos por vuelta
+// Luz de la baliza en toda la pantalla: el halo redondo, detrás de todo.
+// Ángulo del espejo de adentro de la baliza: gira parejo, sin acelerar ni frenar
+const BEACON_T = 1.05;   // segundos por vuelta (va a otro ritmo que el parpadeo de los tubos, TUBE_HZ)
+const TUBE_HZ = 4.3;     // parpadeos por segundo de cada tubo de los costados
 function beaconSpeed() { return Math.PI * 2 / BEACON_T; }
 function beaconAngle() { return Gacha.beaconPh || 0; }
 function beaconFlash() { return Math.pow(Math.max(0, Math.sin(beaconAngle())), 8); }   // 1 justo mirando a la cámara
@@ -1888,25 +1984,7 @@ function drawGachaFx(gcv) {
     g.globalCompositeOperation = 'lighter'; g.fillStyle = bh; g.beginPath(); g.arc(bx, hy, hr, 0, Math.PI * 2); g.fill();
     g.globalCompositeOperation = 'source-over';
   }
-  const sa = P.spinA || 0; if (sa < 0.01 || !P.mach || !g2) return;   // se apaga suave cuando para el motor
-  const I = P.mach.I, L = P.L.beacon;
-  const R = Math.hypot(W, H), S = (0.55 + 0.45 * I) * L * sa, a = beaconAngle();
-  g = g2;   // los haces van en la capa de adelante (pasan por encima de la máquina)
-  g.globalCompositeOperation = 'lighter';
-  // el ancho cambia de a poco con la vuelta: se va ensanchando hasta apuntar para abajo (hacia la cámara, el doble) y se
-  // va afinando hasta apuntar para arriba (la mitad); lo mismo el brillo, sin saltos
-  const sn = Math.sin(a), wide = Math.exp(0.7 * sn), glow = 1 + 0.35 * sn;
-  for (const [half, alpha] of [[0.95, 0.045], [0.75, 0.065], [0.57, 0.085], [0.41, 0.1], [0.27, 0.105]]) {   // capas: borde bien suave
-    const hw = half * wide;
-    const hg = g.createRadialGradient(bx, by, 0, bx, by, R);
-    hg.addColorStop(0, 'rgba(255,50,35,0)'); hg.addColorStop(0.06, `rgba(255,50,35,${alpha * 1.6 * S * glow})`);
-    hg.addColorStop(1, `rgba(255,30,20,${alpha * 0.5 * S})`);
-    g.fillStyle = hg; g.beginPath(); g.moveTo(bx, by); g.arc(bx, by, R, a - hw, a + hw); g.closePath(); g.fill();
-  }
-  g.globalCompositeOperation = 'source-over';
-  g.fillStyle = `rgba(255,40,30,${(0.05 + 0.12 * Math.pow(Math.max(0, sn), 2)) * S})`; g.fillRect(0, 0, W, H);   // de frente, más luz en todo
-  const wf = beaconFlash() * L * sa;   // y en el destello blanco de la baliza, un golpe de luz clara en toda la pantalla
-  if (wf > 0.01) { g.fillStyle = `rgba(255,190,180,${0.12 * wf})`; g.fillRect(0, 0, W, H); }
+  // (los haces rojos que giraban por toda la pantalla se sacaron: quedan el halo redondo de la baliza y su espejo)
 }
 const machOff = document.createElement('canvas');   // la máquina se dibuja acá para poder desvanecerla entera
 const fadeOff = document.createElement('canvas');
@@ -1946,17 +2024,20 @@ function drawGacha(g, n) {
   }
 
   if (P.phase === 'reveal') {
-    // keyframe 1: la ratita hecha bolita, en el centro de la cápsula · keyframe 2: la ratita en pose normal.
-    // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco al keyframe 2 dando
-    // un giro completo y en el camino pasa de una pose a la otra, para caer en pose normal (sin deformar el retrato)
-    const TRAVEL = 0.8, SETTLE = 0.22, KF1 = { x: 150, y: 158, size: 64 }, KF2 = { x: 150, y: 168, size: 215 };
+    // keyframe 1: la ratita de frente hecha bolita, en el centro de la cápsula (KF1.size es el ancho de la bola) ·
+    // keyframe 2: la misma ratita sentada (KF2.size es su altura). Las dos poses están hechas con las mismas piezas
+    // (drawRatFrontPose con curl 1 → 0): en el camino cada pieza se desplaza a su lugar, no hay cambio de dibujo.
+    // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco dando un giro
+    // completo y cae sentada mirando a la cámara, con el rebote del aterrizaje
+    const TRAVEL = 0.8, KF1 = { x: 150, y: 158, size: 64 }, KF2 = { x: 150, y: 166, size: 172 };
     const turn = (c, cx, cy, a, fn) => { c.save(); c.translate(cx, cy); c.rotate(a); c.translate(-cx, -cy); fn(c); c.restore(); };
     const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
     const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
     const a = -e * Math.PI * 2, mix = clamp((u - 0.1) / 0.45, 0, 1);
-    const settle = t > TRAVEL && t < TRAVEL + SETTLE ? -8 * Math.sin(Math.PI * (t - TRAVEL) / SETTLE) : 0;
-    if (mix < 1) drawFaded(g, n, 1 - mix, c => turn(c, x, y, a, c2 => drawRatBall(c2, x, y, KF1.size * (1 + 0.35 * e), P.pick, 0, t)));
-    if (mix > 0) drawFaded(g, n, mix, c => turn(c, x, y, a, c2 => drawRatPortrait(c2, x, y + settle, KF2.size * (0.5 + 0.5 * ease(mix)), P.pick, t)));
+
+    const curl = 1 - ease(mix);                                                            // 1 bolita → 0 sentada
+    const sz = lerp(KF1.size * 935 / (BALL_R * 2) * (1 + 0.35 * e), KF2.size, 1 - curl);   // y va creciendo
+    turn(g, x, y, a, c2 => drawRatFrontPose(c2, x, y, sz, P.pick, t, t - TRAVEL, curl));    // al caer (t > TRAVEL) rebota
   }
   // la cápsula premiada
   if (['launch', 'hover'].includes(P.phase)) {   // (mientras se abre la compuerta, la dibuja drawMachine adentro)
@@ -2004,41 +2085,46 @@ function capsule(g, x, y, r, col, rot, split) {
   g.beginPath(); g.arc(-r * 0.05, -split - r * 0.7, r * 0.05, 0, Math.PI * 2); g.arc(r * 0.12, -split - r * 0.66, r * 0.035, 0, Math.PI * 2); g.fill();
   g.restore();
 }
-// Líneas cinéticas (como la referencia): muchos rayos finos de anchos distintos que salen de un punto, alternando
-// verde lima y blanco con brillo, filosos y en punta hacia el centro. Se arman una vez por premio (P.rays) y giran apenas;
-// aparecen con un golpe de luz al abrirse la cápsula y se apagan hacia los bordes para que se lean los textos
-function drawSpeedLines(g, W, H, cx, cy, t) {
-  const P = Gacha;
-  if (!P.rays || t < 0.02) {
-    P.rays = []; let a = 0, k = 0;
-    while (a < Math.PI * 2 - 0.02) {
-      const w = 0.006 + Math.pow(Math.random(), 2.2) * 0.075;   // la mayoría finitas, algunas anchas
-      P.rays.push({ a, w, white: k++ % 2 === 1 }); a += w;
-    }
-    // la última llega justo hasta la primera (si no, quedaba una rendija negra que aparecía cada tanto)
-    const last = P.rays[P.rays.length - 1]; last.w = Math.PI * 2 - last.a;
-    if (last.white === P.rays[0].white) last.white = !last.white;
+// Líneas cinéticas (como la referencia): rayos anchos de distintos anchos que salen de un punto, alternando verde lima
+// y blanco, en punta hacia el centro y apagándose hacia los bordes (así se leen los textos). Para que ande liviano en el
+// celular se dibujan UNA sola vez por premio en un canvas aparte, chico (SPEED_MAX px de lado como mucho), y después cada
+// cuadro solo se pega girado (un drawImage) con un brillo en el centro. Pocos rayos, con todos los del mismo color en un
+// solo trazo.
+const SPEED_MAX = 900;
+const speedCv = document.createElement('canvas');
+function buildSpeedLines(FR) {
+  const P = Gacha, sc = Math.min(1, SPEED_MAX / (FR * 2)), n = Math.max(2, Math.round(FR * 2 * sc));
+  speedCv.width = speedCv.height = n;
+  const g = speedCv.getContext('2d'); g.setTransform(sc, 0, 0, sc, n / 2, n / 2); g.clearRect(-FR, -FR, FR * 2, FR * 2);
+  const rays = []; let a = 0, k = 0;
+  while (a < Math.PI * 2 - 0.05) { const w = 0.06 + Math.pow(Math.random(), 1.6) * 0.2; rays.push({ a, w, white: k++ % 2 === 1 }); a += w; }
+  const last = rays[rays.length - 1]; last.w = Math.PI * 2 - last.a;   // la última llega justo hasta la primera (sin rendija)
+  if (last.white === rays[0].white && rays.length > 1) last.white = !last.white;
+  for (const white of [false, true]) {
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, FR);
+    if (white) { gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.06, '#ffffff'); gr.addColorStop(1, '#dde0e8'); }
+    else { gr.addColorStop(0, 'rgba(214,226,80,0)'); gr.addColorStop(0.06, '#d3df4f'); gr.addColorStop(1, '#b3c22a'); }
+    g.fillStyle = gr; g.beginPath();
+    for (const ry of rays) if (ry.white === white) { g.moveTo(0, 0); g.arc(0, 0, FR, ry.a, ry.a + ry.w + 0.004); g.closePath(); }
+    g.fill();
   }
-  const R = Math.hypot(W, H), rot = t * 0.06, inA = Math.min(1, t / 0.12), flash = Math.max(0, 1 - t / 0.5);
-  g.save(); g.translate(cx, cy); g.rotate(rot);
-  const lime = g.createRadialGradient(0, 0, 0, 0, 0, R);
-  lime.addColorStop(0, 'rgba(214,226,80,0)'); lime.addColorStop(0.05, '#d3df4f'); lime.addColorStop(1, '#b3c22a');
-  const white = g.createRadialGradient(0, 0, 0, 0, 0, R);
-  white.addColorStop(0, 'rgba(255,255,255,0)'); white.addColorStop(0.05, '#ffffff'); white.addColorStop(1, '#dde0e8');
-  g.globalAlpha = inA;
-  for (const ry of P.rays) {
-    g.fillStyle = ry.white ? white : lime;
-    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, ry.a, ry.a + ry.w + 0.002); g.closePath(); g.fill();
-  }
-  // brillo en el centro (más fuerte justo al abrirse)
-  const glow = g.createRadialGradient(0, 0, 0, 0, 0, R * (0.16 + 0.12 * flash));
-  glow.addColorStop(0, `rgba(255,255,240,${0.9})`); glow.addColorStop(1, 'rgba(255,255,240,0)');
-  g.fillStyle = glow; g.beginPath(); g.arc(0, 0, R * (0.16 + 0.12 * flash), 0, Math.PI * 2); g.fill();
-  // se apagan hacia los bordes de la pantalla (así se leen el título y los botones)
-  g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in';
-  const fade = g.createRadialGradient(0, 0, 0, 0, 0, Math.max(W, H) * 0.62);
+  g.globalCompositeOperation = 'destination-in';   // se apagan hacia los bordes
+  const fade = g.createRadialGradient(0, 0, 0, 0, 0, FR);
   fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.45, 'rgba(0,0,0,0.85)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = fade; g.fillRect(-R, -R, R * 2, R * 2);
+  g.fillStyle = fade; g.fillRect(-FR, -FR, FR * 2, FR * 2);
+  g.globalCompositeOperation = 'source-over';
+  P.raysKey = FR;
+}
+function drawSpeedLines(g, W, H, cx, cy, t) {
+  const P = Gacha, FR = Math.round(Math.max(W, H) * 0.62);
+  if (t < 0.02 || P.raysKey !== FR) buildSpeedLines(FR);   // uno nuevo por premio (o si cambió el tamaño de la pantalla)
+  const inA = Math.min(1, t / 0.12), flash = Math.max(0, 1 - t / 0.5);
+  g.save(); g.translate(cx, cy);
+  g.save(); g.rotate(t * 0.06); g.globalAlpha = inA; g.drawImage(speedCv, -FR, -FR, FR * 2, FR * 2); g.restore();
+  // brillo en el centro (más fuerte justo al abrirse)
+  const gr = Math.max(W, H) * (0.1 + 0.08 * flash), glow = g.createRadialGradient(0, 0, 0, 0, 0, gr);
+  glow.addColorStop(0, `rgba(255,255,240,${0.9 * inA})`); glow.addColorStop(1, 'rgba(255,255,240,0)');
+  g.fillStyle = glow; g.beginPath(); g.arc(0, 0, gr, 0, Math.PI * 2); g.fill();
   g.restore();
 }
 // La máquina de ratitas, como la referencia: tapa turquesa con baliza roja, dos tubos amarillos que brillan, cables,
@@ -2063,7 +2149,7 @@ const CAP_TOP = 496, CAP_MIN = 110;   // techo de los centros y distancia mínim
 function drawMachine(g) {
   const P = Gacha, t = P.clock, L = P.L, shaking = P.phase === 'run';
   const I = P.mach ? P.mach.I : 0;   // cuánto se mueve el motor
-  const doorOpen = P.phase === 'door' ? (u => u * u * (3 - 2 * u))(clamp(P.t / (GACHA_T.door - 0.2), 0, 1)) : ['launch', 'hover', 'reveal'].includes(P.phase) ? 1 : 0;
+  const doorOpen = P.phase === 'door' ? (u => u * u * (3 - 2 * u))(clamp(P.t / DOOR_OPEN_T, 0, 1)) : ['launch', 'hover', 'reveal'].includes(P.phase) ? 1 : 0;
   const doorGlow = Math.max(L.door, doorOpen);
   // sacudida mecánica por partes (nada se deforma): la base (el motor) no se va de costado, da saltitos para arriba;
   // la cúpula se bambolea sobre la base con su propio ritmo y cada tubo de luz se sacude por su lado
@@ -2217,20 +2303,30 @@ function drawMachine(g) {
   dg.addColorStop(0, mixC('#ffe48a', '#fffbe8', doorGlow)); dg.addColorStop(1, mixC('#e39a12', '#ffc83a', doorGlow));
   g.fillStyle = dg; g.fill(doorP);
 
-  // la rampa amarilla: arranca a bajar un poquito después de que la puerta empieza a subir, y la cápsula premiada viene
+  // la rampa (dorada): arranca a bajar un poquito después de que la puerta empieza a subir, y la cápsula premiada viene
   // apoyada arriba de ella. La puerta gris (cerrada tapa todo el arco) sube entera y deja ver la luz
-  const rampU = clamp((doorOpen - 0.2) / 0.8, 0, 1), rampTop = TRAY_UP + (TRAY_DOWN - TRAY_UP) * rampU * rampU * (3 - 2 * rampU);
+  // arranca apenas empieza a subir la puerta, baja más despacio que ella (termina después) y frena muy de a poco
+  const rampU = P.phase === 'door' ? clamp((P.t - RAMP_FROM) / (RAMP_TO - RAMP_FROM), 0, 1) : doorOpen;
+  const rampTop = TRAY_UP + (TRAY_DOWN - TRAY_UP) * (1 - Math.pow(1 - Math.pow(rampU, 1.3), 3));
   g.save(); g.beginPath(); g.rect(448, 860, 248, 350); g.clip();                              // hasta la franja de peligro
-  g.fillStyle = '#f2b51e'; rr(468, rampTop, 208, 1210 - rampTop, 6); g.fill();
-  g.fillStyle = '#d29412'; rr(468, rampTop, 208, 18, 6); g.fill();                            // canto de arriba
+  g.fillStyle = '#9d7f41'; rr(468, rampTop, 208, 1210 - rampTop, 6); g.fill();
+  g.fillStyle = '#d2ac5d'; rr(468, rampTop, 208, 18, 6); g.fill();                            // canto de arriba
   if (P.phase === 'door') capsule(g, 572, rampTop - 60, 62, P.cap, 0, 0);                      // la cápsula premiada, apoyada
   g.restore();
   const hatchUp = doorOpen * doorOpen * (3 - 2 * doorOpen) * DOOR_LIFT - (doorOpen > 0 && doorOpen < 1 ? Math.sin(doorOpen * Math.PI * 3) * 4 : 0);
   {
     const doorC = new Path2D(); doorC.moveTo(448, 1210); doorC.lineTo(448, 1010); doorC.arc(572, 1010, 124, Math.PI, 0); doorC.lineTo(696, 1210); doorC.closePath();
     g.save(); g.clip(doorC); g.translate(0, -hatchUp);
-    g.fillStyle = '#2d3034'; g.fill(doorC);
-    g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(448, 1196, 248, 14);   // canto de abajo
+    // cortina de enrollar: gris con listones horizontales (cada uno con su ranura oscura arriba, una panza apenas más
+    // clara y un brillito abajo), y un travesaño más grueso al pie; sube con la puerta
+    g.fillStyle = '#3a3e43'; g.fill(doorC);
+    for (let sy = 1188; sy > 860; sy -= 20) {
+      g.fillStyle = 'rgba(255,255,255,0.045)'; g.fillRect(448, sy - 13, 248, 7);   // panza del listón
+      g.fillStyle = '#202327'; g.fillRect(448, sy - 3, 248, 3.5);                  // ranura
+      g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(448, sy + 0.5, 248, 1.8);  // brillito debajo de la ranura
+    }
+    g.fillStyle = '#2a2d31'; g.fillRect(448, 1190, 248, 20);                         // travesaño de abajo
+    g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(448, 1190, 248, 3);
     g.restore();
   }
   g.strokeStyle = '#9aa3a8'; g.lineWidth = 30;                                               // marco gris de la compuerta
@@ -2288,6 +2384,7 @@ function showIntro() {
        <p class="big">${L.name}</p>
        <p>${L.intro}</p>
        <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
+       <p class="small">★★ menos de ${G.star2} s · ★★★ menos de ${G.star3} s${G.cheeseTotal ? ' con todos los quesos' : ''}</p>
        ${go('encender la linterna')}`
     : `<h1>NIVEL ${G.level}</h1>
        <p class="big">Laberinto ${m.W} × ${m.H}</p>
@@ -2308,9 +2405,17 @@ function win() {
   updateButtons();
 }
 // Estrellas: 1 por escapar + 1 por los quesos (sin quesos: más de 1/3 del tiempo) + 1 por el tiempo (más de 1/3; sin quesos, más de 1/2)
-function starsFor() {
-  const frac = G.timeLeft / G.timeLimit, hasCheese = G.cheeseTotal > 0;
-  return 1 + ((hasCheese ? G.cheese >= G.cheeseTotal : frac > 1 / 3) ? 1 : 0) + ((hasCheese ? frac > 1 / 3 : frac > 1 / 2) ? 1 : 0);
+// Estrellas de Historia: ★ por escapar, ★★ por tardar menos de star2 y ★★★ por menos de star3 con todos los quesos
+function starsFor(time) {
+  const cheeseOk = !G.cheeseTotal || G.cheese >= G.cheeseTotal;
+  return 1 + (time <= G.star2 ? 1 : 0) + (time <= G.star3 && cheeseOk ? 1 : 0);
+}
+const fmtS = s => (Math.round(s * 10) / 10).toFixed(1).replace('.', ',') + ' s';   // 23,4 s
+// Tu próximo objetivo (según las mejores estrellas que tenés en el nivel)
+function nextGoal(stars, best) {
+  if (stars <= 1) return [`Menos de ${G.star2} segundos`, 'Conseguí la segunda estrella.'];
+  if (stars === 2) return [G.cheeseTotal ? `Los ${G.cheeseTotal} quesos en menos de ${G.star3} segundos` : `Menos de ${G.star3} segundos`, 'Conseguí la tercera estrella.'];
+  return [`Bajá tu récord de ${fmtS(best)}`, '¡Ya tenés las tres estrellas!'];
 }
 // Aviso de premio en el cartel de fin de nivel (como el "Get a prize!" del Crossy Road): si te alcanzan las monedas,
 // un botón directo a la Máquina; si no, una barrita con cuánto te falta. Se actualiza al volver de la Máquina.
@@ -2324,15 +2429,35 @@ function refreshPrize() { const el = document.getElementById('prizeSlot'); if (e
 function showWinCard() {
   G.winCard = true;
   if (G.mode === 'story') {
-    const st = starsFor(), last = G.story >= LEVELS.length - 1;
-    Story.finish(G.story, st);
+    // resultados: estrellas, tu tiempo y el mejor, el próximo objetivo, las monedas (las juntadas y las de estrellas
+    // nuevas), la máquina, repetir el laberinto y los accesos al siguiente nivel y a los niveles
+    const time = G.timeLimit - G.timeLeft, st = starsFor(time), last = G.story >= LEVELS.length - 1;
+    const prev = Story.finish(G.story, st, time), best = Story.data.best[G.story], bestStars = Story.data.stars[G.story];
+    const record = prev.best != null && time < prev.best - 0.05;
+    const bonus = Math.max(0, st - prev.stars) * STAR_COINS;
+    if (bonus) Wallet.add(bonus);
+    const coins = G.runCoins + bonus, [goal, goalSub] = nextGoal(bestStars, best);
+    const cheeseIco = document.querySelector('#cheese svg').outerHTML;
+    // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
+    const stars = [0, 1, 2].map(k => `<i class="${k < st ? 'on' : ''}" style="--d:${0.25 + k * 0.22}s">★</i>`).join('');
     card(`<h1>¡ESCAPASTE!</h1>
-      <div class="stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></div>
-      <p>${G.cheeseTotal ? `Quesos: <b>${G.cheese}/${G.cheeseTotal}</b> · ` : ''}Te sobraron <b>${Math.floor(G.timeLeft)} s</b></p>
-      ${G.runCoins ? `<p>${COIN_ICON} <b>+${G.runCoins}</b> monedas</p>` : ''}
+      <p class="lvlname">Nivel ${G.level} · ${LEVELS[G.story].name}</p>
+      <div class="rstars">${stars}</div>
+      <div class="times">
+        <div class="tcell"><small>Tu tiempo</small><b>${fmtS(time)}</b></div>
+        <div class="tcell best"><small>Tu récord</small><b>${fmtS(best)}</b></div>
+        ${record ? '<span class="stamp">¡Récord!</span>' : ''}
+      </div>
+      <div class="chips">
+        <span class="chip">${COIN_ICON} <b>+${coins}</b>${bonus ? ` <small>· ${bonus} por estrella${bonus > STAR_COINS ? 's' : ''} nueva${bonus > STAR_COINS ? 's' : ''}</small>` : ''}</span>
+        <span class="chip"><small>juntaste</small> <b>${G.runCoins}/${G.coinsTotal}</b> ${COIN_ICON}</span>
+        ${G.cheeseTotal ? `<span class="chip">${cheeseIco} <b>${G.cheese}/${G.cheeseTotal}</b></span>` : ''}
+      </div>
+      <div class="note"><small>Próximo objetivo</small><b>${goal}</b><span>${goalSub}</span></div>
       <div id="prizeSlot">${prizeBlock()}</div>
       ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
-      <div class="menu">${last ? '' : '<button class="cbtn" data-act="next">Siguiente nivel</button>'}<button class="cbtn alt" data-act="levels">Niveles</button></div>
+      <div class="menu"><button class="cbtn alt" data-act="retry">Repetir laberinto</button></div>
+      <div class="minis">${last ? '' : '<button class="mini" data-act="next">Siguiente nivel ›</button>'}<button class="mini" data-act="levels">Niveles</button></div>
       ${isTouch ? '' : go(last ? 'volver a los niveles' : 'el siguiente nivel')}`);
     return;
   }
@@ -2392,6 +2517,7 @@ function act(a, el) {
   else if (a === 'level') { loadStory(+el.dataset.i); showIntro(); }
   else if (a === 'next') { loadStory(G.story + 1); showIntro(); }
   else if (a === 'levels') showSelect();
+  else if (a === 'retry') { G.attempts++; resetRun(); startPlay(); }   // el mismo laberinto, de nuevo
   else if (a === 'back') { if (G.screen) { G.screen = null; closeScreen(); refreshPrize(); updateButtons(); } else showTitle(); }
   else if (a === 'menu') { Music.resume(); showTitle(); }
   else if (a === 'ratitas') showRatitas(el);
@@ -2609,9 +2735,10 @@ function updateItems() {
     } else if (it.type === 'coin' && !it.got) {
       if (Math.hypot(M.x + ca * 6 - it.x, M.y + sa * 6 - it.y) < 23) {
         it.got = true; G.runCoins++; Wallet.add(1); Snd.coin(); pop($coins);
-        for (let k = 0; k < 7; k++) {
-          const a = Math.random() * Math.PI * 2, v = 25 + Math.random() * 45;
-          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.3 + Math.random() * 0.2 });
+        for (let k = 0; k < 8; k++) {
+          const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
+          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.3 + Math.random() * 0.25,
+            sq: true, s: 1.6 + Math.random() * 1.6, rot: Math.PI / 4, vr: (Math.random() - 0.5) * 6 });
         }
       }
     } else if (it.type === 'cheese' && !it.got) {
@@ -3113,23 +3240,35 @@ function drawPrints(c) {
   }
 }
 
-// Moneda plateada (como el diseño de concept/coin.png, simplificada y sin borde): dos ranuras oscuras horizontales y una
-// barra clara que la cruza por el medio. Gira sobre sí misma: se angosta y deja ver el canto más oscuro de un lado.
-const COIN_R = 8;
+// Moneda plateada (el diseño de COIN_BANDS, sin borde): dos ranuras de lado a lado. Gira sobre sí misma como un cilindro
+// chato: la cara se angosta con el coseno del giro y el canto (el costado) se ensancha con el seno, así de canto queda
+// solo el rectángulo del costado. Las ranuras siguen por el canto (línea oscura y fondo gris, sin la línea clara).
+const COIN_R = 8, COIN_T = COIN_R * 0.24;   // radio y espesor
+const COIN_ROLL = 1.1;                      // radianes por segundo que rota sobre su centro
+let coinBack = null;   // colores de la cara de atrás (los mismos, más oscuros); se arman la primera vez
 function drawCoin(c, it) {
-  const s = Math.cos(G.time * 3 + it.ph), w = Math.max(0.16, Math.abs(s)), edge = (1 - w) * 2.2 * Math.sign(s || 1), R = COIN_R;
-  c.save(); c.translate(it.x, it.y);
-  c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(1.4, 2.6, R * Math.max(w, 0.45), R * 0.75, 0, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#6c737b'; c.beginPath(); c.ellipse(edge, 0, R * w, R, 0, 0, Math.PI * 2); c.fill();          // canto
-  c.scale(w, 1);
-  c.fillStyle = '#a3abb3'; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();                        // cara
-  c.save(); c.beginPath(); c.arc(0, 0, R * 0.91, 0, Math.PI * 2); c.clip();
-  c.fillStyle = '#4b515a'; c.fillRect(-R, -R * 0.53, R * 2, R * 0.25); c.fillRect(-R, R * 0.21, R * 2, R * 0.26);   // ranuras
+  // gira más lento al pasar de canto (sin frenarse) y normal cuando muestra una cara: el ángulo avanza parejo (f) pero
+  // se deforma con un seno doble, así la velocidad es 1,56 de frente y 0,44 de canto
+  const f = G.time * 3 + it.ph, th = f + 0.28 * Math.sin(2 * f), w = Math.abs(Math.cos(th)), d = COIN_T * Math.sin(th), R = COIN_R;
+  if (!coinBack) coinBack = { face: mixC(COIN_FACE, '#000000', 0.32), bands: COIN_BANDS.map(([a, b, col]) => [a, b, mixC(col, '#000000', 0.32)]) };
+  const back = Math.cos(th) < 0, face = back ? coinBack.face : COIN_FACE, bands = back ? coinBack.bands : COIN_BANDS;   // al girar se ve una cara y después la otra
+  // además rota despacio sobre su centro, como si tuviera un pivote en el medio (el eje del giro va dando vueltas)
+  const spin = G.time * COIN_ROLL + it.ph * 1.7;
+  c.save(); c.translate(it.x + 1.4, it.y + 2.6); c.rotate(spin);   // sombra (corrida siempre para el mismo lado)
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(d / 2, 0, R * w + Math.abs(d) / 2 + 1, R * 0.8, 0, 0, Math.PI * 2); c.fill();
   c.restore();
-  c.save(); c.beginPath(); c.arc(0, 0, R * 0.98, 0, Math.PI * 2); c.clip();
-  c.fillStyle = '#bcc3ca'; c.fillRect(-R, -R * 0.29, R * 2, R * 0.5);                                         // barra del medio
-  c.fillStyle = '#e1e6ea'; c.fillRect(-R, -R * 0.29, R * 2, R * 0.08);                                         // su brillo
-  c.fillStyle = '#d3d9de'; c.fillRect(-R, R * 0.47, R * 2, R * 0.06);
+  c.save(); c.translate(it.x, it.y); c.rotate(spin);
+  // canto: la banda entre la cara de adelante y la de atrás (corrida d)
+  c.beginPath(); c.ellipse(d, 0, R * w + 0.01, R, 0, 0, Math.PI * 2); c.rect(Math.min(0, d), -R, Math.abs(d), R * 2);
+  c.fillStyle = '#7b838d'; c.fill();
+  c.save(); c.clip();
+  for (const [a, b, col] of COIN_BANDS) if (col !== '#e1e6ea') { c.fillStyle = col; c.fillRect(-R - COIN_T, a * R, (R + COIN_T) * 2, (b - a) * R + 0.05); }
+  c.restore();
+  if (w < 0.02) { c.restore(); return; }   // de canto: solo el costado
+  c.scale(w, 1);
+  c.fillStyle = face; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();                             // cara (la de atrás, más oscura)
+  c.save(); c.clip();                                                                                     // las ranuras
+  for (const [a, b, col] of bands) { c.fillStyle = col; c.fillRect(-R, a * R, R * 2, (b - a) * R + 0.05); }
   c.restore();
   c.restore();
 }
@@ -3348,9 +3487,11 @@ function drawMouse(c, alpha) {
       c.strokeStyle = S.eyeShut; c.lineWidth = 0.6; c.lineCap = 'round'; c.beginPath();
       c.moveTo(ex, sy * 1.9); c.quadraticCurveTo(ex - 0.9, sy * 2.9, ex, sy * 3.9); c.stroke();
     } else {
-      const eg = c.createRadialGradient(ex, sy * 2.9, 0.4, ex, sy * 2.9, 2.8);   // brillo rojo alrededor
-      eg.addColorStop(0, `rgba(${S.eyeRgb},0.55)`); eg.addColorStop(1, `rgba(${S.eyeRgb},0)`);
-      c.fillStyle = eg; c.beginPath(); c.arc(ex, sy * 2.9, 2.8, 0, Math.PI * 2); c.fill();
+      if (S.eyeGlow) {   // brillo rojo alrededor (solo la Albina)
+        const eg = c.createRadialGradient(ex, sy * 2.9, 0.4, ex, sy * 2.9, 2.8);
+        eg.addColorStop(0, `rgba(${S.eyeGlow},0.55)`); eg.addColorStop(1, `rgba(${S.eyeGlow},0)`);
+        c.fillStyle = eg; c.beginPath(); c.arc(ex, sy * 2.9, 2.8, 0, Math.PI * 2); c.fill();
+      }
       c.fillStyle = S.eyes; c.beginPath(); c.arc(ex, sy * 2.9, 1.1, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(ex + 0.4, sy * 2.5, 0.38, 0, Math.PI * 2); c.fill();
     }
@@ -3469,9 +3610,16 @@ function render() {
     ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(lx - 12, ly - 12, 24, 24);
     ctx.globalCompositeOperation = 'source-over';
   }
-  // migas de queso al agarrarlo
+  // migas de queso al agarrarlo, y chispitas blancas (rombos que giran y se achican) al agarrar una moneda
   for (const p of G.fx) {
-    ctx.fillStyle = `rgba(245, 205, 80, ${1 - p.t / p.life})`;
+    const k = 1 - p.t / p.life;
+    if (p.sq) {
+      const sz = p.s * (0.4 + 0.6 * k);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot + p.vr * p.t);
+      ctx.fillStyle = `rgba(255,255,255,${k})`; ctx.fillRect(-sz / 2, -sz / 2, sz, sz); ctx.restore();
+      continue;
+    }
+    ctx.fillStyle = `rgba(245, 205, 80, ${k})`;
     ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); ctx.fill();
   }
 
@@ -3515,7 +3663,7 @@ function render() {
 // Muestra los items grandes y bien iluminados sobre el cartón, para revisar y corregir los diseños.
 const GALLERY = /galeria/i.test(location.search + location.hash);
 function renderGallery() {
-  const w = cv.width, h = cv.height, cols = w > h ? 3 : 2, rows = Math.ceil(6 / cols), CELL = 64;
+  const w = cv.width, h = cv.height, cols = w > h ? 4 : 2, rows = Math.ceil(8 / cols), CELL = 64;
   const s = Math.min(w / cols, h / rows) / CELL;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
@@ -3531,6 +3679,8 @@ function renderGallery() {
     ['Pegamento', p => drawSticky(ctx, { x: p[0] - TRAY_L / 2, y: p[1] - TRAY_W / 2, w: TRAY_L, h: TRAY_W })],
     ['Queso', p => drawCheese(ctx, { x: p[0], y: p[1], rot: -0.3 })],
     ['Queso (otro ángulo)', p => drawCheese(ctx, { x: p[0], y: p[1], rot: 2.2 })],
+    ['Moneda (girando)', p => drawCoin(ctx, { x: p[0], y: p[1], ph: 0 })],
+    ['Moneda (de frente)', p => drawCoin(ctx, { x: p[0], y: p[1], ph: -G.time * 3 })],
     ['Ratón (escala)', p => { const keep = { x: M.x, y: M.y, a: M.a, tail: M.tail, feet: M.feet }; Object.assign(M, { x: p[0] + 6, y: p[1], a: Math.PI, tail: null, feet: null }); updateTail(0); drawMouse(ctx, 1); Object.assign(M, keep); }],
   ];
   list.forEach(([name, draw], i) => {
@@ -3545,6 +3695,185 @@ function renderGallery() {
 
 // ===================== GALERÍA DE RATITAS (index.html?ratas) =====================
 // Las 20 ratitas en sus jaulas, en estantes, todas desbloqueadas y animadas, para revisar los colores.
+// Ratita de frente, en dos poses armadas con LAS MISMAS piezas (cabeza, panza, orejas, ojos, nariz, boca, bigotes,
+// bracitos, manitos, patas y cola): sentada (curl = 0, como la referencia que mandó el usuario) y hecha bolita
+// (curl = 1). Entre una y otra cada pieza se desplaza, gira y cambia de tamaño de a poco, así no se nota un cambio de
+// dibujo: se ve cómo la bolita se desarma y se acomoda sentada. Los colores salen de portraitOf / skinOf, así sirve para
+// cualquier ratita. (cx, cy) es el centro del cuerpo y size la altura sentada. t la anima (respira, parpadea, mueve una
+// oreja, la cola y los bigotes) y land (segundos desde que tocó el piso) hace el rebote al caer.
+const lerp = (a, b, u) => a + (b - a) * u, lerp2 = (p, q, u) => [lerp(p[0], q[0], u), lerp(p[1], q[1], u)];
+// contorno de la panza sentada (campana con muslos largos), muestreado en FRONT_N puntos parejos desde abajo al medio
+// hacia la izquierda; la bolita usa un círculo muestreado igual, así los puntos se corresponden
+const FRONT_N = 96;
+const BELLY_PTS = (() => {
+  const segs = [[[590, 1092], [322, 1092]], [[322, 1092], [262, 1092], [232, 1045], [233, 975]], [[233, 975], [234, 905], [258, 852], [286, 818]],
+    [[286, 818], [300, 760], [316, 700], [342, 648]], [[342, 648], [838, 648]], [[838, 648], [864, 700], [880, 760], [894, 818]],
+    [[894, 818], [922, 852], [946, 905], [947, 975]], [[947, 975], [948, 1045], [918, 1092], [858, 1092]], [[858, 1092], [590, 1092]]];
+  const at = (s, u) => s.length === 2 ? lerp2(s[0], s[1], u) : (() => { const v = 1 - u; return [0, 1].map(k => v * v * v * s[0][k] + 3 * v * v * u * s[1][k] + 3 * v * u * u * s[2][k] + u * u * u * s[3][k]); })();
+  const dense = []; for (const s of segs) for (let n = 0; n < 40; n++) dense.push(at(s, n / 40));
+  const len = [0]; for (let n = 1; n < dense.length; n++) len.push(len[n - 1] + Math.hypot(dense[n][0] - dense[n - 1][0], dense[n][1] - dense[n - 1][1]));
+  const total = len[len.length - 1] + Math.hypot(dense[0][0] - dense[dense.length - 1][0], dense[0][1] - dense[dense.length - 1][1]);
+  const out = []; let j = 0;
+  for (let n = 0; n < FRONT_N; n++) { const L = n / FRONT_N * total; while (j < len.length - 1 && len[j + 1] < L) j++; out.push(dense[j]); }
+  return out;
+})();
+const BALL_C = [590, 700], BALL_R = 300;
+const FRONT_CY = [624, 700];   // centro del cuerpo: sentada / bolita (lo que se ubica en (cx, cy))
+function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0) {
+  const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line, u = clamp(curl, 0, 1), m = (a, b) => lerp(a, b, u), m2 = (a, b) => lerp2(a, b, u);
+  const breath = 1 + lerp(0.014, 0.02, u) * Math.sin(t * 2.6), blink = t > 0 && (t % 3.7) < 0.13;
+  const tw = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.12 : 0;   // oreja que se mueve
+  const sway = t > 0 ? Math.sin(t * 1.4) * (1 - u) : 0, wh = t > 0 ? Math.sin(t * 9) * 1.5 * ((t % 2.9) < 0.5 ? 1 : 0) : 0;
+  // Aterrizaje: rebotes amortiguados encadenados (cuerpo → manitos → cabeza → nariz → bigotes); las patas no se mueven
+  const L = land >= 0 && land < 1.8 ? land : -1;
+  const reb = (d, lam, w) => { const v = L - d; return L < 0 || v <= 0 ? 0 : Math.exp(-lam * v) * Math.sin(w * v); };
+  const sqB = 0.2 * reb(-0.03, 5.5, 13), sqH = 0.2 * reb(0.03, 5.5, 13);
+  const headDy = 60 * reb(0.06, 5, 11), noseDy = 30 * reb(0.12, 5, 12), whDy = 40 * reb(0.17, 4.5, 12);
+  const earR = 0.22 * reb(0.08, 4.5, 10), tailB = 34 * reb(0.06, 4, 9), squint = L >= 0 && L < 0.14;
+  const k = size / 935;
+  c.save(); c.translate(cx, cy); c.scale(k, k); c.translate(-590, -m(FRONT_CY[0], FRONT_CY[1]));
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  const squash = sq => { c.translate(590, 1092); c.scale(1 + 0.8 * sq, (1 - sq) * breath); c.translate(-590, -1092); };
+  const sqPt = (sq, p) => [590 + (p[0] - 590) * (1 + 0.8 * sq), 1092 - (1092 - p[1]) * (1 - sq) * breath];
+  const taper = (pts, w0, w1, tip) => {   // forma de cola: los dos bordes a lo largo de los puntos, el ancho va bajando
+    const L1 = [], L2 = [], N = pts.length - 1;
+    pts.forEach((pt, n) => {
+      const a = pts[Math.max(0, n - 1)], b = pts[Math.min(N, n + 1)], dx = b[0] - a[0], dy = b[1] - a[1], dl = Math.hypot(dx, dy) || 1;
+      const hw = (w0 - (w0 - w1) * Math.pow(n / N, 0.8)) / 2;
+      L1.push([pt[0] - dy / dl * hw, pt[1] + dx / dl * hw]); L2.push([pt[0] + dy / dl * hw, pt[1] - dx / dl * hw]);
+    });
+    const end = pts[N], pre = pts[N - 1], ea = Math.atan2(end[1] - pre[1], end[0] - pre[0]);
+    c.beginPath(); c.moveTo(...L1[0]); L1.forEach(q => c.lineTo(...q)); c.arc(end[0], end[1], tip, ea + Math.PI / 2, ea - Math.PI / 2, true);
+    for (let n = L2.length - 1; n >= 0; n--) c.lineTo(...L2[n]); c.closePath(); c.fill();
+  };
+  // --- cola (atrás): sentada sale del costado derecho, sube y se curva; hecha bolita abraza la bola por abajo ---
+  const segs = [[[850, 1046], [1060, 1050], [1185 + 10 * sway, 965 + tailB * 0.3], [1172 + 12 * sway, 850 + tailB * 0.6]],
+    [[1172 + 12 * sway, 850 + tailB * 0.6], [1155 + 10 * sway, 760 + tailB * 0.8], [1062 + 14 * sway, 712 - 6 * sway + tailB], [960 + 18 * sway, 703 - 8 * sway + tailB]]];
+  const bz = (q, v) => { const w = 1 - v; return [0, 1].map(kk => w * w * w * q[0][kk] + 3 * w * w * v * q[1][kk] + 3 * w * v * v * q[2][kk] + v * v * v * q[3][kk]); };
+  const tp = [];
+  for (let n = 0; n <= 40; n++) {
+    const v = n / 40, sg = v < 0.5 ? 0 : 1, sit = bz(segs[sg], sg ? v * 2 - 1 : v * 2);
+    const an = 0.25 + v * 2.2, ball = [BALL_C[0] + Math.cos(an) * 322, BALL_C[1] + Math.sin(an) * 318];
+    tp.push(m2(sit, ball));
+  }
+  c.fillStyle = P.paws; taper(tp, m(44, 38), m(11, 10), 5.5);
+  // --- cuerpo y cabeza (con el aplastado del aterrizaje) ---
+  c.save(); squash(sqB);
+  // orejas (atrás de la cabeza): sentada grandes y redondas; hecha bolita aplastadas hacia los costados
+  for (const sd of [-1, 1]) {
+    c.save(); c.translate(0, headDy);
+    const ec = m2([590 + sd * 252, 315], [590 + sd * 247, 412]), rot = m(0, sd * 0.75) + (sd === 1 ? tw : 0) + sd * earR;
+    c.translate(...ec); c.rotate(rot);
+    c.fillStyle = P.ear; c.beginPath(); c.ellipse(0, 0, m(155, 102), m(155, 84), 0, 0, Math.PI * 2); c.fill();
+    const iy = m(25, 16), irx = m(96, 64), iry = m(96, 51);
+    c.fillStyle = P.earDark; c.beginPath(); c.ellipse(0, iy, irx, iry, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = P.earLine; c.lineWidth = 6; c.beginPath(); c.ellipse(0, iy, irx - 4, iry - 4, 0, Math.PI * 1.03, Math.PI * 1.97); c.stroke();
+    c.restore();
+  }
+  // panza: de la campana sentada a la bola (punto a punto)
+  const belly = new Path2D();
+  BELLY_PTS.forEach((p, n) => { const an = Math.PI / 2 + n / FRONT_N * Math.PI * 2, q = m2(p, [BALL_C[0] + Math.cos(an) * BALL_R, BALL_C[1] + Math.sin(an) * BALL_R]); n ? belly.lineTo(...q) : belly.moveTo(...q); });
+  belly.closePath();
+  c.fillStyle = fur; c.fill(belly);
+  if (S.spots) { c.save(); c.clip(belly); c.fillStyle = S.spots; c.beginPath(); c.ellipse(...m2([800, 930], [763, 845]), m(120, 100), m(95, 77), 0.3, 0, Math.PI * 2); c.fill(); c.restore(); }
+  // cabeza (se mueve sola, encima de la panza)
+  c.translate(0, headDy);
+  const hc = m2([590, 520], [590, 650]), head = new Path2D(); head.arc(hc[0], hc[1], m(282, 255), 0, Math.PI * 2);
+  c.fillStyle = fur; c.fill(head);
+  if (S.spots) { c.save(); c.clip(head); c.fillStyle = S.spots; c.beginPath(); c.ellipse(...m2([455, 515], [476, 582]), m(70, 64), m(60, 55), -0.2, 0, Math.PI * 2); c.fill(); c.restore(); }
+  c.restore();
+  // --- patas de atrás: sentada apoyadas (base recta), hecha bolita metidas abajo de la bola ---
+  for (const sd of [-1, 1]) {
+    const fc = m2([590 + sd * 225, 1068], [590 + sd * 114, 864]);
+    c.save(); c.beginPath(); c.rect(fc[0] - 160, fc[1] - 140, 320, m(1092, 1400) - (fc[1] - 140)); c.clip();
+    c.fillStyle = P.paws; c.beginPath(); c.ellipse(fc[0], fc[1], m(106, 71), m(62, 42), m(0, sd * 0.15), 0, Math.PI * 2); c.fill(); c.restore();
+    c.strokeStyle = P.earLine; c.lineWidth = 5;
+    for (const dx of [-14, 14]) {
+      const a = m2([fc[0] + sd * 50 + dx - sd * 12, fc[1] - 18], [fc[0] - sd * 27 + dx, fc[1] - 9]), b = m2([fc[0] + sd * 50 + dx, fc[1] + 20], [fc[0] - sd * 33 + dx, fc[1] + 25]);
+      c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
+    }
+  }
+  // --- la cara (va con el cuerpo y la cabeza) ---
+  c.save(); squash(sqB); c.translate(0, headDy);
+  // ojos: abiertos sentada; hecha bolita cerrados (rayitas), y se acomodan de lugar
+  const closed = blink || squint || u > 0.45;
+  for (const sd of [-1, 1]) {
+    const e = m2([590 + sd * 137, 517], [590 + sd * 111, 598]), er = m(38, 30);
+    if (closed) { c.strokeStyle = S.eyeShut; c.lineWidth = 7; c.beginPath(); c.arc(e[0], e[1] - er * 0.33, er * 0.8, 0.35, Math.PI - 0.35); c.stroke(); continue; }
+    c.fillStyle = S.eyes; c.beginPath(); c.arc(e[0], e[1], er, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(e[0] + 10, e[1] - 14, 11, 0, Math.PI * 2); c.fill();
+  }
+  // nariz y boca en "ω" (la boca se esconde detrás de las manitos en la bolita)
+  const nc = m2([590, 598], [590, 671]), ns = m(1, 0.8);
+  c.save(); c.translate(nc[0], nc[1] + noseDy); c.scale(ns, ns); c.translate(-590, -598);
+  c.fillStyle = P.nose; c.beginPath();
+  c.moveTo(560, 578); c.quadraticCurveTo(590, 568, 620, 578); c.quadraticCurveTo(636, 586, 622, 602);
+  c.quadraticCurveTo(598, 628, 590, 628); c.quadraticCurveTo(582, 628, 558, 602); c.quadraticCurveTo(544, 586, 560, 578); c.fill();
+  if (u < 1) {
+    c.globalAlpha *= 1 - u; c.strokeStyle = ink; c.lineWidth = 5;
+    c.beginPath(); c.moveTo(590, 628); c.lineTo(590, 640); c.quadraticCurveTo(578, 668, 550, 670); c.stroke();
+    c.beginPath(); c.moveTo(590, 640); c.quadraticCurveTo(602, 668, 628, 670); c.stroke();
+  }
+  c.restore();
+  // bigotes: tres de cada lado en abanico; en la bolita más cortitos
+  c.strokeStyle = ink; c.lineWidth = 4.5;
+  const WS = [[[590, 568, 330, 560], [677, 667, 223, 650]], [[604, 592, 352, 606], [691, 692, 223, 693]], [[620, 628, 326, 668], [704, 720, 223, 736]]];
+  for (const sd of [-1, 1]) for (const [A, B] of WS) {
+    const y0 = m(A[0], B[0]), cyy = m(A[1], B[1]), ex = m(A[2], B[2]), ey = m(A[3], B[3]), x0 = 590 + sd * m(100, 86), cxx = 590 + sd * m(225, 155);
+    c.beginPath(); c.moveTo(x0, y0 + noseDy * 0.5); c.quadraticCurveTo(cxx, cyy + whDy * 0.6, 590 + sd * ex, ey + wh + whDy * 1.3); c.stroke();
+  }
+  c.restore();
+  // --- bracitos: del hombro (con el cuerpo) a la manito (con las manitos); en la bolita suben hasta la boca ---
+  const hand = sd => ({ c: m2([590 + sd * 78, 880], [590 + sd * 47, 725]), rx: m(60, 45), ry: m(43, 36), rot: m(-sd * 0.75, sd * 0.5) });
+  c.strokeStyle = P.legLine; c.lineWidth = 6;
+  for (const sd of [-1, 1]) {
+    const a = sqPt(sqB, m2([590 + sd * 207, 760], [590 + sd * 205, 760])), mm = sqPt((sqB + sqH) / 2, m2([590 + sd * 202, 852], [590 + sd * 200, 700]));
+    const b = sqPt(sqH, m2([590 + sd * 124, 864], [590 + sd * 85, 738]));
+    c.beginPath(); c.moveTo(...a); c.quadraticCurveTo(...mm, ...b); c.stroke();
+  }
+  // --- manitos (siguen el aplastado un poquito desfasadas): sentada juntas abajo, hecha bolita tapando la boca ---
+  c.save(); squash(sqH);
+  for (const sd of [-1, 1]) {
+    const h = hand(sd);
+    c.fillStyle = P.paws; c.beginPath(); c.ellipse(h.c[0], h.c[1], h.rx, h.ry, h.rot, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = P.earLine; c.lineWidth = 5;
+    for (const kk of [0, 1]) {   // dos deditos: sentada para abajo y hacia el medio, hecha bolita para arriba
+      const o = m2([-sd * (2 + 20 * kk), 4 - 10 * kk], [-sd * (4 + 16 * kk), -7 + 5 * kk]), d = m2([-sd * 12, 36], [-sd * 7, -27]);
+      c.beginPath(); c.moveTo(h.c[0] + o[0], h.c[1] + o[1]); c.lineTo(h.c[0] + o[0] + d[0], h.c[1] + o[1] + d[1]); c.stroke();
+    }
+  }
+  c.restore();
+  c.restore();
+}
+// sentada, con (x, y) en el piso al medio y size la altura total
+function drawRatFront(c, x, y, size, i, t = 0, land = -1) { drawRatFrontPose(c, x, y - size * (1092 - FRONT_CY[0]) / 935, size, i, t, land, 0); }
+// hecha bolita, con (x, y) en el centro y size el ancho de la bola
+function drawRatFrontBall(c, x, y, size, i, t = 0) { drawRatFrontPose(c, x, y, size * 935 / (BALL_R * 2), i, t, -1, 1); }
+// Galerías para revisar los colores de las 20 ratitas (no son parte del juego): cada una en su casillero, con el número,
+// el nombre y los colores que usa (piel y orejas, de portraitOf). index.html?frente: de frente, sentadas;
+// index.html?retratos: el retrato de costado de la pantalla de Ratitas, sin la jaula.
+function ratGrid(bg, draw) {
+  const w = cv.width, h = cv.height, cols = w > h ? 5 : 4, rows = Math.ceil(RATS.length / cols), cw = w / cols, ch = h / rows;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const fs = Math.max(11, Math.min(cw, ch) * 0.065);
+  RATS.forEach((r, i) => {
+    const x0 = (i % cols) * cw, y0 = Math.floor(i / cols) * ch, P = portraitOf(i);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y0 + 0.5, cw - 1, ch - 1);
+    draw(x0, y0, cw, ch - fs * 2.6, i);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.fillStyle = '#2a2a2a';
+    ctx.font = `${fs}px 'Permanent Marker', cursive`; ctx.fillText(`${i} · ${r[0]}`, x0 + cw / 2, y0 + ch - fs * 1.35);
+    ctx.font = `${fs * 0.72}px 'Special Elite', monospace`; ctx.fillText(`piel ${P.fur} · orejas ${P.ear}`, x0 + cw / 2, y0 + ch - fs * 0.35);
+  });
+}
+const FRONT_GALLERY = /frente/i.test(location.search + location.hash);
+function renderFrontGallery() {
+  ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(ch * 0.86, cw * 0.62); drawRatFront(ctx, x0 + cw * 0.46, y0 + (ch + sz) / 2, sz, i, G.time + i * 0.7); });
+}
+const PORTRAIT_GALLERY = /retratos/i.test(location.search + location.hash);
+function renderPortraitGallery() {
+  ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(cw * 0.8, ch * 1.25); drawRatPortrait(ctx, x0 + cw / 2, y0 + ch * 0.55, sz, i, G.time + i * 0.7); });
+}
 const RAT_GALLERY = /ratas/i.test(location.search + location.hash);
 function renderRatGallery() {
   const w = cv.width, h = cv.height, cols = w > h ? 5 : 4, rows = Math.ceil(RATS.length / cols);
@@ -3565,11 +3894,13 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (GALLERY) { G.time += dt; renderGallery(); return; }
   if (RAT_GALLERY) { G.time += dt; renderRatGallery(); return; }
+  if (FRONT_GALLERY) { G.time += dt; renderFrontGallery(); return; }
+  if (PORTRAIT_GALLERY) { G.time += dt; renderPortraitGallery(); return; }
   update(dt); render();
 }
 resize();
 showTitle();
-if (GALLERY || RAT_GALLERY) { $coins.style.display = 'none'; clearTimeout(cardTimer); $card.classList.add('hidden'); $hint.style.display = $hintTouch.style.display = 'none'; }
+if (GALLERY || RAT_GALLERY || FRONT_GALLERY || PORTRAIT_GALLERY) { document.getElementById('vignette').style.display = 'none'; $coins.style.display = 'none'; clearTimeout(cardTimer); $card.classList.add('hidden'); $hint.style.display = $hintTouch.style.display = 'none'; }
 requestAnimationFrame(frame);
 </script>
 </body>
