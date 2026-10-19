@@ -20,6 +20,7 @@
   #level { top: 8px; left: 50%; font-size: 15px; padding: 2px 12px 0; transform: translateX(-50%) rotate(-2deg); white-space: nowrap; z-index: 1; }
   #timer { top: 36px; left: 50%; font-size: 34px; transform: translateX(-50%) rotate(1.5deg); min-width: 92px; text-align: center; }
   #timer.warn { color: #b3140f; animation: pulse .5s ease-in-out infinite alternate; }
+
   @keyframes pulse { to { transform: translateX(-50%) rotate(1.5deg) scale(1.08); } }
   #hint { position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; }
   #hud.hidden, .hidden { display: none !important; }
@@ -41,8 +42,9 @@
   @keyframes levelPop { from { transform: rotate(-8deg) scale(.5); opacity: 0; } to { transform: rotate(-2deg) scale(1); opacity: 1; } }
   #level.pop { animation: lvlPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   @keyframes lvlPop { from { transform: translateX(-50%) rotate(-8deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(-2deg) scale(1); opacity: 1; } }
-  /* botón casita (volver al menú), arriba a la izquierda */
-  #btnHome { position: fixed; top: 12px; left: 14px; z-index: 5; transform: rotate(-2deg); }
+  /* botón casita (volver al menú), arriba a la izquierda; en los resultados de Historia, ahí mismo va la flechita a los niveles */
+  #btnHome, #btnBack { position: fixed; top: 12px; left: 14px; z-index: 5; transform: rotate(-2deg); }
+  #btnBack { z-index: 9; }   /* por encima de las pantallas negras (Ratitas) */
   @keyframes timerPop { from { transform: translateX(-50%) rotate(6deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(1.5deg) scale(1); opacity: 1; } }
   .btn.tape { transition: transform .12s; }
   .btn.tape:active { transform: scale(.85) !important; }
@@ -50,8 +52,7 @@
   #card h1.red { color: #8e1410; }
   #card p { margin: 8px 0; font-size: 16px; line-height: 1.4; }
   #card .big { font-family: 'Permanent Marker', cursive; font-size: 22px; }
-  #card .go { margin-top: 16px; font-size: 15px; animation: blink 1.1s steps(2) infinite; }
-  @keyframes blink { 50% { opacity: .35; } }
+
   kbd { display: inline-block; background: #e8dcc0; border: 1px solid #5a3e22; border-bottom-width: 3px; border-radius: 4px;
     padding: 0 6px; font-family: inherit; font-size: 13px; margin: 0 1px; }
   #card { z-index: 6; }   /* por encima del joystick, así los botones de la pausa se pueden tocar */
@@ -64,7 +65,9 @@
   .cbtn.alt { background: #c8b893; font-size: 17px; }
   .cbtn:hover { filter: brightness(1.06); }
   .cbtn:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 0 #6b4c2c; }
-  #card .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 14px 0 4px; max-height: 52vh; overflow-y: auto; padding: 4px 6px 8px; }
+  #card .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 14px 0 4px; max-height: 52vh; overflow-y: auto; padding: 4px 6px 8px;
+    scrollbar-width: none; }   /* se sigue pudiendo deslizar, pero sin la barra */
+  #card .levels::-webkit-scrollbar { display: none; }
   #card .lvl { background: #e2d6b8; border: 0; padding: 8px 4px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c;
     display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; color: #1e1208;
     -webkit-tap-highlight-color: transparent; }
@@ -79,7 +82,7 @@
   #card .small { font-size: 13px; opacity: .8; }
   /* resultados de Historia: en el estilo del juego (cartón, cinta, marcador), no como un formulario */
   #card .lvlname { margin: -4px 0 4px; font-size: 14px; letter-spacing: .5px; opacity: .7; }
-  #card .rstars { display: flex; justify-content: center; gap: 4px; margin: 2px 0 8px; }
+  #card .rstars { display: flex; justify-content: center; gap: 4px; margin: 2px 0 -10px; }   /* la estrella tiene aire abajo: así los tiempos quedan bien pegados */
   #card .rstars i { font-style: normal; font-size: 50px; line-height: 1; color: rgba(60,40,20,.22); }
   #card .rstars i.on { color: #f2b51e; text-shadow: 0 3px 0 #6b4c2c, 0 0 14px rgba(255,210,90,.55);
     animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
@@ -87,40 +90,45 @@
   #card .rstars i.on:nth-child(2) { animation-name: starDropMid; }
   @keyframes starDrop { from { transform: scale(2.4) rotate(-40deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
   @keyframes starDropMid { from { transform: translateY(-6px) scale(2.4) rotate(-40deg); opacity: 0; } to { transform: translateY(-6px) scale(1) rotate(0); opacity: 1; } }
-  #card .times { position: relative; display: flex; justify-content: center; gap: 10px; margin: 4px 0 10px; }
-  #card .tcell { flex: 1; max-width: 190px; background: #e2d6b8; padding: 6px 8px 4px; box-shadow: 0 3px 0 #6b4c2c; transform: rotate(-1.5deg); }
+  #card .times { position: relative; display: flex; justify-content: center; gap: 14px; margin: 4px 0 14px; }
+  #card .tcell { position: relative; flex: 1; max-width: 190px; background: #e2d6b8; padding: 6px 8px 4px; box-shadow: 0 3px 0 #6b4c2c; transform: rotate(-1.5deg); }
   #card .tcell.best { transform: rotate(1.2deg); background: #d4c6a2; }
   #card .tcell small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
   #card .tcell b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 30px; line-height: 1.15; }
-  #card .stamp { position: absolute; right: -8px; top: -27px; font-family: 'Permanent Marker', cursive; font-size: 18px; color: #b3140f;
-    border: 3px solid #b3140f; border-radius: 6px; padding: 0 8px; background: rgba(255,235,220,.55); transform: rotate(12deg);
-    animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
-  @keyframes stamp { from { transform: rotate(30deg) scale(2.2); opacity: 0; } to { transform: rotate(12deg) scale(1); opacity: 1; } }
-  #card .chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+  /* "¡Nuevo récord!": un sello rojo debajo de las estrellas */
+  /* "¡Nuevo récord!": un sello rojo justo arriba de tu tiempo (si no hay récord no queda hueco) */
+  #card .times.rec { margin-top: 22px; }
+  #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Permanent Marker', cursive; font-size: 20px; line-height: 1.15;
+    color: #b3140f; border: 3px solid #b3140f; border-radius: 7px; padding: 1px 10px 0; background: rgba(255,235,220,.6);
+    transform: translateX(-50%) rotate(-3deg); animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
+  @keyframes stamp { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-3deg) scale(1); opacity: 1; } }
+  @media (max-width: 480px) { #card .note b { font-size: 18px; } #card .tcell b { font-size: 26px; } }
+  #card .chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
   #card .chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(30,18,8,.18); border-radius: 20px; padding: 3px 12px; font-size: 15px; }
   #card .chip b { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 18px; }
   #card .chip small { font-size: 12px; opacity: .8; }
   #card .chip svg { width: 18px; height: 18px; }
-  #card .note { position: relative; margin: 6px auto 4px; max-width: 360px; background: #f3d66e; color: #2a1c08; padding: 12px 14px 8px;
+  #card .note { position: relative; margin: 30px auto 18px; max-width: 360px; background: #f3d66e; color: #2a1c08; padding: 24px 16px 16px;
     transform: rotate(-1deg); box-shadow: 0 4px 8px rgba(0,0,0,.3); }
-  #card .note::before { content: ''; position: absolute; left: 50%; top: -9px; width: 86px; height: 20px; transform: translateX(-50%) rotate(2deg);
+  #card .note::before { content: ''; position: absolute; left: 50%; top: -10px; width: 86px; height: 18px; transform: translateX(-50%) rotate(2deg);
     background: rgba(255,255,255,.45); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
   #card .note small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .65; }
   #card .note b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 21px; line-height: 1.2; margin: 2px 0; }
   #card .note span { font-size: 13px; opacity: .8; }
-  #card .minis { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
-  #card .mini { font: inherit; font-size: 14px; color: #1e1208; background: rgba(226,214,184,.7); border: 0; padding: 4px 12px; cursor: pointer;
-    box-shadow: 0 2px 0 #6b4c2c; transform: rotate(-1deg); -webkit-tap-highlight-color: transparent; }
-  #card .mini:nth-child(even) { transform: rotate(1deg); }
-  #card .mini:active { transform: translateY(2px); box-shadow: 0 0 0 #6b4c2c; }
-  #cheese { top: 66px; left: 14px; font-size: 20px; display: flex; align-items: center; gap: 6px; transform: rotate(1deg); padding: 3px 12px 1px; }
-  #cheese svg { width: 22px; height: 22px; }
+
+  #card .menu.res { margin-top: 24px; }
+  #card .menu.res .cbtn { font-size: 22px; width: 160px; height: 48px; padding: 2px 10px 0; display: inline-flex; align-items: center; justify-content: center; }   /* Repetir y Siguiente, del mismo tamaño */
+
+
+  /* columna de la izquierda: la casita (o la flechita), debajo las monedas y debajo el queso, más grandes */
+  #cheese { top: 114px; left: 14px; font-size: 24px; display: flex; align-items: center; gap: 7px; transform: rotate(1deg); padding: 3px 12px 1px; }
+  #cheese svg { width: 27px; height: 27px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
-  #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 20px; display: flex; align-items: center; gap: 6px;
+  #coins { position: fixed; top: 64px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* siempre acá: debajo de la casita / la flechita */
     transform: rotate(-1.5deg); padding: 3px 12px 1px; pointer-events: none; }
-  #coins.withHome { left: 66px; }
-  #coins .ci { width: 20px; height: 20px; }
+
+  #coins .ci { width: 25px; height: 25px; }
   #coins.pop { animation: coinPop .25s cubic-bezier(.2, .9, .3, 1.4) both; }
   @keyframes coinPop { from { transform: rotate(-1.5deg) scale(1.3); } to { transform: rotate(-1.5deg) scale(1); } }
   .ci { width: 1em; height: 1em; vertical-align: -0.14em; }
@@ -175,7 +183,6 @@
   #card .modes { margin-top: 12px; }
   #card .modes p { margin: 2px 0; font-size: 13.5px; line-height: 1.35; opacity: .85; text-wrap: balance; }
   #card .modes b { font-family: 'Permanent Marker', cursive; font-weight: normal; }
-  #card .shortcuts { margin-top: 10px; }
   #card table { margin: 10px auto 0; border-collapse: collapse; font-size: 14px; text-align: left; }
   #card td { padding: 2px 8px; }
 
@@ -207,13 +214,13 @@
     .rack::-webkit-scrollbar, #card .levels::-webkit-scrollbar, #card::-webkit-scrollbar { display: none; }
   }
   /* botón provisorio para probar: luz general en el laberinto (arriba a la izquierda, debajo de las monedas) */
-  #btnLight { position: fixed; top: 60px; left: 14px; z-index: 5; width: auto; padding: 0 10px; gap: 4px; display: flex;
+  #btnLight { position: fixed; top: 114px; left: 14px; z-index: 5; width: auto; padding: 0 10px; gap: 4px; display: flex;
     font-family: 'Permanent Marker', cursive; font-size: 14px; transform: rotate(1.5deg); }
   #btnLight.on { background: #ffe17a; }
   @media (max-width: 560px) {
     #level { top: 62px; font-size: 13px; }
     #timer { top: 84px; font-size: 26px; }
-    #cheese { top: 64px; font-size: 16px; }
+    #cheese { top: 112px; font-size: 21px; }
     #card .levels { grid-template-columns: repeat(4, 1fr); gap: 7px; }
     #card .lvl b { font-size: 21px; }
     #card .lvl small { font-size: 9px; }
@@ -235,6 +242,7 @@
   <button id="btnHome" class="btn tape" type="button" title="Volver al menú"></button>
   <div id="level" class="tape">NIVEL 1</div>
   <div id="timer" class="tape">0:00</div>
+
   <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><path d="M2 17 L21 7 L22 17 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 17 L22 17 L22 20 L2 20 Z" fill="#d9a62e" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><circle cx="14" cy="13.5" r="1.6" fill="#c98f1d"/><circle cx="18.5" cy="12" r="1.1" fill="#c98f1d"/></svg><span id="cheeseN">0/5</span></div>
 </div>
 <div id="coins" class="tape"><span id="coinsIco"></span><span id="coinsN">0</span></div>
@@ -243,6 +251,7 @@
 <div id="stickZone"></div>
 <div id="stick"><div id="knob"></div></div>
 <button id="btnLight" class="btn tape hidden" type="button" title="Luz general para probar (no cambia la linterna)"></button>
+<button id="btnBack" class="btn tape hidden" type="button" title="Niveles" aria-label="Niveles"></button>
 <div id="topbtns">
   <button id="btnPause" class="btn tape hidden" type="button"></button>
   <button id="btnMusic" class="btn tape" type="button"></button>
@@ -375,6 +384,7 @@ const LEVELS = [
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
+const UNLOCK_ALL = true;   // provisorio, para probar: todos los niveles de Historia desbloqueados (después va false)
 
 // Progreso de Historia (niveles desbloqueados, mejores estrellas y mejor tiempo de cada nivel), guardado en el navegador
 const Story = {
@@ -470,6 +480,7 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 function smooth(e0, e1, x) { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); }
 function mk(w, h) { const c = document.createElement('canvas'); if (w) { c.width = w; c.height = h; } return [c, c.getContext('2d')]; }
 function fmt(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function fmtUp(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }   // reloj que sube (redondea para abajo)
 
 // ===================== SONIDO (todo sintetizado) =====================
 const Snd = {
@@ -1261,6 +1272,13 @@ function buildMaze(W, H, seed, loopFrac) {
   return rng;
 }
 // Desafío: niveles infinitos al azar (la semilla de la partida cambia cada vez)
+// Tiempos de las estrellas (los dos modos): desde el camino ideal (el más corto, a velocidad máxima) con un margen, más
+// el extra por quesos y pegamento. ★★ por debajo de star2 y ★★★ por debajo de star3 (y con todos los quesos)
+function starTimes(extra) {
+  const ideal = pathLen(G.maze) * C / SPEED, niceT = x => x < 20 ? Math.ceil(x) : Math.ceil(x / 5) * 5;
+  G.star2 = Math.min(niceT(ideal * 1.8 + extra * 1.3 + 3), G.timeLimit - 5);   // (+3 y +2 fijos: las vueltas cuestan, sobre todo en laberintos chicos)
+  G.star3 = Math.min(niceT(ideal * 1.3 + extra + 2), G.star2 - 5);
+}
 function loadLevel(n) {
   G.mode = 'challenge'; G.level = n; G.viewLevel = n;
   const [W, H] = sizeFor(n);
@@ -1268,7 +1286,8 @@ function loadLevel(n) {
   G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777); G.runCoins = 0; G.coinsTotal = G.items.length;
   G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
   G.timeLimit = timeFor(n, pathLen(G.maze));
-  G.attempts = 1;
+  starTimes(0);
+  G.attempts = 1; G.chBest = null; G.chStars = 0;   // récord y estrellas de este laberinto (son al azar: valen mientras lo repetís)
   computeScale();
   resetRun();
 }
@@ -1287,12 +1306,8 @@ function loadStory(i) {
   // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
   const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5;   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
   G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
-  // tiempos de las estrellas: desde el camino ideal (el más corto, a velocidad máxima) con un margen, más el mismo extra
-  // por quesos y pegamento. ★★ por debajo de star2 y ★★★ por debajo de star3 (y con todos los quesos)
-  const ideal = pathLen(G.maze) * C / SPEED, niceT = x => x < 20 ? Math.ceil(x) : Math.ceil(x / 5) * 5;
-  G.star2 = Math.min(niceT(ideal * 1.8 + extra * 1.3), G.timeLimit - 5);
-  G.star3 = Math.min(niceT(ideal * 1.3 + extra), G.star2 - 5);
-  G.attempts = 1;
+  starTimes(extra);
+  G.attempts = 1; G.chBest = null; G.chStars = 0;
   computeScale();
   resetRun();
 }
@@ -1346,7 +1361,7 @@ function showCard(html) {
   Snd.cardIn();
 }
 function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-function go(what) { return `<p class="go">${isTouch ? 'Tocá' : 'Presioná <kbd>ESPACIO</kbd>'} para ${what}</p>`; }
+
 
 // Laberinto de fondo de la portada y del selector (siempre el mismo), con el ratón dando vueltas
 // Fondo de los menús: un laberinto más grande que la pantalla (siempre la tapa entera, sin que se vean los bordes
@@ -1381,8 +1396,7 @@ function showTitle() {
     <div class="modes">
       <p><b>Historia:</b> niveles diseñados, con cosas nuevas en cada uno</p>
       <p><b>Desafío:</b> laberintos al azar, cada vez más grandes</p>
-    </div>
-    ${isTouch ? '' : '<p class="small shortcuts"><kbd>1</kbd> Historia &nbsp; <kbd>2</kbd> Desafío</p>'}`);
+    </div>`);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
 // Selector de niveles de Historia: los bloqueados aparecen apagados; se ven las mejores estrellas de cada uno
@@ -1391,15 +1405,13 @@ function showSelect() {
   G.state = 'select';
   const d = Story.data;
   const btns = LEVELS.map((L, i) => {
-    const locked = i + 1 > d.unlocked, st = d.stars[i] || 0;
+    const locked = !UNLOCK_ALL && i + 1 > d.unlocked, st = d.stars[i] || 0;
     return `<button class="lvl" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
       <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
   }).join('');
   card(`<h1>HISTORIA</h1>
     <p>40 niveles: primero los quesos, después el pegote, las trampas y las puertas, y al final todo junto.</p>
-    <div class="levels">${btns}</div>
-    <div class="menu"><button class="cbtn alt" data-act="back">Volver</button></div>
-    ${isTouch ? '' : go('jugar el último nivel desbloqueado')}`);
+    <div class="levels">${btns}</div>`);   // volver: la flechita de arriba a la izquierda (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
 }
 
@@ -1444,7 +1456,7 @@ function showRatitas(from) {
   openScreen(`<h2 class="stitle">RATITAS</h2>
     <p class="ssub">Tenés <b>${Skins.data.owned.length}</b> de ${RATS.length} · tocá una para jugar con ella</p>
     <div class="rack" style="--cols: ${cols}">${rows}</div>
-    <div class="sbtns"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button><button class="cbtn alt" data-act="back">Volver</button></div>`, from);
+    <div class="sbtns"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la flechita de arriba a la izquierda
   updateButtons();
 }
 function pickRat(i) {
@@ -1729,7 +1741,7 @@ function gachaHint() {
 function gachaButtons(after) {
   const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? 'Otra vez' : 'Activar'} · ${COIN_SPIN} ${COIN_ICON}</button>`;
   return (after ? '<button class="cbtn" data-act="use">Usarla</button>' : '') + spin +
-    '<button class="cbtn alt" data-act="ratitas">Ratitas</button><button class="cbtn alt" data-act="back">Volver</button>';
+    '<button class="cbtn alt" data-act="ratitas">Ratitas</button>';   // volver: la flechita de arriba a la izquierda
 }
 function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
@@ -1747,7 +1759,7 @@ function gachaSpin() {
   Gacha.conf = []; Gacha.spark = [];
   Gacha.beaconOn = false;
   document.getElementById('gachaRes').textContent = '¡La máquina se despierta!';
-  document.getElementById('gachaBtns').innerHTML = '';
+  document.getElementById('gachaBtns').innerHTML = ''; updateButtons();   // mientras anda, sin flechita
   gachaStage('wake');
 }
 // Empieza una etapa: sonidos y efectos de arranque, y aviso al juego
@@ -1770,6 +1782,7 @@ function gachaStage(id) {
     }
   }
   if (P.onStage) P.onStage(id);
+  updateButtons();   // la flechita de volver solo con la máquina quieta o con el premio
 }// Cápsulas de la cúpula: cada una con su posición, velocidad y giro, atadas con un resorte a su lugar del dibujo.
 // Agitándose reciben empujones al azar (cada una con su ritmo y su fuerza; algunas se quedan quietas un rato),
 // chocan blandito entre sí y con el vidrio, y después vuelven a acomodarse solas.
@@ -1927,7 +1940,7 @@ function gachaResult() {
   document.getElementById('gachaRes').innerHTML = Gacha.dup
     ? `<span class="gname">${name}</span><br>Ya la tenías: te devolvemos <b>${COIN_DUP}</b> ${COIN_ICON}`
     : `<span class="gname">¡${name}!</span><br>¡Ratita nueva!`;
-  document.getElementById('gachaBtns').innerHTML = gachaButtons(true);
+  document.getElementById('gachaBtns').innerHTML = gachaButtons(true); updateButtons();
 }
 // Posición de la cápsula premiada mientras salta hacia la cámara: [x, y, radio, giro]
 function prizeCapsule(t) {
@@ -2383,13 +2396,14 @@ function showIntro() {
     ? `<h1>NIVEL ${G.level}</h1>
        <p class="big">${L.name}</p>
        <p>${L.intro}</p>
-       <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
-       <p class="small">★★ menos de ${G.star2} s · ★★★ menos de ${G.star3} s${G.cheeseTotal ? ' con todos los quesos' : ''}</p>
-       ${go('encender la linterna')}`
+       <p>Tiempo límite: <b>${fmt(G.timeLimit)}</b></p>
+       <p class="small">★★ menos de ${G.star2} seg. · ★★★ menos de ${G.star3} seg.${G.cheeseTotal ? ' con todos los quesos' : ''}</p>
+       <div class="menu"><button class="cbtn" data-act="start">Encender la linterna</button></div>`
     : `<h1>NIVEL ${G.level}</h1>
        <p class="big">Laberinto ${m.W} × ${m.H}</p>
-       <p>Tiempo: <b>${fmt(G.timeLimit)}</b></p>
-       ${go('encender la linterna')}`);
+       <p>Tiempo límite: <b>${fmt(G.timeLimit)}</b></p>
+       <p class="small">★★ menos de ${G.star2} seg. · ★★★ menos de ${G.star3} seg.</p>
+       <div class="menu"><button class="cbtn" data-act="start">Encender la linterna</button></div>`);
   G.iris = 0; G.irisTarget = 0;
   pop($level); pop($timer);
   updateButtons();
@@ -2410,12 +2424,12 @@ function starsFor(time) {
   const cheeseOk = !G.cheeseTotal || G.cheese >= G.cheeseTotal;
   return 1 + (time <= G.star2 ? 1 : 0) + (time <= G.star3 && cheeseOk ? 1 : 0);
 }
-const fmtS = s => (Math.round(s * 10) / 10).toFixed(1).replace('.', ',') + ' s';   // 23,4 s
-// Tu próximo objetivo (según las mejores estrellas que tenés en el nivel)
+const fmtS = s => Math.floor(s) + ' seg.';   // segundos enteros, sin decimales (12,55 → 12 seg.); "seg." y no "s", que con la letra de marcador parecía un 5
+// Tu próximo objetivo, según las estrellas de ESTA partida (así coincide con lo que se ve arriba)
 function nextGoal(stars, best) {
-  if (stars <= 1) return [`Menos de ${G.star2} segundos`, 'Conseguí la segunda estrella.'];
-  if (stars === 2) return [G.cheeseTotal ? `Los ${G.cheeseTotal} quesos en menos de ${G.star3} segundos` : `Menos de ${G.star3} segundos`, 'Conseguí la tercera estrella.'];
-  return [`Bajá tu récord de ${fmtS(best)}`, '¡Ya tenés las tres estrellas!'];
+  if (stars <= 1) return [`Menos de ${G.star2} segundos`, 'para la segunda estrella'];
+  if (stars === 2) return [G.cheeseTotal ? `${G.cheeseTotal} quesos y menos de ${G.star3} seg.` : `Menos de ${G.star3} segundos`, 'para la tercera estrella'];
+  return [`Bajá tu récord de ${fmtS(best)}`, '¡Tenés las tres estrellas!'];
 }
 // Aviso de premio en el cartel de fin de nivel (como el "Get a prize!" del Crossy Road): si te alcanzan las monedas,
 // un botón directo a la Máquina; si no, una barrita con cuánto te falta. Se actualiza al volver de la Máquina.
@@ -2428,44 +2442,36 @@ function prizeBlock() {
 function refreshPrize() { const el = document.getElementById('prizeSlot'); if (el) el.innerHTML = prizeBlock(); }
 function showWinCard() {
   G.winCard = true;
-  if (G.mode === 'story') {
-    // resultados: estrellas, tu tiempo y el mejor, el próximo objetivo, las monedas (las juntadas y las de estrellas
-    // nuevas), la máquina, repetir el laberinto y los accesos al siguiente nivel y a los niveles
-    const time = G.timeLimit - G.timeLeft, st = starsFor(time), last = G.story >= LEVELS.length - 1;
-    const prev = Story.finish(G.story, st, time), best = Story.data.best[G.story], bestStars = Story.data.stars[G.story];
-    const record = prev.best != null && time < prev.best - 0.05;
+  {
+    // resultados (Historia y Desafío): estrellas, el tiempo anterior y el tuyo, el próximo objetivo, la máquina y
+    // Repetir / Siguiente. En Historia el récord y las estrellas se guardan por nivel; en Desafío (laberintos al azar)
+    // valen mientras repetís ese mismo laberinto
+    const story = G.mode === 'story', time = Math.floor(G.timeLimit - G.timeLeft), st = starsFor(time);   // tiempo en segundos enteros
+    const last = story && G.story >= LEVELS.length - 1;
+    let prev, best;
+    if (story) { prev = Story.finish(G.story, st, time); best = Story.data.best[G.story]; }
+    else { prev = { stars: G.chStars, best: G.chBest }; G.chStars = Math.max(G.chStars, st); best = G.chBest = G.chBest == null ? time : Math.min(G.chBest, time); }
+    const record = prev.best != null && time < Math.floor(prev.best);
     const bonus = Math.max(0, st - prev.stars) * STAR_COINS;
     if (bonus) Wallet.add(bonus);
-    const coins = G.runCoins + bonus, [goal, goalSub] = nextGoal(bestStars, best);
+    const [goal, goalSub] = nextGoal(st, best);   // (las monedas no se muestran acá: se ven en el contador de arriba)
     const cheeseIco = document.querySelector('#cheese svg').outerHTML;
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
     const stars = [0, 1, 2].map(k => `<i class="${k < st ? 'on' : ''}" style="--d:${0.25 + k * 0.22}s">★</i>`).join('');
     card(`<h1>¡ESCAPASTE!</h1>
-      <p class="lvlname">Nivel ${G.level} · ${LEVELS[G.story].name}</p>
+      <p class="lvlname">Nivel ${G.level} · ${story ? LEVELS[G.story].name : `Desafío ${G.maze.W} × ${G.maze.H}`}</p>
       <div class="rstars">${stars}</div>
-      <div class="times">
-        <div class="tcell"><small>Tu tiempo</small><b>${fmtS(time)}</b></div>
-        <div class="tcell best"><small>Tu récord</small><b>${fmtS(best)}</b></div>
-        ${record ? '<span class="stamp">¡Récord!</span>' : ''}
+      <div class="times${record ? ' rec' : ''}">
+        ${prev.best != null ? `<div class="tcell best"><small>Tiempo anterior</small><b>${fmtS(prev.best)}</b></div>` : ''}
+        <div class="tcell"><small>Tu tiempo</small><b>${fmtS(time)}</b>${record ? '<span class="stamp">¡Nuevo récord!</span>' : ''}</div>
       </div>
-      <div class="chips">
-        <span class="chip">${COIN_ICON} <b>+${coins}</b>${bonus ? ` <small>· ${bonus} por estrella${bonus > STAR_COINS ? 's' : ''} nueva${bonus > STAR_COINS ? 's' : ''}</small>` : ''}</span>
-        <span class="chip"><small>juntaste</small> <b>${G.runCoins}/${G.coinsTotal}</b> ${COIN_ICON}</span>
-        ${G.cheeseTotal ? `<span class="chip">${cheeseIco} <b>${G.cheese}/${G.cheeseTotal}</b></span>` : ''}
-      </div>
+      ${G.cheeseTotal ? `<div class="chips"><span class="chip">${cheeseIco} <b>${G.cheese}/${G.cheeseTotal}</b></span></div>` : ''}
       <div class="note"><small>Próximo objetivo</small><b>${goal}</b><span>${goalSub}</span></div>
       <div id="prizeSlot">${prizeBlock()}</div>
       ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
-      <div class="menu"><button class="cbtn alt" data-act="retry">Repetir laberinto</button></div>
-      <div class="minis">${last ? '' : '<button class="mini" data-act="next">Siguiente nivel ›</button>'}<button class="mini" data-act="levels">Niveles</button></div>
-      ${isTouch ? '' : go(last ? 'volver a los niveles' : 'el siguiente nivel')}`);
-    return;
+      <div class="menu res"><button class="cbtn alt" data-act="retry">Repetir</button>${last ? '' : '<button class="cbtn" data-act="next">Siguiente</button>'}</div>`);   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
+    updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
   }
-  card(`<h1>¡ESCAPASTE!</h1>
-    <p>Te sobraron <b>${Math.floor(G.timeLeft)} s</b>${G.attempts > 1 ? ` · intentos: ${G.attempts}` : ''}</p>
-    ${G.runCoins ? `<p>${COIN_ICON} <b>+${G.runCoins}</b> monedas</p>` : ''}
-    <div id="prizeSlot">${prizeBlock()}</div>
-    ${go(`el nivel ${G.level + 1}`)}`);
 }
 function startDie(reason = 'time') {
   G.state = 'dying'; G.dieReason = reason; G.dieT = 0;
@@ -2478,19 +2484,18 @@ function lost() {
     ? `<h1 class="red">¡ATRAPADO!</h1>
        <p>La trampa se cerró. Volvés a la entrada del mismo laberinto.</p>
        <div id="prizeSlot">${prizeBlock()}</div>
-       ${go('reintentar')}`
+       <div class="menu res"><button class="cbtn" data-act="retry">Reintentar</button></div>`
     : `<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
        <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
        <div id="prizeSlot">${prizeBlock()}</div>
-       ${go('reintentar')}`);
+       <div class="menu res"><button class="cbtn" data-act="retry">Reintentar</button></div>`);
   updateButtons();
 }
 function togglePause() {
   if (G.state === 'play') {
     G.state = 'paused'; Music.pause();
-    card(`<h1>PAUSA</h1>${go('seguir')}
-      <div class="menu"><button class="cbtn alt" data-act="menu">Salir al menú</button></div>
-      ${isTouch ? '' : '<p class="small"><kbd>Q</kbd> salir al menú</p>'}`);
+    card(`<h1>PAUSA</h1>
+      <div class="menu"><button class="cbtn" data-act="resume">Seguir</button><button class="cbtn alt" data-act="menu">Salir al menú</button></div>`);
   }
   else if (G.state === 'paused') { G.state = 'play'; card(null); Music.resume(); }
   updateButtons();
@@ -2515,8 +2520,10 @@ function act(a, el) {
   if (a === 'story') { firstGesture(); showSelect(); }
   else if (a === 'challenge') { firstGesture(); G.baseSeed = (Math.random() * 1e9) | 0; loadLevel(1); showIntro(); }
   else if (a === 'level') { loadStory(+el.dataset.i); showIntro(); }
-  else if (a === 'next') { loadStory(G.story + 1); showIntro(); }
+  else if (a === 'next') { if (G.mode === 'challenge') loadLevel(G.level + 1); else loadStory(G.story + 1); showIntro(); }
   else if (a === 'levels') showSelect();
+  else if (a === 'start') startPlay();
+  else if (a === 'resume') togglePause();
   else if (a === 'retry') { G.attempts++; resetRun(); startPlay(); }   // el mismo laberinto, de nuevo
   else if (a === 'back') { if (G.screen) { G.screen = null; closeScreen(); refreshPrize(); updateButtons(); } else showTitle(); }
   else if (a === 'menu') { Music.resume(); showTitle(); }
@@ -2538,9 +2545,16 @@ const ICONS = {
   musicOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/><path d="M3 3l18 18" stroke-width="2.6"/></svg>',
 };
 const $btnSound = document.getElementById('btnSound'), $btnPause = document.getElementById('btnPause'), $btnMusic = document.getElementById('btnMusic');
+const $btnBack = document.getElementById('btnBack');
+$btnBack.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
 function updateButtons() {
   $btnLight.classList.toggle('hidden', !isMenu());   // el botón de la luz de prueba solo está en la portada y el selector
-  $coins.classList.toggle('withHome', !$hud.classList.contains('hidden'));
+  // flechita para volver a los niveles (arriba a la izquierda, donde va la casita): solo con los resultados de Historia
+  const back = G.screen === 'ratitas' || (G.screen === 'machine' && ['idle', 'reveal'].includes(Gacha.phase)) ||
+    (!G.screen && (G.state === 'select' || (G.state === 'won' && G.winCard)));
+  $btnBack.classList.toggle('hidden', !back);
+  document.getElementById('btnHome').classList.toggle('hidden', back);   // la casita deja el lugar a la flechita
+
   $btnSound.innerHTML = Snd.muted ? ICONS.muted : ICONS.sound;
   $btnSound.title = Snd.muted ? 'Activar efectos (F)' : 'Silenciar efectos (F)';
   $btnMusic.innerHTML = Music.muted ? ICONS.musicOff : ICONS.music;
@@ -2548,12 +2562,14 @@ function updateButtons() {
   $btnPause.innerHTML = G.state === 'paused' ? ICONS.play : ICONS.pause;
   $btnPause.title = G.state === 'paused' ? 'Seguir (P)' : 'Pausa (P)';
   $btnPause.classList.toggle('hidden', !['play', 'paused'].includes(G.state));
+
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
   if (G.state !== 'play') stickEnd();
 }
 $btnSound.addEventListener('click', e => { e.stopPropagation(); Snd.init(); Snd.toggle(); updateButtons(); });
 $btnMusic.addEventListener('click', e => { e.stopPropagation(); Music.toggle(); updateButtons(); });
 $btnPause.addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+$btnBack.addEventListener('click', e => { e.stopPropagation(); Snd.init(); if (G.screen) act('back'); else if (G.state === 'select' || G.mode === 'challenge') showTitle(); else act('levels'); });   // en Ratitas cierra la pantalla   // del selector y del Desafío a la portada; de los resultados de Historia a los niveles
 // Luz general provisoria (para probar los niveles): ilumina todo el laberinto parejo, sin tocar la linterna.
 // Se prende y apaga desde la portada y queda guardada.
 const DEBUG_AMBIENT = 0.7;
@@ -3649,7 +3665,9 @@ function render() {
   // HUD
   if (!isMenu()) {
     $level.textContent = 'NIVEL ' + G.level;
-    $timer.textContent = fmt(G.timeLeft);
+    // El reloj sube (lo que vas tardando), igual que los resultados y los objetivos; el límite se ve en la batería de la
+    // linterna y en la sirena
+    $timer.textContent = fmtUp(G.timeLimit - G.timeLeft);
     $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
     $cheese.classList.toggle('hidden', !G.cheeseTotal);
     $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
