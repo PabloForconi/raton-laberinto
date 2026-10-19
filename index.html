@@ -97,7 +97,7 @@
   #screen .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
     padding: 64px 12px calc(14px + env(safe-area-inset-bottom)); gap: 8px; opacity: 0; transition: opacity .25s; text-align: center; color: #e9dcc0; }
   #screen.open .inner.show { opacity: 1; }
-  #screen .stitle { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; }
+  #screen .stitle { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
   #screen .ssub { margin: 0; font-size: 15px; color: #bfae8c; }
   #screen .sbtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; flex: 0 0 auto; }
   /* ratitas: estantes de metal de punta a punta de la pantalla, sobre el negro; las jaulas centradas en cada estante */
@@ -112,7 +112,12 @@
   .rat:not(:disabled):active canvas { transform: scale(.96); }
   /* máquina */
   #gachaCv { display: block; width: min(60vh, 92vw); aspect-ratio: 1; flex: 0 1 auto; min-height: 0; }
-  #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; }
+  /* luz de la baliza: un canvas a pantalla completa detrás del título, el texto y los botones */
+  #gachaFx, #gachaFx2 { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+  #gachaFx2 { z-index: 2; mix-blend-mode: screen; }   /* los haces rojos pasan por delante de la máquina */
+  #screen .inner > :not(#gachaFx):not(#gachaFx2) { position: relative; z-index: 1; }
+  #screen .inner > .stitle, #gachaRes, #gachaBtns { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
+  #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; text-shadow: 0 0 6px #000, 0 2px 4px #000, 0 0 14px rgba(0,0,0,0.8); }
   .gname { font-family: 'Permanent Marker', cursive; font-size: 30px; color: #f6e7bf; }
   .cbtn:disabled { opacity: .5; cursor: default; }
   /* aviso de premio en el cartel de fin de nivel */
@@ -349,7 +354,7 @@ const Story = {
 // ===================== MONEDAS Y RATITAS =====================
 // Monedas: se juntan en el laberinto y quedan guardadas aunque pierdas. Con COIN_SPIN se gira la máquina de ratitas
 // (como el Crossy Road): sale una al azar; si ya la tenías, te devuelve COIN_DUP.
-const COIN_SPIN = 2, COIN_DUP = COIN_SPIN / 2;   // provisorio para probar rápido (la idea es 100 por giro); la repetida devuelve la mitad
+const COIN_SPIN = 0, COIN_DUP = COIN_SPIN / 2;   // provisorio: gratis para probar la máquina (la idea es 100 por giro); la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
@@ -401,7 +406,11 @@ function skinOf(i) {
 }
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
 const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
-const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#f7c531" stroke="#b07a0c" stroke-width="2"/><circle cx="12" cy="12" r="6.8" fill="none" stroke="#e0a514" stroke-width="1.6"/><text x="12" y="16.3" font-size="11" text-anchor="middle" fill="#a8720b" font-family="Arial, sans-serif" font-weight="bold">$</text></svg>';
+// moneda plateada como el diseño de concept/coin.png: dos ranuras oscuras y una barra clara cruzando el medio, sin borde
+const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#a3abb3"/>' +
+  '<rect x="3.6" y="6.4" width="16.8" height="2.6" rx="0.6" fill="#4b515a"/><rect x="3.3" y="14.2" width="17.4" height="2.7" rx="0.6" fill="#4b515a"/>' +
+  '<rect x="1.8" y="9" width="20.4" height="5.2" rx="1.2" fill="#bcc3ca"/><rect x="2.4" y="9" width="19.2" height="0.8" rx="0.4" fill="#e1e6ea"/>' +
+  '<rect x="5" y="16.9" width="14" height="0.7" rx="0.35" fill="#d3d9de"/></svg>';
 const isMenu = () => ['title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 // Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
@@ -506,6 +515,20 @@ const Snd = {
   thunk() { this.tone(170, 70, 0.16, 'sine', 0.4); this.noise(0.07, 600, 0.8, 0.3, 'lowpass'); },
   rattle() { this.noise(0.04, 1500 + Math.random() * 800, 2, 0.16); },
   popOpen() { this.noise(0.1, 1400, 0.7, 0.4); this.sweep(300, 2600, 0.28, 0.2); },
+  powerUp() { this.tone(90, 420, 0.7, 'sawtooth', 0.05); this.sweep(200, 1400, 0.8, 0.08, 3); },   // la máquina se despierta
+  ru(v = 1) { this.tone(95, 60, 0.07, 'sine', 0.08 + 0.12 * v); this.noise(0.05, 260, 0.9, 0.05 + 0.08 * v, 'lowpass'); },   // un pulso del motor
+  clack() { this.noise(0.04, 2400, 3, 0.45); this.tone(700, 300, 0.06, 'square', 0.12); this.noise(0.08, 500, 1, 0.3, 'lowpass', 0.03); },   // cae la cápsula adentro
+  hiss(d = 1.1) {   // "psssssst": aire que se escapa al abrirse la compuerta
+    const c = this.ctx; if (!c) return; const t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true;
+    const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3200;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.08);
+    g.gain.setValueAtTime(0.14, t + Math.max(0.1, d - 0.18)); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    s.connect(f).connect(g).connect(this.master); s.start(t); s.stop(t + d + 0.05);
+  },
+  thump(v = 1) { this.tone(80, 42, 0.18, 'sine', 0.18 + 0.2 * v); this.noise(0.06, 300, 0.8, 0.12 * v, 'lowpass'); },   // golpe del motor
+  clunk() { this.tone(120, 60, 0.12, 'square', 0.08); this.noise(0.05, 900, 1, 0.25, 'lowpass'); },   // se detiene de golpe
+  whoosh() { this.sweep(400, 2400, 0.35, 0.14, 1.5); this.tone(300, 700, 0.3, 'sine', 0.05); },   // la cápsula salta al frente
   tick(hi) { this.tone(hi ? 1600 : 1050, hi ? 1600 : 1050, 0.035, 'square', 0.07); },
   click() { this.noise(0.025, 3200, 2, 0.4); this.noise(0.02, 1800, 2, 0.3, 'bandpass', 0.05); },
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, f, 0.22, 'triangle', 0.2, i * 0.11)); setTimeout(() => this.squeak(), 520); },
@@ -1449,6 +1472,49 @@ function drawRatPortrait(c, x, y, size, i, t = 0) {
   c.fillStyle = P.nose; c.beginPath(); c.ellipse(88, 390, 18, 12.5, 0, 0, Math.PI * 2); c.fill();   // nariz: óvalo acostado en la punta del hocico
   c.restore();
 }
+// Ratita hecha una bolita (como la referencia): enroscada de costado, la cabeza metida adelante y abajo, la oreja
+// arriba, el ojo cerrado, el hocico con la nariz casi tocando la cola, y la cola dando la vuelta por abajo.
+// Mismos colores que el retrato. Es lo que sale de la cápsula antes de desenroscarse. size = ancho en píxeles.
+function drawRatBall(c, x, y, size, i, rot = 0, t = 0) {
+  const P = portraitOf(i), S = skinOf(i), k = size / 220;
+  c.save(); c.translate(x, y); c.rotate(rot); c.scale(k, k);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  // cola: da la vuelta por abajo, de atrás hacia adelante (se afina hacia la punta)
+  const bz = (p0, p1, p2, p3, u) => { const v = 1 - u; return v * v * v * p0 + 3 * v * v * u * p1 + 3 * v * u * u * p2 + u * u * u * p3; };
+  const segs = [[[60, 40], [118, 82], [40, 112], [-30, 104]], [[-30, 104], [-70, 100], [-96, 86], [-106, 62]]];
+  let prev = null, n = 0;
+  c.strokeStyle = P.paws;
+  for (const [a, b, d, e] of segs) for (let u = 0; u <= 1.001; u += 0.1, n++) {
+    const pt = [bz(a[0], b[0], d[0], e[0], u), bz(a[1], b[1], d[1], e[1], u)];
+    if (prev) { c.lineWidth = Math.max(2.5, 16 - n * 0.62); c.beginPath(); c.moveTo(...prev); c.lineTo(...pt); c.stroke(); }
+    prev = pt;
+  }
+  // cuerpo: un ovillo redondo
+  c.fillStyle = P.fur; c.beginPath(); c.ellipse(4, 0, 100, 86, 0, 0, Math.PI * 2); c.fill();
+  if (S.spots) { c.save(); c.beginPath(); c.ellipse(4, 0, 100, 86, 0, 0, Math.PI * 2); c.clip(); c.fillStyle = S.spots;
+    c.beginPath(); c.ellipse(40, -40, 50, 36, 0.3, 0, Math.PI * 2); c.fill(); c.beginPath(); c.ellipse(60, 40, 30, 26, 0, 0, Math.PI * 2); c.fill(); c.restore(); }
+  // pelaje del lomo: rayitas curvas y la línea del muslo
+  c.strokeStyle = P.line; c.lineWidth = 4.5;
+  for (const [r0, a0, a1] of [[58, -1.25, -0.35], [70, -1.0, -0.1], [82, -0.7, 0.15]]) { c.beginPath(); c.arc(-4, 6, r0, a0, a1); c.stroke(); }
+  c.fillStyle = P.paws; c.beginPath(); c.ellipse(46, 74, 24, 9, -0.1, 0, Math.PI * 2); c.fill();   // patita de atrás
+  // cabeza metida adelante, abajo
+  c.fillStyle = P.fur; c.beginPath(); c.ellipse(-52, 32, 52, 40, 0.4, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = P.line; c.lineWidth = 4; c.beginPath(); c.ellipse(-52, 32, 52, 40, 0.4, -0.95, 1.15); c.stroke();   // separa la cabeza del cuerpo
+  // oreja arriba de la cabeza (con su pliegue) y otra que asoma atrás
+  c.fillStyle = P.earDark; c.beginPath(); c.ellipse(-8, -14, 20, 26, 0.6, 0, Math.PI * 2); c.fill();
+  c.fillStyle = P.ear; c.beginPath(); c.ellipse(-34, -10, 26, 32, -0.5, 0, Math.PI * 2); c.fill();
+  c.fillStyle = P.earDark; c.beginPath(); c.ellipse(-31, -6, 16, 21, -0.5, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = P.earLine; c.lineWidth = 3.5; c.beginPath(); c.ellipse(-31, -6, 16, 21, -0.5, 3.4, 5.4); c.stroke();
+  // ojo cerrado (respira y duerme), nariz y unos bigotitos
+  c.strokeStyle = S.eyeShut; c.lineWidth = 4; c.beginPath(); c.arc(-62, 24, 9, 0.4, Math.PI - 0.4); c.stroke();
+  c.fillStyle = P.nose; c.beginPath(); c.ellipse(-92, 56, 11, 8, 0.3, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = P.line; c.lineWidth = 1.8; c.globalAlpha *= 0.7; c.beginPath();
+  for (const [dx, dy] of [[-40, -10], [-44, 6], [-36, 20]]) { c.moveTo(-84, 50); c.quadraticCurveTo(-84 + dx * 0.5, 50 + dy * 0.5 - 4, -84 + dx, 50 + dy); }
+  c.stroke(); c.globalAlpha /= 0.7;
+  // manitos juntas debajo del hocico
+  c.fillStyle = P.paws; for (const [px, py] of [[-62, 66], [-40, 72]]) { c.beginPath(); c.ellipse(px, py, 13, 8, 0.2, 0, Math.PI * 2); c.fill(); }
+  c.restore();
+}
 // Jaula de laboratorio vista de frente, sobre un estante de metal (como las de la referencia): caja de plástico
 // transparente un poco más ancha arriba, viruta en el piso, tapa de reja y un cartelito con el nombre.
 // Adentro va la ratita de perfil; si todavía no la tenés, es una silueta oscura y el cartel dice "???".
@@ -1524,15 +1590,30 @@ function drawThumb(cv) {
   drawRatCage(g, cv.width, cv.height, i, Skins.has(i), Skins.data.sel === i, 0, false);
 }
 
-// ---- Máquina de ratitas (como la del Crossy Road): girás la manija, cae una cápsula, se agranda, tiembla, se abre
-// y aparece la ratita girando sobre rayos de luz, con papelitos. Arte provisorio dibujado por código. ----
-const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], cap: '#e74c3c', caps: null };
-const GACHA_T = { crank: 1.0, drop: 0.75, shake: 1.0, open: 0.45 };
-const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
+
+// ---- Máquina de ratitas (como la del Crossy Road) ----
+// La animación está separada en etapas con nombre (GACHA_STAGES), así el juego puede controlarla o engancharse
+// (Gacha.onStage(nombre) se llama al empezar cada una). El ritmo sigue lo que contó Pablo con onomatopeyas:
+//   wake   se prenden las luces de arriba una por una
+//   run    "ru rur ru ru ru ru rururu rururururururu ruru ru ru ru ru": el motor arranca lento, acelera y vuelve a
+//          frenar. Primero vibra la base (de a poquito y cada vez más); a mitad de camino se suma la pecera (con el
+//          casco, la luz roja y los tubitos), y después los tubitos rotan desde donde se enganchan al casco
+//   clack  cae una cápsula adentro (no se ve, se oye): las cápsulas de la pecera bajan un nivel
+//   door   "pssssssst": la compuerta se abre despacio y se ve la cápsula adentro
+//   launch silencio: la cápsula salta hacia la cámara; la máquina se va para atrás y se oscurece hasta desaparecer
+//   hover  la cápsula queda adelante un instante
+//   reveal las dos mitades salen disparadas y en el mismo momento la ratita salta del keyframe 1 (bolita) al
+//          keyframe 2 (pose normal) dando un giro; rayos de luz, destellos y papelitos
+const GACHA_STAGES = ['wake', 'run', 'clack', 'door', 'launch', 'hover', 'reveal'];
+const GACHA_T = { wake: 0.7, run: 3.4, clack: 0.4, door: 1.35, launch: 0.85, hover: 0.22 };const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
+const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
+  caps: null, onStage: null, L: { beacon: 0, tubeL: 0, tubeR: 0, inner: 0, door: 0 }, vib: [0, 0] };
 function showMachine(from) {
-  G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = [];
-  openScreen(`<h2 class="stitle">MÁQUINA</h2>
+  G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = []; Gacha.spark = []; Gacha.caps = null; Gacha.level = 0;   // al volver, la cúpula está llena otra vez
+  openScreen(`<canvas id="gachaFx"></canvas>
+    <h2 class="stitle">MÁQUINA</h2>
     <canvas id="gachaCv" width="900" height="900"></canvas>
+    <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
     <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>`, from);
   updateButtons();
@@ -1543,7 +1624,7 @@ function showMachine(from) {
     Gacha.raf = requestAnimationFrame(step);
     gachaUpdate(Math.min(0.05, (now - last) / 1000)); last = now;
     const cv2 = document.getElementById('gachaCv');
-    if (cv2) drawGacha(cv2.getContext('2d'), cv2.width);
+    if (cv2) { drawGachaFx(cv2); drawGacha(cv2.getContext('2d'), cv2.width); }
   };
   Gacha.raf = requestAnimationFrame(step);
 }
@@ -1563,29 +1644,183 @@ function gachaSpin() {
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
   Gacha.cap = CAP_COLORS[Math.floor(Math.random() * CAP_COLORS.length)];
-  Gacha.phase = 'crank'; Gacha.t = 0; Gacha.tick = 0; Gacha.conf = [];
-  document.getElementById('gachaRes').textContent = '¡La máquina está trabajando!';
+  // la pila se rellena (en otro orden) solo si la máquina ya se usó y no se está viendo (después del premio); si está a la
+  // vista, quedan las mismas cápsulas en el mismo lugar
+  // Las luces siguen desde como estaban (en reposo, apenas prendidas): si se ponían en 0 se veía un apagón antes de
+  // despertarse. Después del premio la máquina no estaba a la vista: vuelve en reposo y aparece de a poco (reappear)
+  Gacha.reappear = Gacha.phase === 'reveal';
+  if (Gacha.reappear) { Gacha.caps = null; Object.assign(Gacha.L, { beacon: 0.12, tubeL: 0.15, tubeR: 0.15, inner: 0.3, door: 0 }); }
+  Gacha.conf = []; Gacha.spark = [];
+  Gacha.beaconOn = false;
+  document.getElementById('gachaRes').textContent = '¡La máquina se despierta!';
   document.getElementById('gachaBtns').innerHTML = '';
+  gachaStage('wake');
+}
+// Empieza una etapa: sonidos y efectos de arranque, y aviso al juego
+function gachaStage(id) {
+  const P = Gacha; P.phase = id; P.t = 0; P.tick = 0;
+  if (id === 'wake') Snd.powerUp();
+  else if (id === 'run') document.getElementById('gachaRes').textContent = '¿Qué ratita será?';
+  else if (id === 'clack') {
+    Snd.clack();
+    // cayó la cápsula premiada adentro: el montón de la pecera baja un nivel (se va la fila de arriba; quedan al menos dos)
+    capsDrop();
+  }
+  else if (id === 'door') Snd.hiss(GACHA_T.door - 0.2);
+  else if (id === 'reveal') {
+    Snd.popOpen(); gachaResult();
+    for (let k = 0; k < 90; k++) {   // papelitos
+      const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 230;
+      P.conf.push({ x: 150, y: 150, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 90, r: Math.random() * 6, vr: (Math.random() - 0.5) * 14,
+        w: 4 + Math.random() * 4, h: 2 + Math.random() * 2.5, col: CAP_COLORS[k % CAP_COLORS.length] });
+    }
+  }
+  if (P.onStage) P.onStage(id);
+}// Cápsulas de la cúpula: cada una con su posición, velocidad y giro, atadas con un resorte a su lugar del dibujo.
+// Agitándose reciben empujones al azar (cada una con su ritmo y su fuerza; algunas se quedan quietas un rato),
+// chocan blandito entre sí y con el vidrio, y después vuelven a acomodarse solas.
+function gachaCaps() {
+  if (!Gacha.caps) {
+    const cols = MACHINE_CAPS.map((_, i) => CAP_COLORS[i % CAP_COLORS.length]).sort(() => Math.random() - 0.5);
+    Gacha.caps = MACHINE_CAPS.map(([x, y], i) => {
+      const a = (Math.random() - 0.5) * 1.6;
+      return { x, y, hx: x, hy: y, vx: 0, vy: 0, a, ha: a, va: 0, col: cols[i], gone: false, ph: Math.random() * 6.28, jx: 0, jy: 0, ja: 0,
+        f: 0.35 + Math.random() * 1.0, next: Math.random() * 0.3, quiet: 0 };
+    });
+  }
+  return Gacha.caps;
+}
+// Cae una cápsula: las de más abajo se van por el fondo (se esconden detrás de la base) y las demás bajan suave a ocupar
+// los lugares más bajos, así se ve que el nivel de la pila baja una fila
+function capsDrop() {
+  const caps = gachaCaps().filter(c => !c.gone);
+  if (caps.length <= 9) return;
+  const byY = caps.slice().sort((a, b) => b.y - a.y), out = CAP_ROWS[0][1] - CAP_ROWS[0][0];   // se va una fila entera
+  const gone = byY.slice(0, out);
+  gone.forEach(c => { c.gone = true; c.hy = 980; c.hx += (572 - c.hx) * 0.3; });
+  // las que quedan bajan fila por fila: las más bajas ocupan la fila de abajo (ordenadas de izquierda a derecha), las
+  // siguientes la de arriba, y así; nunca se cruzan. No arrancan todas juntas: primero las que estaban pegadas al hueco
+  // que dejaron las que se fueron, y después las demás, cuanto más lejos del hueco más tarde (como una pila de verdad)
+  const hx = gone.reduce((a, c) => a + c.x, 0) / gone.length, hy = gone.reduce((a, c) => a + c.y, 0) / gone.length;
+  let stay = byY.slice(out);
+  for (const row of CAP_ROWS.slice().reverse()) {
+    const sl = MACHINE_CAPS.slice(row[0], row[1]).sort((a, b) => a[0] - b[0]);
+    const take = stay.splice(0, sl.length).sort((a, b) => a.x - b.x);
+    take.forEach((c, k) => {
+      c.th = sl[k];
+      c.wait = 0.03 + Math.max(0, Math.hypot(c.x - hx, c.y - hy) - 110) / 300 * 0.6;
+    });
+    if (!stay.length) break;
+  }
+}
+function capsPhysics(dt, I) {
+  Gacha.caps = gachaCaps().filter(c => !c.gone || c.y < 960);
+  // E: la energía que les quedó. Sube con el motor y, cuando para, baja de a poco: por eso siguen con unos mini rebotes
+  // (sin empujones nuevos, solo lo que ya traían) hasta acomodarse
+  const E = Gacha.capE = Math.max(I, (Gacha.capE || 0) - dt * 0.45);
+  const caps = Gacha.caps, GX = 572, GY = 560, RIN = 357 - 82 - 8;
+  for (const c of caps) {
+    if (c.wait > 0 && (c.wait -= dt) <= 0) { c.wait = 0; c.hx = c.th[0]; c.hy = c.th[1]; c.vy += 40; }   // le toca bajar
+    if (I > 0) {   // empujones (más seguidos y más fuertes cuanto más tensión)
+      c.quiet -= dt;
+      if ((c.next -= dt) <= 0) {
+        c.next = (0.3 + Math.random() * 0.7 / (0.4 + I)) / (1 + 1.5 * I);   // en el pico, más seguidos
+        if (Math.random() < 0.18) c.quiet = 0.2 + Math.random() * 0.4;           // ésta se queda quieta un ratito
+        if (c.quiet <= 0) {
+          const cp = Gacha.mach ? Gacha.mach.cpl : 1;   // las cápsulas también arrancan cuando se suelta la cúpula
+          const pk = 1 + 2 * I * I;   // en el pico del motor, empujones algo más fuertes (pero se trasladan poco)
+          c.vx += (Math.random() - 0.5) * 110 * I * c.f * cp * pk; c.vy -= Math.random() * 170 * I * c.f * cp * pk;
+          c.va += (Math.random() - 0.5) * 9 * I * c.f;
+        }
+      }
+    }
+    // inercia: cuando la cúpula acelera para un lado, las cápsulas "se quedan" y se van para el otro (cada una con su peso)
+    const Mm = Gacha.mach, inx = Mm ? -Mm.ax * 0.4 / c.f : 0, iny = Mm ? -Mm.ay * 0.4 / c.f : 0;
+    const k = 16 * (1 - 0.55 * E) + 5, damp = 1.2 + 4.4 * (1 - E);
+    c.vx += (-k * (c.x - c.hx) - damp * c.vx + inx) * dt;
+    c.vy += (-k * (c.y - c.hy) - damp * c.vy + iny + 300 * E) * dt;          // y la gravedad las vuelve a juntar abajo
+    c.va += (-14 * (c.a - c.ha) - 3 * c.va) * dt;
+    c.x += c.vx * dt; c.y += c.vy * dt; c.a += c.va * dt;
+    const tk = Gacha.clock, sh = I * (Gacha.mach ? Gacha.mach.cpl : 0);                     // temblor en el lugar
+    c.jx = sh * 20 * Math.sin(tk * 33 * c.f + c.ph); c.jy = sh * 15 * Math.sin(tk * 41 + c.ph * 1.7);
+    c.ja = sh * 0.3 * Math.sin(tk * 29 + c.ph * 2.3);
+    if (c.gone) continue;
+    if (c.y < CAP_TOP) { c.y = CAP_TOP; if (c.vy < 0) c.vy *= -0.3; }            // el nivel máximo de la pila
+    const dx = c.x - GX, dy = c.y - GY, d = Math.hypot(dx, dy);                  // el vidrio
+    if (d > RIN) { const nx = dx / d, ny = dy / d, vn = c.vx * nx + c.vy * ny; c.x = GX + nx * RIN; c.y = GY + ny * RIN; if (vn > 0) { c.vx -= 1.4 * vn * nx; c.vy -= 1.4 * vn * ny; c.va += vn * 0.004; } }
+  }
+  for (let i = 0; i < caps.length; i++) for (let j = i + 1; j < caps.length; j++) {   // choques blanditos
+    const a = caps[i], b = caps[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, min = CAP_MIN;
+    if (a.gone || b.gone) continue;
+    if (d >= min) continue;
+    const nx = dx / d, ny = dy / d, push = (min - d) / 2;
+    a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+    const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+    if (rv < 0) { const imp = -rv * 0.6; a.vx -= nx * imp; a.vy -= ny * imp; b.vx += nx * imp; b.vy += ny * imp; a.va -= imp * 0.003; b.va += imp * 0.003; }
+  }
+}
+// Motor de la máquina durante 'run' (u = 0..1): arranca lento y suave, acelera hasta un "rururururu" y vuelve a frenar
+// ("ruru ru ru ru ru"). rate = pulsos por segundo (cada uno es un "ru"), amp = cuánto se mueve.
+function motorEnv(u) {
+  const ss = (a, b, x) => { x = clamp((x - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
+  const up = ss(0, 0.55, u), down = 1 - ss(0.72, 0.98, u);
+  return { rate: 2.6 + 11 * up * down, amp: (0.25 + 0.75 * ss(0, 0.5, u)) * (0.35 + 0.65 * down) };
+}
+// Vibración por partes (deterministica, sin resortes): la base brinca apenas para arriba en cada pulso; a mitad de camino
+// se suma la pecera (cpl) con su propio temblor y bamboleo, y después los tubitos (tub), que rotan desde su enganche.
+function machinePhysics(dt) {
+  const P = Gacha, m = P.mach || (P.mach = { ph: 0, hop: 0, sq: 1, gx: 0, gy: 0, gr: 0, tl: 0, tr: 0, cpl: 0, tub: 0, I: 0, ax: 0, ay: 0 });
+  if (P.phase !== 'run') { m.hop = m.gy = m.gr = m.gx = m.tl = m.tr = m.I = m.cpl = m.tub = 0; return; }
+  const u = clamp(P.t / GACHA_T.run, 0, 1), { rate, amp } = motorEnv(u), TAU = Math.PI * 2;
+  const prev = m.ph; m.ph += dt * rate * TAU;
+  if (Math.floor(m.ph / TAU) !== Math.floor(prev / TAU)) Snd.ru(amp);   // cada pulso es un "ru"
+  m.I = amp;
+  const pulse = Math.max(0, Math.sin(m.ph));
+  m.hop = (3 + 9 * amp) * pulse * pulse;
+  m.cpl = clamp((u - 0.32) / 0.15, 0, 1);
+  m.tub = clamp((u - 0.45) / 0.15, 0, 1);
+  m.gy = -m.hop + m.cpl * amp * 3 * Math.sin(m.ph - 0.9);
+  m.gr = m.cpl * amp * 0.012 * Math.sin(m.ph * 0.5 + 0.4);
+  m.gx = m.cpl * amp * 3 * Math.sin(m.ph * 0.5);
+  m.tl = m.tub * amp * 0.09 * Math.sin(m.ph * 0.5 + 1.2);
+  m.tr = m.tub * amp * 0.09 * Math.sin(m.ph * 0.5 + 2.4);
 }
 function gachaUpdate(dt) {
-  const P = Gacha, next = ph => { P.phase = ph; P.t = 0; P.tick = 0; };
+  const P = Gacha, L = P.L, t = P.t, dur = GACHA_T[P.phase];
   P.t += dt; P.clock += dt;
-  if (P.phase === 'crank') {
-    if ((P.tick -= dt) <= 0) { P.tick = 0.09; Snd.crank(); }
-    if (P.t >= GACHA_T.crank) next('drop');
-  } else if (P.phase === 'drop') {
-    if (P.t >= GACHA_T.drop) { Snd.thunk(); next('shake'); document.getElementById('gachaRes').textContent = '¿Qué ratita será?'; }
-  } else if (P.phase === 'shake') {
-    if (P.t > 0.35 && (P.tick -= dt) <= 0) { P.tick = 0.11; Snd.rattle(); }
-    if (P.t >= GACHA_T.shake) {
-      Snd.popOpen(); next('open');
-      for (let k = 0; k < 70; k++) P.conf.push({ x: 150, y: 150, vx: (Math.random() - 0.5) * 300, vy: -60 - Math.random() * 220,
-        r: Math.random() * 6, vr: (Math.random() - 0.5) * 14, w: 4 + Math.random() * 4, h: 2 + Math.random() * 2.5,
-        col: CAP_COLORS[k % CAP_COLORS.length] });
-    }
-  } else if (P.phase === 'open') {
-    if (P.t >= GACHA_T.open) { next('reveal'); gachaResult(); }
+  const on = (k, v, speed = 6) => { L[k] += (v - L[k]) * Math.min(1, dt * speed); };
+  machinePhysics(dt);
+  const mm = P.mach, I = mm.I;
+  capsPhysics(dt, I * mm.cpl * 0.7);   // las cápsulas se mueven cuando se mueve la pecera
+  // pulso de la pantallita: la velocidad sigue al motor pero suavizada (acelera y frena de a poco, nunca de golpe) y la
+  // posición se va sumando cuadro a cuadro, así un cambio de velocidad no la hace saltar
+  P.pulseV = (P.pulseV || 50) + ((50 + 160 * I) - (P.pulseV || 50)) * Math.min(1, dt * 1.4);
+  P.pulse = ((P.pulse || 0) + P.pulseV * dt) % 108;
+  // baliza: gira mientras anda el motor; al terminar no se corta, se apaga suave (spinA baja) y va frenando
+  P.spinA = P.phase === 'run' ? Math.min(1, (P.spinA || 0) + dt * 3) : Math.max(0, (P.spinA || 0) - dt * 1.1);
+  P.beaconPh = ((P.beaconPh || 0) + dt * beaconSpeed(P.beaconPh || 0) * (0.35 + 0.65 * P.spinA)) % (Math.PI * 2);
+
+  // luces: en reposo apagadas (apenas encendidas); al despertar se prenden una por una
+  const idle = P.phase === 'idle';
+  if (idle) { on('beacon', 0.12, 3); on('tubeL', 0.15, 3); on('tubeR', 0.15, 3); on('inner', 0.3, 3); on('door', 0, 4); }
+  else if (P.phase === 'wake') {
+    if (t > 0.05) { if (!P.beaconOn) { P.beaconOn = true; Snd.click(); } on('beacon', 1, 4.5); }   // la baliza sube de a poco
+    if (t > 0.3 && L.tubeL < 0.5) { L.tubeL = 1; Snd.click(); }
+    if (t > 0.55 && L.tubeR < 0.5) { L.tubeR = 1; Snd.click(); }
+    if (t > 0.3) on('inner', 1, 2.2);                                                             // la luz de la tapa, suave
+  } else if (P.phase === 'run') {   // parpadean con el motor (la baliza y la luz de la tapa, sin saltos)
+    const fl = () => 1 - Math.random() * 0.45 * I;
+    on('beacon', 1, 6); L.tubeL = fl(); L.tubeR = fl(); on('inner', 0.85 + 0.15 * fl(), 3);
+  } else if (P.phase === 'clack') { L.tubeL = L.tubeR = 1; on('beacon', 0.3, 0.9); on('inner', 1, 6); }
+  else if (P.phase === 'door') { on('door', 1, 4); on('beacon', 0.3, 0.9); }   // la baliza se sigue apagando despacio
+  if (dur && P.t >= dur) gachaStage(GACHA_STAGES[GACHA_STAGES.indexOf(P.phase) + 1]);
+  if (P.phase === 'reveal' && P.t < 1.6 && Math.random() < dt * 22) {   // destellos alrededor de la ratita
+    const a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 70;
+    P.spark.push({ x: 150 + Math.cos(a) * r, y: 150 + Math.sin(a) * r * 0.8, t: 0, life: 0.5 + Math.random() * 0.6, s: 4 + Math.random() * 6,
+      col: ['#ffffff', '#fff3a0', '#9ff0ff', '#ffc4e8'][Math.floor(Math.random() * 4)] });
   }
+  for (const s of P.spark) s.t += dt;
+  P.spark = P.spark.filter(s => s.t < s.life);
   for (const f of P.conf) { f.vy += 320 * dt; f.vx *= 1 - dt * 0.8; f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.vr * dt; }
   P.conf = P.conf.filter(f => f.y < 330);
 }
@@ -1598,32 +1833,151 @@ function gachaResult() {
     : `<span class="gname">¡${name}!</span><br>¡Ratita nueva!`;
   document.getElementById('gachaBtns').innerHTML = gachaButtons(true);
 }
+// Posición de la cápsula premiada mientras salta hacia la cámara: [x, y, radio, giro]
+function prizeCapsule(t) {
+  const [dx, dy] = MACHINE_DOOR, ease = p => p * p * (3 - 2 * p);
+  if (Gacha.phase === 'launch') {
+    const p = clamp(t / GACHA_T.launch, 0, 1), pa = clamp(p / 0.72, 0, 1), e = ease(pa);
+    const x0 = 150 + (dx - 150) * recedeScale(t), y0 = 150 + (dy - 150) * recedeScale(t);   // la compuerta, donde quedó la máquina al retroceder
+    let y = y0 + (158 - y0) * e - Math.sin(pa * Math.PI) * 70;                 // salto en arco hacia adelante
+    if (p > 0.72) y = 158 - Math.sin((p - 0.72) / 0.28 * Math.PI) * 16;          // un rebotecito en el aire
+    return [x0 + (150 - x0) * e, y, 12 + 46 * ease(clamp(p / 0.85, 0, 1)), (1 - e) * 2.4 + Math.sin(p * 12) * 0.08 * (1 - p)];
+  }
+  return [150, 158 + Math.sin(Gacha.clock * 4) * 3, 58, Math.sin(Gacha.clock * 3) * 0.05];
+}
+const MACHINE_RECEDE = 1;   // cuánto se achica la máquina cuando la cápsula viene al frente (1 = no se va para atrás)
+const MACHINE_FADE = 0.25;  // en cuánto se apaga la máquina cuando sale la cápsula
+function recedeScale(t) {
+  const P = Gacha;
+  if (P.phase === 'launch') return 1 - (1 - MACHINE_RECEDE) * (t => t * t * (3 - 2 * t))(clamp(t / GACHA_T.launch, 0, 1));
+  return ['hover', 'reveal'].includes(P.phase) ? MACHINE_RECEDE : 1;
+}
+// Luz de la baliza en toda la pantalla (detrás del título, el texto y los botones): mientras la máquina se agita,
+// dos haces rojos giran desde la baliza y barren la pantalla, y todo se tiñe apenas de rojo cuando parpadea.
+// Ángulo de la baliza (el del haz de pantalla completa y el del espejo de adentro): gira parejo, sin acelerar ni frenar
+const BEACON_T = 1.6;   // segundos por vuelta
+function beaconSpeed() { return Math.PI * 2 / BEACON_T; }
+function beaconAngle() { return Gacha.beaconPh || 0; }
+function beaconFlash() { return Math.pow(Math.max(0, Math.sin(beaconAngle())), 8); }   // 1 justo mirando a la cámara
+function drawGachaFx(gcv) {
+  const fx = document.getElementById('gachaFx'); if (!fx) return;
+  const dpr = Math.min(1.5, window.devicePixelRatio || 1), W = Math.round(fx.clientWidth * dpr), H = Math.round(fx.clientHeight * dpr);
+  if (fx.width !== W || fx.height !== H) { fx.width = W; fx.height = H; }
+  let g = fx.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+  const fx2 = document.getElementById('gachaFx2'), g2 = fx2 && fx2.getContext('2d');   // la capa de adelante
+  if (g2) { if (fx2.width !== W || fx2.height !== H) { fx2.width = W; fx2.height = H; } g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, W, H); }
+  const P = Gacha;
+  if (P.phase === 'reveal') {   // líneas cinéticas desde donde se abre la cápsula, en toda la pantalla
+    const r = gcv.getBoundingClientRect(), fr = fx.getBoundingClientRect();
+    drawSpeedLines(g, W, H, (r.left - fr.left + 150 / 300 * r.width) * dpr, (r.top - fr.top + 158 / 300 * r.height) * dpr, P.t);
+    return;
+  }
+  const r = gcv.getBoundingClientRect(), fr = fx.getBoundingClientRect();
+  const bx = (r.left - fr.left + (MX + 572 * MS) / 300 * r.width) * dpr, by = (r.top - fr.top + (MY + 72 * MS) / 300 * r.height) * dpr;
+  // halo de la baliza: acá, en pantalla completa, así no se corta en el borde del dibujo de la máquina. Se ve mientras la
+  // máquina está a la vista (aparece y se apaga con ella)
+  const vis = ['idle', 'wake', 'run', 'clack', 'door'].includes(P.phase) ? (P.phase === 'wake' && P.reappear ? clamp(P.t / 0.35, 0, 1) : 1)
+    : P.phase === 'launch' ? 1 - clamp(P.t / MACHINE_FADE, 0, 1) : 0;
+  const bl = P.L.beacon, flash = beaconFlash() * bl * (P.spinA || 0);
+  if (vis > 0 && bl > 0.15) {
+    const u = r.width / 300 * MS * dpr, hy = (r.top - fr.top + (MY + 66 * MS) / 300 * r.height) * dpr;   // px por unidad del dibujo
+    const hr = (110 + 50 * (P.mach ? P.mach.I : 0) + 320 * flash) * u;
+    const bh = g.createRadialGradient(bx, hy, 0, bx, hy, hr);
+    bh.addColorStop(0, `rgba(255,${60 + 140 * flash},${50 + 130 * flash},${(0.22 * bl + 0.28 * flash) * vis})`);
+    bh.addColorStop(0.5, `rgba(255,${60 + 100 * flash},${50 + 90 * flash},${(0.08 * bl + 0.1 * flash) * vis})`); bh.addColorStop(1, 'rgba(255,60,40,0)');
+    g.globalCompositeOperation = 'lighter'; g.fillStyle = bh; g.beginPath(); g.arc(bx, hy, hr, 0, Math.PI * 2); g.fill();
+    g.globalCompositeOperation = 'source-over';
+  }
+  const sa = P.spinA || 0; if (sa < 0.01 || !P.mach || !g2) return;   // se apaga suave cuando para el motor
+  const I = P.mach.I, L = P.L.beacon;
+  const R = Math.hypot(W, H), S = (0.55 + 0.45 * I) * L * sa, a = beaconAngle();
+  g = g2;   // los haces van en la capa de adelante (pasan por encima de la máquina)
+  g.globalCompositeOperation = 'lighter';
+  // el ancho cambia de a poco con la vuelta: se va ensanchando hasta apuntar para abajo (hacia la cámara, el doble) y se
+  // va afinando hasta apuntar para arriba (la mitad); lo mismo el brillo, sin saltos
+  const sn = Math.sin(a), wide = Math.exp(0.7 * sn), glow = 1 + 0.35 * sn;
+  for (const [half, alpha] of [[0.95, 0.045], [0.75, 0.065], [0.57, 0.085], [0.41, 0.1], [0.27, 0.105]]) {   // capas: borde bien suave
+    const hw = half * wide;
+    const hg = g.createRadialGradient(bx, by, 0, bx, by, R);
+    hg.addColorStop(0, 'rgba(255,50,35,0)'); hg.addColorStop(0.06, `rgba(255,50,35,${alpha * 1.6 * S * glow})`);
+    hg.addColorStop(1, `rgba(255,30,20,${alpha * 0.5 * S})`);
+    g.fillStyle = hg; g.beginPath(); g.moveTo(bx, by); g.arc(bx, by, R, a - hw, a + hw); g.closePath(); g.fill();
+  }
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = `rgba(255,40,30,${(0.05 + 0.12 * Math.pow(Math.max(0, sn), 2)) * S})`; g.fillRect(0, 0, W, H);   // de frente, más luz en todo
+  const wf = beaconFlash() * L * sa;   // y en el destello blanco de la baliza, un golpe de luz clara en toda la pantalla
+  if (wf > 0.01) { g.fillStyle = `rgba(255,190,180,${0.12 * wf})`; g.fillRect(0, 0, W, H); }
+}
+const machOff = document.createElement('canvas');   // la máquina se dibuja acá para poder desvanecerla entera
+const fadeOff = document.createElement('canvas');
+// dibuja algo entero en un canvas aparte y lo pega con transparencia (así no se ven sus partes unas a través de otras)
+function drawFaded(g, n, alpha, fn) {
+  if (alpha >= 0.999) { fn(g); return; }
+  if (alpha <= 0.001) return;
+  if (fadeOff.width !== n) { fadeOff.width = fadeOff.height = n; }
+  const f = fadeOff.getContext('2d');
+  f.setTransform(1, 0, 0, 1, 0, 0); f.clearRect(0, 0, n, n); f.setTransform(n / 300, 0, 0, n / 300, 0, 0);
+  fn(f);
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = alpha; g.drawImage(fadeOff, 0, 0); g.restore();
+}
 function drawGacha(g, n) {
   const P = Gacha, t = P.t;
   g.setTransform(n / 300, 0, 0, n / 300, 0, 0); g.clearRect(0, 0, 300, 300);
   const ease = p => { p = clamp(p, 0, 1); return p * p * (3 - 2 * p); };
-  if (['idle', 'crank', 'drop', 'shake'].includes(P.phase)) {
-    const alpha = P.phase === 'shake' ? 1 - ease(t / 0.3) : 1;
-    if (alpha > 0) { g.globalAlpha = alpha; drawMachine(g); g.globalAlpha = 1; }
-  }
-  if (P.phase === 'drop') {   // sale por la boca de la máquina y rebota en el piso
-    const p = clamp(t / GACHA_T.drop, 0, 1);
-    const [dx0, dy0] = MACHINE_DOOR;   // aparece en la compuerta, baja por la rampita y rebota hacia adelante
-    capsule(g, dx0, dy0 + 36 * p - Math.abs(Math.sin(p * Math.PI * 2.2)) * 18 * (1 - p), 14 + 4 * p, P.cap, Math.sin(p * 9) * 0.3, 0);
-  } else if (P.phase === 'shake') {   // viene al centro, se agranda y tiembla cada vez más (la máquina se desvanece)
-    const e = ease(t / 0.3), w = t > 0.3 ? Math.sin(t * 40) * 0.25 * Math.min(1, (t - 0.3) / 0.5) : 0;
-    capsule(g, MACHINE_DOOR[0], MACHINE_DOOR[1] + 36 - (MACHINE_DOOR[1] + 36 - 150) * e, 18 + 37 * e, P.cap, w, 0);
-  } else if (P.phase === 'open' || P.phase === 'reveal') {
-    const e = P.phase === 'open' ? ease(t / GACHA_T.open) : 1, rt = P.phase === 'open' ? t : t + GACHA_T.open;
-    drawRays(g, rt, e);
-    const pop = P.phase === 'open' ? e * (1 + 0.25 * Math.sin(e * Math.PI)) : 1;   // aparece creciendo con un rebote
-    drawRatPortrait(g, 150, 158, 250 * pop, P.pick, rt);
-    if (P.phase === 'open') {
-      g.globalAlpha = 1 - e; capsule(g, 150, 150, 55, P.cap, 0, 90 * e); g.globalAlpha = 1;
-      const fl = g.createRadialGradient(150, 150, 0, 150, 150, 40 + 160 * e);   // destello
-      fl.addColorStop(0, `rgba(255,255,255,${0.95 * (1 - e)})`); fl.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = fl; g.fillRect(0, 0, 300, 300);
+  const front = ['launch', 'hover', 'reveal'].includes(P.phase);
+  // la máquina (cámara fija): cuando la cápsula viene al frente, se achica y se oscurece para quedar de fondo
+  if (!front || P.phase === 'launch') {   // mientras la cápsula viene al frente, la máquina se va para atrás y se oscurece hasta no verse
+    const rs = recedeScale(t), fade = P.phase === 'launch' ? ease(t / MACHINE_FADE) : P.phase === 'wake' && P.reappear ? 1 - ease(t / 0.35) : 0;
+    // se dibuja aparte y se pega con transparencia (si no, al desvanecerse se veían las piezas unas a través de otras)
+    if (machOff.width !== n) { machOff.width = machOff.height = n; }
+    const m = machOff.getContext('2d');
+    m.setTransform(1, 0, 0, 1, 0, 0); m.clearRect(0, 0, n, n);
+    m.setTransform(n / 300 * rs, 0, 0, n / 300 * rs, n / 300 * 150 * (1 - rs), n / 300 * 150 * (1 - rs));
+    drawMachine(m);
+    const mf = beaconFlash() * P.L.beacon * (P.spinA || 0);
+    if (mf > 0.01) {   // el destello de la baliza (mirando a la cámara) le pega de frente a la máquina
+      m.save(); m.globalCompositeOperation = 'source-atop';
+      const by0 = MY + 66 * MS, lg = m.createRadialGradient(150, by0, 0, 150, by0, 230);
+      lg.addColorStop(0, `rgba(255,225,220,${0.55 * mf})`); lg.addColorStop(0.5, `rgba(255,150,140,${0.3 * mf})`); lg.addColorStop(1, 'rgba(255,120,110,0)');
+      m.fillStyle = lg; m.fillRect(0, 0, 300, 300); m.restore();
     }
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1 - fade; g.drawImage(machOff, 0, 0); g.restore();
+    if (fade) { g.fillStyle = `rgba(0,0,0,${0.7 * fade})`; g.fillRect(0, 0, 300, 300); }
+  }
+
+  if (P.phase === 'reveal') {
+    // keyframe 1: la ratita hecha bolita, en el centro de la cápsula · keyframe 2: la ratita en pose normal.
+    // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco al keyframe 2 dando
+    // un giro completo y en el camino pasa de una pose a la otra, para caer en pose normal (sin deformar el retrato)
+    const TRAVEL = 0.8, SETTLE = 0.22, KF1 = { x: 150, y: 158, size: 64 }, KF2 = { x: 150, y: 168, size: 215 };
+    const turn = (c, cx, cy, a, fn) => { c.save(); c.translate(cx, cy); c.rotate(a); c.translate(-cx, -cy); fn(c); c.restore(); };
+    const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
+    const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
+    const a = -e * Math.PI * 2, mix = clamp((u - 0.1) / 0.45, 0, 1);
+    const settle = t > TRAVEL && t < TRAVEL + SETTLE ? -8 * Math.sin(Math.PI * (t - TRAVEL) / SETTLE) : 0;
+    if (mix < 1) drawFaded(g, n, 1 - mix, c => turn(c, x, y, a, c2 => drawRatBall(c2, x, y, KF1.size * (1 + 0.35 * e), P.pick, 0, t)));
+    if (mix > 0) drawFaded(g, n, mix, c => turn(c, x, y, a, c2 => drawRatPortrait(c2, x, y + settle, KF2.size * (0.5 + 0.5 * ease(mix)), P.pick, t)));
+  }
+  // la cápsula premiada
+  if (['launch', 'hover'].includes(P.phase)) {   // (mientras se abre la compuerta, la dibuja drawMachine adentro)
+    const [x, y, r, rot] = prizeCapsule(t);
+    if (P.phase === 'launch' && t > GACHA_T.launch * 0.72) {   // sombra: se acerca al frente
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(150, 222, r * 0.9, r * 0.18, 0, 0, Math.PI * 2); g.fill();
+    }
+    capsule(g, x, y, r, P.cap, rot, 0);
+  } else if (P.phase === 'reveal' && t < 0.5) {   // las dos mitades salen disparadas (arriba y abajo) y se desvanecen
+    const p = t / 0.5, split = 260 * (1 - Math.pow(1 - p, 2.5));
+    g.globalAlpha = 1 - p; capsule(g, 150, 158, 58, P.cap, 0, split); g.globalAlpha = 1;
+  }
+  if (P.phase === 'reveal' && t < 0.3) {   // golpe de luz al abrirse
+    const a = 1 - t / 0.3, fl = g.createRadialGradient(150, 158, 0, 150, 158, 60 + 150 * (1 - a));
+    fl.addColorStop(0, `rgba(255,252,235,${0.9 * a})`); fl.addColorStop(1, 'rgba(255,252,235,0)');
+    g.fillStyle = fl; g.fillRect(0, 0, 300, 300);
+  }  for (const s of P.spark) {   // destellos: estrellitas de cuatro puntas que crecen y se apagan
+    const k = Math.sin(Math.PI * s.t / s.life), r = s.s * k;
+    g.save(); g.translate(s.x, s.y); g.rotate(s.t * 2); g.fillStyle = s.col; g.globalAlpha = k;
+    g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(0, 0, r, 0); g.quadraticCurveTo(0, 0, 0, r); g.quadraticCurveTo(0, 0, -r, 0); g.quadraticCurveTo(0, 0, 0, -r); g.fill();
+    g.restore();
   }
   for (const f of P.conf) {   // papelitos
     g.save(); g.translate(f.x, f.y); g.rotate(f.r); g.fillStyle = f.col; g.fillRect(-f.w / 2, -f.h / 2, f.w, f.h); g.restore();
@@ -1650,19 +2004,41 @@ function capsule(g, x, y, r, col, rot, split) {
   g.beginPath(); g.arc(-r * 0.05, -split - r * 0.7, r * 0.05, 0, Math.PI * 2); g.arc(r * 0.12, -split - r * 0.66, r * 0.035, 0, Math.PI * 2); g.fill();
   g.restore();
 }
-function drawRays(g, t, a) {
-  g.save(); g.translate(150, 150); g.rotate(t * 0.5); g.globalAlpha = a;
-  for (let i = 0; i < 12; i++) {
-    g.fillStyle = i % 2 ? 'rgba(255,236,170,0.5)' : 'rgba(255,205,110,0.22)';
-    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 200, i * Math.PI / 6, (i + 1) * Math.PI / 6); g.closePath(); g.fill();
+// Líneas cinéticas (como la referencia): muchos rayos finos de anchos distintos que salen de un punto, alternando
+// verde lima y blanco con brillo, filosos y en punta hacia el centro. Se arman una vez por premio (P.rays) y giran apenas;
+// aparecen con un golpe de luz al abrirse la cápsula y se apagan hacia los bordes para que se lean los textos
+function drawSpeedLines(g, W, H, cx, cy, t) {
+  const P = Gacha;
+  if (!P.rays || t < 0.02) {
+    P.rays = []; let a = 0, k = 0;
+    while (a < Math.PI * 2 - 0.02) {
+      const w = 0.006 + Math.pow(Math.random(), 2.2) * 0.075;   // la mayoría finitas, algunas anchas
+      P.rays.push({ a, w, white: k++ % 2 === 1 }); a += w;
+    }
+    // la última llega justo hasta la primera (si no, quedaba una rendija negra que aparecía cada tanto)
+    const last = P.rays[P.rays.length - 1]; last.w = Math.PI * 2 - last.a;
+    if (last.white === P.rays[0].white) last.white = !last.white;
   }
-  const rg = g.createRadialGradient(0, 0, 10, 0, 0, 115);
-  rg.addColorStop(0, 'rgba(255,250,225,0.95)'); rg.addColorStop(1, 'rgba(255,250,225,0)');
-  g.fillStyle = rg; g.beginPath(); g.arc(0, 0, 115, 0, Math.PI * 2); g.fill();
-  // los rayos se desvanecen antes del borde (si no, se notaba el cuadrado del canvas)
-  const fade = g.createRadialGradient(0, 0, 60, 0, 0, 148);
-  fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
-  g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in'; g.fillStyle = fade; g.fillRect(-150, -150, 300, 300);
+  const R = Math.hypot(W, H), rot = t * 0.06, inA = Math.min(1, t / 0.12), flash = Math.max(0, 1 - t / 0.5);
+  g.save(); g.translate(cx, cy); g.rotate(rot);
+  const lime = g.createRadialGradient(0, 0, 0, 0, 0, R);
+  lime.addColorStop(0, 'rgba(214,226,80,0)'); lime.addColorStop(0.05, '#d3df4f'); lime.addColorStop(1, '#b3c22a');
+  const white = g.createRadialGradient(0, 0, 0, 0, 0, R);
+  white.addColorStop(0, 'rgba(255,255,255,0)'); white.addColorStop(0.05, '#ffffff'); white.addColorStop(1, '#dde0e8');
+  g.globalAlpha = inA;
+  for (const ry of P.rays) {
+    g.fillStyle = ry.white ? white : lime;
+    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, ry.a, ry.a + ry.w + 0.002); g.closePath(); g.fill();
+  }
+  // brillo en el centro (más fuerte justo al abrirse)
+  const glow = g.createRadialGradient(0, 0, 0, 0, 0, R * (0.16 + 0.12 * flash));
+  glow.addColorStop(0, `rgba(255,255,240,${0.9})`); glow.addColorStop(1, 'rgba(255,255,240,0)');
+  g.fillStyle = glow; g.beginPath(); g.arc(0, 0, R * (0.16 + 0.12 * flash), 0, Math.PI * 2); g.fill();
+  // se apagan hacia los bordes de la pantalla (así se leen el título y los botones)
+  g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in';
+  const fade = g.createRadialGradient(0, 0, 0, 0, 0, Math.max(W, H) * 0.62);
+  fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.45, 'rgba(0,0,0,0.85)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = fade; g.fillRect(-R, -R, R * 2, R * 2);
   g.restore();
 }
 // La máquina de ratitas, como la referencia: tapa turquesa con baliza roja, dos tubos amarillos que brillan, cables,
@@ -1671,48 +2047,64 @@ function drawRays(g, t, a) {
 // achicadas a MS dentro del canvas de 300 × 300. Al activarla: tiembla, la baliza destella, las barras se llenan y las
 // cápsulas se sacuden; la compuerta se ilumina más cuando sale la cápsula.
 const MS = 0.205, MX = 150 - 572 * MS, MY = 8;
-const MACHINE_DOOR = [150, MY + 1112 * MS];   // dónde aparece la cápsula (en el canvas de 300)
+const TRAY_UP = 1048, TRAY_DOWN = 1180;   // borde de arriba de la rampa amarilla: cerrada / abierta
+const DOOR_LIFT = 302;   // cuánto sube la puerta gris (queda un pedacito arriba sin abrir)
+const MACHINE_DOOR = [150, MY + (TRAY_DOWN - 60) * MS];   // dónde queda la cápsula, apoyada en la rampa (en el canvas de 300)
+// Lugares de la pila, por filas de arriba a abajo: encimadas y desparejas, como una pecera llena. La de más arriba no pasa
+// de CAP_TOP (el nivel máximo, debajo de la luz de la tapa), ni siquiera cuando saltan
 const MACHINE_CAPS = [
-  [430, 470], [585, 455], [735, 468],
-  [330, 560], [480, 545], [650, 540], [805, 552],
-  [300, 662], [425, 640], [572, 622], [720, 632], [845, 655],
-  [360, 742], [510, 735], [655, 728], [800, 742],
+  [430, 515], [585, 500], [735, 513],
+  [360, 605], [500, 590], [645, 585], [785, 597],
+  [339, 707], [455, 685], [572, 667], [689, 677], [805, 700],
+  [450, 787], [572, 780], [694, 787],
 ];
+const CAP_ROWS = [[0, 3], [3, 7], [7, 12], [12, 15]];   // índices de cada fila en MACHINE_CAPS
+const CAP_TOP = 496, CAP_MIN = 110;   // techo de los centros y distancia mínima entre cápsulas
 function drawMachine(g) {
-  const P = Gacha, t = P.clock, cranking = P.phase === 'crank', cp = cranking ? clamp(P.t / GACHA_T.crank, 0, 1) : 0;
-  const shake = cranking ? Math.sin(t * 70) * 5 * Math.sin(cp * Math.PI) : 0;
-  const doorGlow = P.phase === 'drop' ? 1 : cranking ? cp : 0;
-  g.save(); g.translate(MX + shake * MS, MY); g.scale(MS, MS);
-  // rebote de toda la máquina (desde la base): respira apenas quieta, vibra trabajando y se aplasta al soltar la cápsula
-  const sq = cranking ? 0.028 * Math.sin(t * 38) * Math.sin(cp * Math.PI)
-    : P.phase === 'drop' ? -0.06 * Math.max(0, 1 - P.t / 0.22) + 0.03 * Math.max(0, Math.sin(Math.min(1, P.t / 0.5) * Math.PI)) * (P.t > 0.22 ? 1 : 0)
-    : 0.006 * Math.sin(t * 2.2);
-  g.translate(572, 1290); g.scale(1 - sq * 0.6, 1 + sq); g.translate(-572, -1290);
-  // trabajando: las cápsulas dan vueltas adentro de la cúpula (dos vueltas, arrancan y frenan suave)
-  const swirl = cranking ? (1 - Math.cos(cp * Math.PI)) * 2 * Math.PI : 0;
+  const P = Gacha, t = P.clock, L = P.L, shaking = P.phase === 'run';
+  const I = P.mach ? P.mach.I : 0;   // cuánto se mueve el motor
+  const doorOpen = P.phase === 'door' ? (u => u * u * (3 - 2 * u))(clamp(P.t / (GACHA_T.door - 0.2), 0, 1)) : ['launch', 'hover', 'reveal'].includes(P.phase) ? 1 : 0;
+  const doorGlow = Math.max(L.door, doorOpen);
+  // sacudida mecánica por partes (nada se deforma): la base (el motor) no se va de costado, da saltitos para arriba;
+  // la cúpula se bambolea sobre la base con su propio ritmo y cada tubo de luz se sacude por su lado
+  // máquina pesada (ver machinePhysics): saltos de la base, estirar / aplastar y los bamboleos de la cúpula y los tubos
+  const Mm = P.mach || { hop: 0, sq: 1, gx: 0, gy: 0, gr: 0, tl: 0, tr: 0 };
+  const hop = Mm.hop, sqB = Mm.sq, sqG = 1 + (Mm.sq - 1) * 0.6 * (Mm.cpl || 0), gRot = Mm.gr, gX = Mm.gx, gY = Mm.gy, tRot = [Mm.tl, Mm.tr];
+  g.save(); g.translate(MX, MY); g.scale(MS, MS);
   g.lineCap = 'round'; g.lineJoin = 'round';
   const rr = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
   const TEAL = '#2b8e9c', TEAL_D = '#1f6f7a', TEAL_L = '#3aa6b3', DARK = '#2b2d31', CREAM = '#efe7d0';
   // sombra en el piso
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(572, 1300, 470, 20, 0, 0, Math.PI * 2); g.fill();
-  // cables de atrás
-  const cable = (col, w, pts) => {
-    g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(...pts[0]);
-    for (let i = 1; i < pts.length; i += 3) g.bezierCurveTo(...pts[i], ...pts[i + 1], ...pts[i + 2]);
+  // cables de atrás: cada punta va enganchada a su pieza (la pecera o la base), así no se cortan cuando se mueven;
+  // en el medio se mecen apenas, cada uno a su ritmo (a destiempo)
+  const Dm = [Mm.gx || 0, Mm.gy || 0], Bm = [0, -(Mm.hop || 0)];
+  const cable = (col, w, pts, from, to, ph) => {
+    const n = pts.length - 1, sw = (1.5 + 6 * I) * Math.sin(t * (1.3 + I * 2.5) + ph);
+    const q = pts.map(([x, y], k) => {
+      const u = k / n, mid = Math.sin(Math.PI * u);
+      return [x + from[0] * (1 - u) + to[0] * u + sw * mid, y + from[1] * (1 - u) + to[1] * u + sw * 0.5 * mid];
+    });
+    g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(...q[0]);
+    for (let i = 1; i < q.length; i += 3) g.bezierCurveTo(...q[i], ...q[i + 1], ...q[i + 2]);
     g.stroke();
   };
-  cable(DARK, 26, [[935, 520], [1015, 600], [1010, 760], [965, 800], [1060, 900], [1045, 1090], [962, 1105]]);
-  cable('#d9342b', 30, [[860, 285], [965, 285], [995, 400], [960, 520], [940, 610], [930, 700], [905, 785]]);
-  cable('#d9342b', 26, [[255, 700], [205, 730], [185, 800], [195, 850]]);
-  cable(DARK, 24, [[195, 850], [150, 900], [158, 985], [185, 1005]]);
-  cable('#d9342b', 22, [[655, 92], [700, 20], [790, 26], [800, 72]]);
+  cable('#1677cc', 30, [[860, 285], [970, 285], [1005, 400], [990, 520], [975, 650], [935, 770], [900, 905]], Dm, Bm, 1.7);   // celeste, por detrás del negro y de la base, por el borde de afuera
+  cable(DARK, 26, [[935, 520], [1015, 600], [1012, 780], [945, 880], [1060, 900], [1045, 1090], [962, 1105]], Dm, Bm, 0);
+  cable('#d9342b', 26, [[365, 725], [305, 690], [225, 700], [200, 760], [185, 800], [188, 830], [195, 850]], Dm, Bm, 3.1);   // arranca bien adentro, detrás de las cápsulas
+  cable(DARK, 24, [[195, 850], [150, 900], [158, 985], [185, 1005]], Bm, Bm, 4.4);
+  cable('#d9342b', 22, [[655, 92], [700, 20], [790, 26], [800, 72]], Dm, Dm, 5.6);
   g.fillStyle = '#9aa1a6';
-  for (const [x, y, a] of [[935, 520, 0.6], [196, 852, 0.2], [960, 1104, 1.4], [905, 780, 0.1]]) { g.save(); g.translate(x, y); g.rotate(a); rr(-22, -14, 44, 28, 6); g.fill(); g.restore(); }
-  // tubos amarillos que brillan (más fuerte al activarla)
-  const tube = (x0, y0, x1, y1, ph) => {
+  for (const [x, y, a, o] of [[196, 852, 0.2, Bm], [960, 1104, 1.4, Bm]]) {
+    g.save(); g.translate(x + o[0], y + o[1]); g.rotate(a); rr(-22, -14, 44, 28, 6); g.fill(); g.restore();
+  }
+  // la cúpula (con la tapa, los tubos y la baliza) se mueve aparte de la base: pivote abajo, donde se apoya
+  g.save(); g.translate(572 + gX, 800 + gY); g.rotate(gRot); g.scale(1 / sqG, sqG); g.translate(-572, -800);   // pivote abajo; se estira y aplasta
+  // tubos amarillos que brillan (más fuerte al activarla); cada uno se sacude desde donde se engancha a la tapa
+  const tube = (x0, y0, x1, y1, ph, lt, rot) => {   // lt: cuánto está prendido (0 apagado … 1)
     const a = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
-    const glow = clamp(0.7 + 0.3 * Math.sin(t * 4 + ph) + (cranking ? 0.3 * Math.sin(t * 30) : 0), 0, 1);
-    g.save(); g.translate(x0, y0); g.rotate(a);
+    const glow = clamp(lt * (0.88 + 0.12 * Math.sin(t * 4 + ph)), 0, 1);
+    g.save(); g.translate(x1, y1); g.rotate(rot); g.translate(x0 - x1, y0 - y1); g.rotate(a);
     const halo = g.createRadialGradient(len / 2, 0, 10, len / 2, 0, len * 0.65);
     halo.addColorStop(0, `rgba(255,220,90,${0.35 * glow})`); halo.addColorStop(1, 'rgba(255,220,90,0)');
     g.fillStyle = halo; g.fillRect(-60, -len * 0.6, len + 120, len * 1.2);
@@ -1725,20 +2117,15 @@ function drawMachine(g) {
     g.fillStyle = '#9aa1a6'; rr(len + 2, -26, 34, 52, 8); g.fill();   // conector a la tapa
     g.restore();
   };
-  tube(372, 52, 300, 290, 0); tube(772, 52, 844, 290, 2);
+  tube(372, 52, 300, 290, 0, L.tubeL, tRot[0]); tube(772, 52, 844, 290, 2, L.tubeR, tRot[1]);
   // cúpula de vidrio (atrás) con las cápsulas adentro
   const GX = 572, GY = 560, GR = 357;
   g.save(); g.beginPath(); g.arc(GX, GY, GR, 0, Math.PI * 2); g.clip();
   g.fillStyle = 'rgba(190,220,232,0.22)'; g.fillRect(GX - GR, GY - GR, GR * 2, GR * 2);
   const under = g.createRadialGradient(572, 330, 20, 572, 380, 330);   // luz que baja de la tapa
-  under.addColorStop(0, 'rgba(255,236,150,0.55)'); under.addColorStop(1, 'rgba(255,236,150,0)');
+  under.addColorStop(0, `rgba(255,236,150,${0.55 * L.inner})`); under.addColorStop(1, 'rgba(255,236,150,0)');
   g.fillStyle = under; g.fillRect(GX - GR, GY - GR, GR * 2, GR * 2);
-  MACHINE_CAPS.forEach(([x0, y0], i) => {
-    const cs = Math.cos(swirl), sn = Math.sin(swirl), x = 572 + (x0 - 572) * cs - (y0 - 600) * sn, y = 600 + (x0 - 572) * sn + (y0 - 600) * cs;
-    const j = cranking ? 8 * Math.sin(cp * Math.PI) : 3;
-    capsule(g, x + Math.sin(t * (cranking ? 23 : 1.6) + i * 1.7) * j, y + Math.cos(t * (cranking ? 19 : 1.3) + i * 2.3) * j, 82, CAP_COLORS[(i * 3) % CAP_COLORS.length],
-      Math.sin(i * 2.1) * 0.5 + (cranking ? Math.sin(t * 9 + i) * 0.3 * cp : 0), 0);
-  });
+  for (const c of gachaCaps()) capsule(g, c.x + (c.jx || 0), c.y + (c.jy || 0), 82, c.col, c.a + (c.ja || 0), 0);   // física + temblor
   g.restore();
   g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 18;                               // brillos del vidrio
   g.beginPath(); g.arc(GX, GY, GR - 40, 3.55, 3.95); g.stroke();
@@ -1748,39 +2135,70 @@ function drawMachine(g) {
   // tapa turquesa con la luz abajo, el cartel de peligro y la baliza
   const lg = g.createRadialGradient(572, 330, 10, 572, 330, 210);
   lg.addColorStop(0, '#fffbe0'); lg.addColorStop(0.5, '#ffe58a'); lg.addColorStop(1, 'rgba(255,220,100,0)');
-  g.fillStyle = lg; g.beginPath(); g.ellipse(572, 335, 230, 42, 0, 0, Math.PI * 2); g.fill();
+  g.save(); g.globalAlpha *= L.inner; g.fillStyle = lg; g.beginPath(); g.ellipse(572, 335, 230, 42, 0, 0, Math.PI * 2); g.fill(); g.restore();
   const cg = g.createLinearGradient(0, 130, 0, 320); cg.addColorStop(0, TEAL_L); cg.addColorStop(1, TEAL);
   g.fillStyle = cg; g.beginPath(); g.moveTo(318, 318); g.bezierCurveTo(328, 190, 420, 132, 572, 132);
   g.bezierCurveTo(724, 132, 816, 190, 826, 318); g.closePath(); g.fill();
   g.fillStyle = TEAL_D; rr(300, 290, 545, 44, 22); g.fill();
-  g.fillStyle = '#fff3b0'; g.beginPath(); g.ellipse(572, 334, 190, 16, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = mixC('#6d6650', '#fff3b0', L.inner); g.beginPath(); g.ellipse(572, 334, 190, 16, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = TEAL_D; for (const x of [408, 736]) { g.beginPath(); g.arc(x, 215, 13, 0, Math.PI * 2); g.fill(); }
   g.fillStyle = '#f2c230'; g.strokeStyle = '#f2c230'; g.lineWidth = 16;                      // cartel de peligro
+  g.lineJoin = 'round';
   g.beginPath(); g.moveTo(572, 168); g.lineTo(636, 268); g.lineTo(508, 268); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle = DARK; g.beginPath(); g.ellipse(578, 244, 26, 15, 0, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.arc(553, 236, 12, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(556, 221, 8, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = DARK; g.lineWidth = 4; g.beginPath(); g.moveTo(602, 250); g.quadraticCurveTo(625, 262, 612, 268); g.stroke();
-  // baliza roja: titila; trabajando destella rápido y gira dos haces de luz
-  if (cranking) {
-    g.save(); g.translate(572, 72);
-    for (const k of [0, Math.PI]) {
-      const a = t * 9 + k, hg = g.createRadialGradient(0, 0, 10, 0, 0, 420);
-      hg.addColorStop(0, `rgba(255,70,50,${0.45 * Math.sin(cp * Math.PI)})`); hg.addColorStop(1, 'rgba(255,70,50,0)');
-      g.fillStyle = hg; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 420, a - 0.28, a + 0.28); g.closePath(); g.fill();
+  g.lineJoin = 'miter';
+  // cabeza de ratón de frente (como el diseño): dos orejas grandes y redondas que se salen del triángulo, con la punta
+  // amarilla asomando entre ellas; abajo la cara, un escudito que termina en punta casi en el borde, y dos ojitos amarillos
+  g.fillStyle = g.strokeStyle = '#111417'; g.lineWidth = 6; g.lineJoin = 'round';
+  g.beginPath(); g.arc(533, 191, 27, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(611, 191, 27, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(537, 212); g.lineTo(607, 212); g.lineTo(607, 234); g.lineTo(572, 265); g.lineTo(537, 234); g.closePath();
+  g.fill(); g.stroke(); g.lineJoin = 'miter';
+  g.fillStyle = '#f2c230';
+  for (const x of [556, 588]) { g.beginPath(); g.arc(x, 229, 6.5, 0, Math.PI * 2); g.fill(); }
+  // baliza roja, como una sirena de verdad: adentro de la cúpula roja gira un espejo alrededor de la lamparita. Cuando el
+  // espejo mira a la cámara la cúpula se llena de un destello blanco rosado y larga un halo grande; de costado el brillo
+  // se corre hacia un lado y se angosta; de espaldas se ve el dorso oscuro del espejo en el medio y el rojo en los bordes.
+  // Gira con el motor (una vuelta cada 2 s, igual que el haz de pantalla completa: el destello es cuando el haz baja)
+  g.fillStyle = DARK; rr(478, 96, 190, 50, 14); g.fill();
+  const bl = L.beacon, sa = P.spinA || 0, spin = sa > 0.003, ang = beaconAngle();
+  const face = Math.sin(ang) * sa, side = -Math.cos(ang) * sa, faceU = Math.sin(ang), sideU = -Math.cos(ang);   // U: sin atenuar
+  const flash = beaconFlash() * bl * sa;   // corto (pasa rápido) pero grande
+  if (bl > 0.15) {   // brillo cerca de la cúpula; el halo grande va en pantalla completa (drawGachaFx), si no se cortaba
+    const bh = g.createRadialGradient(572, 66, 10, 572, 66, 100);    // en el borde del dibujo y se veía una caja
+    bh.addColorStop(0, `rgba(255,${60 + 140 * flash},${50 + 130 * flash},${0.35 * bl + 0.4 * flash})`); bh.addColorStop(1, 'rgba(255,60,40,0)');
+    g.fillStyle = bh; g.beginPath(); g.arc(572, 66, 100, 0, Math.PI * 2); g.fill();
+  }
+  const dome = new Path2D(); dome.moveTo(518, 98); dome.lineTo(518, 70); dome.bezierCurveTo(518, 22, 626, 22, 626, 70); dome.lineTo(626, 98); dome.closePath();
+  const lit = bl * (1 - 0.45 * sa + 0.45 * Math.max(0, face));   // sin saltos: con sa = 0 queda prendida pareja
+  const bg2 = g.createRadialGradient(560, 50, 5, 572, 75, 60);
+  bg2.addColorStop(0, mixC('#a85048', '#ffd0c8', lit)); bg2.addColorStop(0.35, mixC('#8e231c', '#ff3b2f', lit)); bg2.addColorStop(1, mixC('#6e140f', '#c41d16', lit * 0.6));
+  g.fillStyle = bg2; g.fill(dome);
+  if (spin && bl > 0.15) {
+    g.save(); g.clip(dome); g.globalAlpha = sa;   // todo lo de adentro se apaga de a poco con la baliza
+    // sincronizado con el haz de la pantalla: el reflejo brillante se ve del lado para donde sale la luz (c: + derecha,
+    // - izquierda) y el dorso oscuro del espejo del lado contrario. Los dos se cruzan suave (nunca cambian de golpe)
+    const c = -sideU, rx = 7 + 34 * Math.abs(faceU);
+    const back = Math.max(0, -faceU), front = Math.max(0, (faceU + 0.3) / 1.3);
+    if (back > 0) {   // de espaldas: el dorso oscuro del espejo, difuminado, con el rojo brillando alrededor
+      g.save(); g.translate(572 - 30 * c, 66); g.scale(1, 34 / (rx + 10));
+      const dk = g.createRadialGradient(0, 0, 0, 0, 0, rx + 10);
+      dk.addColorStop(0, `rgba(60,6,8,${0.6 * back})`); dk.addColorStop(0.55, `rgba(60,6,8,${0.4 * back})`); dk.addColorStop(1, 'rgba(60,6,8,0)');
+      g.fillStyle = dk; g.beginPath(); g.arc(0, 0, rx + 10, 0, Math.PI * 2); g.fill(); g.restore();
     }
+    if (front > 0) {  // de frente o de costado: el reflejo blanco rosado, del lado del haz
+      const mx = 572 + 30 * c, sp = g.createRadialGradient(mx, 62, 2, mx, 64, rx + 12);
+      sp.addColorStop(0, `rgba(255,255,255,${bl * front})`); sp.addColorStop(0.45, `rgba(255,170,190,${bl * 0.75 * front})`);
+      sp.addColorStop(1, 'rgba(255,60,80,0)');
+      g.fillStyle = sp; g.beginPath(); g.ellipse(mx, 64, rx + 12 + 30 * flash, 40 + 10 * flash, 0, 0, Math.PI * 2); g.fill();
+    }
+    const bulb = g.createRadialGradient(572, 68, 1, 572, 68, 16);   // la lamparita, en el eje
+    bulb.addColorStop(0, `rgba(255,235,240,${0.8 * bl})`); bulb.addColorStop(1, 'rgba(255,120,130,0)');
+    g.fillStyle = bulb; g.beginPath(); g.arc(572, 68, 16, 0, Math.PI * 2); g.fill();
     g.restore();
   }
-  g.fillStyle = DARK; rr(478, 96, 190, 50, 14); g.fill();
-  const on = cranking ? Math.sin(t * 30) > 0 : Math.sin(t * 3) > -0.2;
-  if (on) {
-    const bh = g.createRadialGradient(572, 70, 10, 572, 70, cranking ? 190 : 120);
-    bh.addColorStop(0, 'rgba(255,60,40,0.55)'); bh.addColorStop(1, 'rgba(255,60,40,0)');
-    g.fillStyle = bh; g.beginPath(); g.arc(572, 70, cranking ? 190 : 120, 0, Math.PI * 2); g.fill();
-  }
-  const bg2 = g.createRadialGradient(560, 50, 5, 572, 75, 60);
-  bg2.addColorStop(0, on ? '#ffd0c8' : '#e88a80'); bg2.addColorStop(0.35, on ? '#ff3b2f' : '#c4281f'); bg2.addColorStop(1, '#8e1a14');
-  g.fillStyle = bg2; g.beginPath(); g.moveTo(518, 98); g.lineTo(518, 70); g.bezierCurveTo(518, 22, 626, 22, 626, 70); g.lineTo(626, 98); g.closePath(); g.fill();
   g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(556, 56, 9, 14, -0.3, 0, Math.PI * 2); g.fill();
+  g.restore();   // fin de la cúpula
+  // base (el motor): solo da saltitos para arriba
+  g.save(); g.translate(572, 1290 - hop); g.scale(1 / sqB, sqB); g.translate(-572, -1290);   // salta y se estira / aplasta desde abajo
   // base: borde turquesa arriba, cuerpo crema, zócalo turquesa con patas
   g.fillStyle = TEAL_D; rr(262, 772, 620, 56, 14); g.fill();
   g.fillStyle = TEAL; rr(262, 772, 620, 34, 14); g.fill();
@@ -1798,10 +2216,23 @@ function drawMachine(g) {
   const dg = g.createRadialGradient(572, 960, 10, 572, 1000, 170);
   dg.addColorStop(0, mixC('#ffe48a', '#fffbe8', doorGlow)); dg.addColorStop(1, mixC('#e39a12', '#ffc83a', doorGlow));
   g.fillStyle = dg; g.fill(doorP);
-  const ig = g.createLinearGradient(0, 1040, 0, 1180); ig.addColorStop(0, '#6b4513'); ig.addColorStop(1, '#2a1a08');
-  g.fillStyle = ig; g.beginPath(); g.moveTo(468, 1180); g.lineTo(468, 1075); g.bezierCurveTo(500, 1040, 644, 1040, 676, 1075); g.lineTo(676, 1180); g.closePath(); g.fill();
-  g.fillStyle = '#f2b51e'; rr(470, 1162, 204, 40, 6); g.fill();                              // rampita amarilla
-  g.fillStyle = '#d29412'; rr(470, 1162, 204, 10, 4); g.fill();
+
+  // la rampa amarilla: arranca a bajar un poquito después de que la puerta empieza a subir, y la cápsula premiada viene
+  // apoyada arriba de ella. La puerta gris (cerrada tapa todo el arco) sube entera y deja ver la luz
+  const rampU = clamp((doorOpen - 0.2) / 0.8, 0, 1), rampTop = TRAY_UP + (TRAY_DOWN - TRAY_UP) * rampU * rampU * (3 - 2 * rampU);
+  g.save(); g.beginPath(); g.rect(448, 860, 248, 350); g.clip();                              // hasta la franja de peligro
+  g.fillStyle = '#f2b51e'; rr(468, rampTop, 208, 1210 - rampTop, 6); g.fill();
+  g.fillStyle = '#d29412'; rr(468, rampTop, 208, 18, 6); g.fill();                            // canto de arriba
+  if (P.phase === 'door') capsule(g, 572, rampTop - 60, 62, P.cap, 0, 0);                      // la cápsula premiada, apoyada
+  g.restore();
+  const hatchUp = doorOpen * doorOpen * (3 - 2 * doorOpen) * DOOR_LIFT - (doorOpen > 0 && doorOpen < 1 ? Math.sin(doorOpen * Math.PI * 3) * 4 : 0);
+  {
+    const doorC = new Path2D(); doorC.moveTo(448, 1210); doorC.lineTo(448, 1010); doorC.arc(572, 1010, 124, Math.PI, 0); doorC.lineTo(696, 1210); doorC.closePath();
+    g.save(); g.clip(doorC); g.translate(0, -hatchUp);
+    g.fillStyle = '#2d3034'; g.fill(doorC);
+    g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(448, 1196, 248, 14);   // canto de abajo
+    g.restore();
+  }
   g.strokeStyle = '#9aa3a8'; g.lineWidth = 30;                                               // marco gris de la compuerta
   g.beginPath(); g.moveTo(434, 1250); g.lineTo(434, 1010); g.arc(572, 1010, 138, Math.PI, 0); g.lineTo(710, 1250); g.stroke();
   g.fillStyle = '#9aa3a8'; rr(548, 858, 48, 36, 6); g.fill();
@@ -1809,24 +2240,33 @@ function drawMachine(g) {
   g.fillStyle = '#f2c230'; g.fillRect(458, 1206, 228, 78);
   g.fillStyle = DARK; for (let x = 420; x < 720; x += 48) { g.beginPath(); g.moveTo(x, 1284); g.lineTo(x + 24, 1284); g.lineTo(x + 70, 1206); g.lineTo(x + 46, 1206); g.closePath(); g.fill(); }
   g.restore();
-  // logo de rata y rejillas a la izquierda
-  g.fillStyle = DARK;
-  g.beginPath(); g.arc(250, 950, 40, 0, Math.PI * 2); g.arc(362, 950, 40, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.ellipse(306, 1002, 62, 56, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = CREAM; for (const x of [284, 328]) { g.beginPath(); g.arc(x, 994, 7, 0, Math.PI * 2); g.fill(); }
-  g.fillStyle = '#f0a0a0'; g.beginPath(); g.arc(306, 1018, 7, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = DARK; g.lineWidth = 4;
-  g.beginPath(); for (const s of [-1, 1]) for (const dy of [-8, 4, 16]) { g.moveTo(306 + s * 40, 1016 + dy * 0.3); g.lineTo(306 + s * 92, 1010 + dy); } g.stroke();
-  g.fillStyle = DARK; for (let i = 0; i < 4; i++) { rr(240, 1104 + i * 26, 130, 13, 6); g.fill(); }
-  // pantallita a la derecha: barras verdes (se llenan al activarla) y un pulso que corre
+  // rejillas: iguales de los dos lados
+  g.fillStyle = DARK; for (const x of [234, 790]) for (let i = 0; i < 3; i++) { rr(x, 1112 + i * 26, 120, 13, 6); g.fill(); }
+  // monedero a la derecha: chapa gris con bordes redondos como la pantallita, la ranura para la moneda y abajo la boca
+  // de devolución con su palanquita
+  const plate = g.createLinearGradient(764, 880, 916, 1088); plate.addColorStop(0, '#c3c9cc'); plate.addColorStop(1, '#868e93');
+  g.fillStyle = plate; rr(764, 880, 152, 208, 16); g.fill();
+  g.fillStyle = '#6c747a'; for (const [x, y] of [[782, 898], [898, 898], [782, 1070], [898, 1070]]) { g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = '#6c747a'; g.beginPath(); g.arc(840, 936, 36, 0, Math.PI * 2); g.fill();
+  const slotG = g.createRadialGradient(830, 926, 4, 840, 936, 30); slotG.addColorStop(0, '#e6eaec'); slotG.addColorStop(1, '#a3abb0');
+  g.fillStyle = slotG; g.beginPath(); g.arc(840, 936, 29, 0, Math.PI * 2); g.fill();
+  g.fillStyle = DARK; rr(834, 912, 12, 48, 5); g.fill();                                     // ranura
+  g.fillStyle = '#d6dadc'; rr(800, 984, 80, 30, 4); g.fill(); g.strokeStyle = '#5a6068'; g.lineWidth = 3; g.stroke();   // chapita
+
+  g.fillStyle = '#5a6068'; rr(818, 1024, 44, 50, 7); g.fill();                              // devolución
+  g.fillStyle = DARK; rr(832, 1032, 16, 20, 4); g.fill();
+  g.fillStyle = '#e1e5e7'; rr(826, 1054, 28, 14, 5); g.fill();
+  // pantallita a la izquierda: barras verdes (se llenan al activarla) y un pulso que corre
+  g.save(); g.translate(-536, 0);
   g.fillStyle = DARK; rr(764, 880, 152, 208, 16); g.fill();
-  const bars = cranking ? Math.floor(cp * 4.99) : 4;
+  // en reposo y al despertar queda una prendida; con el motor se van sumando (nunca vuelven para atrás)
+  const bars = shaking ? Math.max(1, Math.floor(clamp(Gacha.t / GACHA_T.run, 0, 1) * 4.99)) : ['idle', 'wake'].includes(P.phase) ? 1 : 4;
   for (let i = 0; i < 4; i++) { g.fillStyle = i < bars ? '#53e04f' : '#264a28'; rr(790 + i * 30, 906, 20, 32, 3); g.fill(); }
   g.fillStyle = '#16231b'; rr(782, 962, 116, 84, 8); g.fill();
   g.strokeStyle = '#3d434a'; g.lineWidth = 5; g.stroke();
   g.save(); rr(786, 966, 108, 76, 6); g.clip();
   g.strokeStyle = '#53e04f'; g.lineWidth = 4; g.beginPath();
-  const speed = cranking ? 160 : 50, off = (t * speed) % 108;
+  const off = P.pulse || 0;
   for (let k = -1; k <= 1; k++) {
     const x0 = 786 + k * 108 - off;
     g.moveTo(x0, 1004); g.lineTo(x0 + 30, 1004); g.lineTo(x0 + 40, 1012); g.lineTo(x0 + 52, 978); g.lineTo(x0 + 62, 1030);
@@ -1834,8 +2274,9 @@ function drawMachine(g) {
   }
   g.stroke(); g.restore();
   g.fillStyle = '#5a6068'; for (const x of [790, 890]) { g.beginPath(); g.arc(x, 1068, 8, 0, Math.PI * 2); g.fill(); }
-  g.fillStyle = DARK; for (let i = 0; i < 3; i++) { rr(790, 1112 + i * 26, 112, 13, 6); g.fill(); }
+  g.restore();
   g.fillStyle = '#d9342b'; rr(962, 980, 24, 46, 8); g.fill();                              // botoncito rojo al costado
+  g.restore();   // fin de la base
   g.restore();
 }
 
@@ -2622,8 +3063,9 @@ const CHEESE_H = K * 0.7;   // altura aparente del queso (paralaje, como las par
 const CHEESE_SHAPE = [[-9.5, 3.8], [5, -7.2], [8, 5.8]];         // punta y las dos esquinas de la cáscara (recta)
 const CHEESE_RIND = new Set([1]);                                 // tramo que es cáscara (más anaranjado)
 const CHEESE_HOLES = [[-3.5, 1.6, 1.3], [1.8, -2.4, 1.6], [4.6, 2.6, 1.1], [-0.6, 3.6, 0.7], [5.2, -2.8, 0.7]];
+const CHEESE_SCALE = 1.25;   // tamaño del queso
 function drawCheese(c, it) {
-  const ca = Math.cos(it.rot), sa = Math.sin(it.rot), s = 1 + CHEESE_H;
+  const ca = Math.cos(it.rot) * CHEESE_SCALE, sa = Math.sin(it.rot) * CHEESE_SCALE, s = 1 + CHEESE_H;
   const W2 = ([x, y]) => [it.x + x * ca - y * sa, it.y + x * sa + y * ca];
   const up = ([x, y]) => [cam.x + (x - cam.x) * s, cam.y + (y - cam.y) * s];
   const base = CHEESE_SHAPE.map(W2), top = base.map(up), n = base.length;
@@ -2650,8 +3092,9 @@ function drawCheese(c, it) {
   c.fillStyle = g; c.beginPath(); top.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.fill();
   for (const [hx, hy, hr] of CHEESE_HOLES) {
     const [px, py] = up(W2([hx, hy]));
-    c.fillStyle = '#c98a1d'; c.beginPath(); c.arc(px, py, hr * s, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#e8ad35'; c.beginPath(); c.arc(px + 0.3 * hr, py + 0.3 * hr, hr * s * 0.65, 0, Math.PI * 2); c.fill();
+    const hs = hr * CHEESE_SCALE;
+    c.fillStyle = '#c98a1d'; c.beginPath(); c.arc(px, py, hs * s, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#e8ad35'; c.beginPath(); c.arc(px + 0.3 * hs, py + 0.3 * hs, hs * s * 0.65, 0, Math.PI * 2); c.fill();
   }
 }
 
@@ -2670,18 +3113,24 @@ function drawPrints(c) {
   }
 }
 
-// Moneda dorada (como las de referencia: borde claro, cara con un $ en relieve). Gira sobre sí misma: se angosta
-// y deja ver el canto más oscuro de un lado.
-const COIN_R = 6.5;
+// Moneda plateada (como el diseño de concept/coin.png, simplificada y sin borde): dos ranuras oscuras horizontales y una
+// barra clara que la cruza por el medio. Gira sobre sí misma: se angosta y deja ver el canto más oscuro de un lado.
+const COIN_R = 8;
 function drawCoin(c, it) {
-  const s = Math.cos(G.time * 3 + it.ph), w = Math.max(0.16, Math.abs(s)), edge = (1 - w) * 1.8 * Math.sign(s || 1);
+  const s = Math.cos(G.time * 3 + it.ph), w = Math.max(0.16, Math.abs(s)), edge = (1 - w) * 2.2 * Math.sign(s || 1), R = COIN_R;
   c.save(); c.translate(it.x, it.y);
-  c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(1.2, 2.2, COIN_R * Math.max(w, 0.45), COIN_R * 0.75, 0, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#c98a0e'; c.beginPath(); c.ellipse(edge, 0, COIN_R * w, COIN_R, 0, 0, Math.PI * 2); c.fill();      // canto
-  c.fillStyle = '#ffd84a'; c.beginPath(); c.ellipse(0, 0, COIN_R * w, COIN_R, 0, 0, Math.PI * 2); c.fill();         // borde
-  c.fillStyle = '#f9b80f'; c.beginPath(); c.ellipse(0, 0, COIN_R * 0.74 * w, COIN_R * 0.74, 0, 0, Math.PI * 2); c.fill();   // cara
-  c.scale(w, 1); c.fillStyle = '#ffe27a'; c.font = `bold 8px Arial, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillText('$', 0, 0.5);
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(1.4, 2.6, R * Math.max(w, 0.45), R * 0.75, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#6c737b'; c.beginPath(); c.ellipse(edge, 0, R * w, R, 0, 0, Math.PI * 2); c.fill();          // canto
+  c.scale(w, 1);
+  c.fillStyle = '#a3abb3'; c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.fill();                        // cara
+  c.save(); c.beginPath(); c.arc(0, 0, R * 0.91, 0, Math.PI * 2); c.clip();
+  c.fillStyle = '#4b515a'; c.fillRect(-R, -R * 0.53, R * 2, R * 0.25); c.fillRect(-R, R * 0.21, R * 2, R * 0.26);   // ranuras
+  c.restore();
+  c.save(); c.beginPath(); c.arc(0, 0, R * 0.98, 0, Math.PI * 2); c.clip();
+  c.fillStyle = '#bcc3ca'; c.fillRect(-R, -R * 0.29, R * 2, R * 0.5);                                         // barra del medio
+  c.fillStyle = '#e1e6ea'; c.fillRect(-R, -R * 0.29, R * 2, R * 0.08);                                         // su brillo
+  c.fillStyle = '#d3d9de'; c.fillRect(-R, R * 0.47, R * 2, R * 0.06);
+  c.restore();
   c.restore();
 }
 
