@@ -455,7 +455,7 @@ const RATS = [
   ['Sombrita',    '#2b2a2c', '#4a484c', '#3e3d40', '#1a1a1c', '#ff0a1e', '#4a484c'],
   ['Chispita',    '#f07a1f', '#f6b37a', '#4a2a14', '#1d1e21', '#ffb000', '#e8761e'],
   ['Cacao',       '#5b3a24', '#b38763', '#1f1d1c', '#4a4f57', '#0d0b0a', '#7a5236'],
-  ['Pinky',       '#f4c2d0', '#ef89c3', '#7a1834', '#1d1e21', '#9e0d1e', '#ef89c3'],
+  ['Pinky',       '#f4c2d0', '#ef89c3', '#7a1834', '#1d1e21', '#ca1c8a', '#ef89c3'],
   ['Cheddar',     '#f5c518', '#f08a1c', '#1f1d1c', '#4a4f57', '#ff0a1e', '#e6b40f'],
   ['Radiactín',   '#5cff3a', '#b6ff3a', '#1d4a1f', '#1d1e21', '#ff0a1e', '#5cff3a'],
   ['Musguito',    '#2f5a2c', '#5f9a4f', '#1f1d1c', '#4a4f57', '#ffd400', '#2f5a2c'],
@@ -464,10 +464,10 @@ const RATS = [
   ['Fuego',       '#e01f1f', '#f27a6e', '#1f1d1c', '#4a4f57', '#ffd400', '#e01f1f'],
   ['Burbuja',     '#2fc9c0', '#8fd8f0', '#12285e', '#1d1e21', '#2f6fd6', '#2fc9c0'],
   ['Lila',        '#d9cdf2', '#b79be6', '#4b2a7a', '#4a4f57', '#7b3fd1', '#d9cdf2'],
-  ['Draculín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#ff0a1e', '#5e1020'],
-  ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#1d1c1b'],
-  ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#6b4524', '#c1d268'],
-  ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#ff0a1e', '#a8ba20'],
+  ['Draculín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#000000', '#5e1020'],
+  ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#4f4f4f'],
+  ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#275a20', '#c1d268'],
+  ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#fe9ae3', '#a8ba20'],
 ];
 const Skins = {
   data: (() => { try { return JSON.parse(localStorage.getItem('raton.skins')); } catch (_) { return null; } })() || { owned: [0], sel: 0 },
@@ -1502,10 +1502,24 @@ function pickRat(i) {
 // oreja, nariz, patas y cola, y líneas del cuerpo. Salen de la tabla RATS con las mismas proporciones que la Albina
 // (que tiene sus colores elegidos a mano); para ajustar una ratita a mano, se agrega en PORTRAIT_COLORS.
 const PORTRAIT_COLORS = {
-  0: { fur: '#e5e5e5', ear: '#f5a192', earDark: '#f38471', earLine: '#9c5043', nose: '#f5a192', paws: '#f5a192', line: '#6c6c6c' },   // Albina
-  7: { ear: '#ef89c3', earDark: '#da7ab1', legLine: '#c28999' },   // Pinky: orejas, nariz, patitas y cola / interior de la oreja y oreja de atrás / líneas de las patas
-  18: { ear: '#c1d268', earDark: '#9ead53' },   // Wasabi: orejas, nariz, patitas y cola / interior de la oreja y oreja de atrás
-  19: { ear: '#a8ba20', earDark: '#879617', legLine: '#658121' },   // Radium: orejas, nariz, patitas y cola / interior de la oreja y oreja de atrás / líneas de las patas
+  0: { fur: '#e5e5e5', ear: '#f5a192', earDark: '#f38471', earLine: '#ea583e', nose: '#f5a192', paws: '#f5a192', line: '#6c6c6c', legLine: '#ffffff' },   // Albina
+  1: { earLine: '#b57f4f', legLine: '#d0aa49' },   // Vainilla
+  2: { ear: '#aadbf3', earDark: '#8eceec', earLine: '#7dbad9', nose: '#8fcbe8', paws: '#8fcbe8', tail: '#8fcbe8', legLine: '#8ec9e6' },   // Copito
+  3: { earLine: '#af9592', legLine: '#808080' },   // Cenizón
+  4: { legLine: '#5c5c5c' },   // Sombrita
+  5: { earLine: '#d58d53', line: '#8f4f1e', legLine: '#f39b58' },   // Chispita
+  6: { earLine: '#8d623f', line: '#aa8974', legLine: '#936343' },   // Cacao
+  7: { ear: '#ef89c3', earDark: '#da7ab1', earLine: '#ad5c8a', legLine: '#c28999' },   // Pinky
+  8: { earLine: '#bd701f', legLine: '#c7a529' },   // Cheddar
+  9: { earLine: '#9ddf2a', line: '#45a531', legLine: '#40df20' },   // Radiactín
+  10: { legLine: '#578452' },   // Musguito
+  11: { fur: '#3b7af7', ear: '#8ad8ff', earDark: '#82c0df', earLine: '#537a8e', nose: '#8fd3f5', paws: '#8fd3f5', tail: '#8fd3f5', line: '#0f2d69', legLine: '#4d88ff' },   // Voltio
+  14: { fur: '#6cdafe', ear: '#8ae2ff', earDark: '#69cae8', earLine: '#5badc8', nose: '#00bfff', paws: '#9ee7ff', tail: '#8fd8f0', line: '#165e5a', legLine: '#3fb3d9' },   // Burbuja
+  15: { ear: '#d8c7ff', earDark: '#c4aaee', earLine: '#a88bda', nose: '#b79be6', paws: '#b79be6', tail: '#b79be6', line: '#7c67a8', legLine: '#c9adff' },   // Lila
+  16: { fur: '#63081a', ear: '#63081a', earDark: '#a22040', earLine: '#812c40', nose: '#b0475f', paws: '#b0475f', tail: '#e63760', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Draculín
+  17: { fur: '#454545', ear: '#7a5c57', earDark: '#674b46', earLine: '#594440', nose: '#764841', paws: '#7a5c57', tail: '#cfa59f', line: '#86735f', legLine: '#3b2b1c' },   // Pandita
+  18: { fur: '#8c9e33', ear: '#b0bf69', earDark: '#9ead53', earLine: '#7d8a3d', nose: '#c1d268', paws: '#bed062', tail: '#bfd454', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
+  19: { fur: '#650887', ear: '#772296', earDark: '#6a0d8c', earLine: '#5c047c', nose: '#6c3281', paws: '#6c3281', tail: '#4d2b5a', line: '#795e82', legLine: '#7d37c3', shine: '#ffd6e8' },   // Radium
 };
 // Colores del retrato (y de la ratita de frente): se sacan de RATS, y PORTRAIT_COLORS puede pisar algunos o todos.
 // ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás y el interior de la oreja,
