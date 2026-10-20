@@ -444,7 +444,8 @@ const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
 };
-// Ratitas: nombre, pelaje, orejas, arnés, cuerpo de la linterna, ojos, patas y cola (y manchas, solo Pandita).
+// Ratitas: nombre, pelaje, orejas, arnés, cuerpo de la linterna, ojos, (patas y cola: ya no se usa, salen de
+// portraitOf) y manchas (solo Pandita). Pelaje y orejas son la base de portraitOf, que puede pisarlos.
 // La 0 (Albina) viene de entrada; las demás salen de la máquina.
 const RATS = [
   ['Albina',      '#e0d8ce', '#cfa59f', '#26262b', '#4a5960', '#ff0a1e', '#b98582'],
@@ -477,20 +478,20 @@ const Skins = {
 const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mixC = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 const lum = h => { const [r, g, b] = hexRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
-// nariz de la ratita del laberinto elegida a mano (si no, sale de la oreja mezclada con rosa)
-const RAT_NOSE = { 7: '#ef89c3', 18: '#c1d268', 19: '#879617' };   // Pinky, Wasabi, Radium (la de Radium, del color de adentro de la oreja)
+// La ratita del laberinto usa los mismos colores que la de frente y la de costado (portraitOf): pelaje, oreja externa,
+// oreja interna, nariz, patas y cola. De RATS salen además los ojos, el arnés, la linterna y las manchas
 const skinCache = {};
 function skinOf(i) {
   if (skinCache[i]) return skinCache[i];
-  const [name, fur, ears, harness, light, eyes, paws, spots] = RATS[i];
+  const [name, , , harness, light, eyes, , spots] = RATS[i], P = portraitOf(i), fur = P.fur;
   const shut = lum(fur) < 0.35 ? mixC(fur, '#ffffff', 0.5) : mixC(mixC(fur, '#000000', 0.55), eyes, 0.25);
-  return skinCache[i] = { name, spots, harness, eyes, tail: paws, ear: ears,
+  return skinCache[i] = { name, spots, harness, eyes, tail: P.tail, ear: P.ear,
     body: [mixC(fur, '#ffffff', 0.8), fur, mixC(fur, '#000000', 0.2), mixC(fur, '#000000', 0.45)],
     limb: [mixC(fur, '#000000', 0.38), mixC(fur, '#000000', 0.15)],
-    earIn: mixC(ears, '#000000', 0.15), nose: RAT_NOSE[i] || mixC(ears, '#ff7f90', 0.35), eyeShut: shut,
+    earIn: P.earDark, nose: P.nose, shine: P.shine, eyeShut: shut,
     eyeGlow: i === 0 ? hexRgb(eyes).join(',') : null,   // brillo rojo alrededor de los ojos: solo la Albina
     light: [mixC(light, '#000000', 0.75), light, mixC(light, '#ffffff', 0.55)],
-    foot: hexRgb(mixC(paws, '#000000', 0.17)) };
+    foot: hexRgb(mixC(P.paws, '#000000', 0.17)) };
 }
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
 const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
@@ -1512,9 +1513,10 @@ const PORTRAIT_COLORS = {
 function portraitOf(i) {
   const o = PORTRAIT_COLORS[i] || {}, [, rf, rears] = RATS[i], fur = o.fur || rf, ear = o.ear || rears, dark = lum(fur) < 0.3;
   const line = o.line || (dark ? mixC(fur, '#ffffff', 0.45) : mixC(fur, '#000000', 0.53));
+  const paws = o.paws || ear;   // nariz, patitas y cola: del tono claro de la oreja (si no se eligen aparte)
   return { fur, ear, earDark: o.earDark || mixC(ear, '#000000', 0.09), earLine: o.earLine || mixC(ear, '#000000', 0.42),
-    nose: o.nose || ear, paws: o.paws || ear,   // cola, nariz y patitas del tono claro de la oreja
-    line, legLine: o.legLine || line };
+    nose: o.nose || ear, paws, tail: o.tail || paws,
+    line, legLine: o.legLine || line, shine: o.shine || '#ffffff' };   // shine: el brillito del ojo
 }
 function drawRatPortrait(c, x, y, size, i, t = 0) {
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line;
@@ -1540,7 +1542,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0) {
     const u = j / (tp.length - 1), wdt = 1.8 + 13.5 * Math.pow(1 - u, 0.6);   // gruesa en la base, se afina parejo hasta la punta
     return [px - dy / l * wdt * sgn, py + dx / l * wdt * sgn];
   });
-  c.fillStyle = P.paws; c.beginPath(); [...edge(1), ...edge(-1).reverse()].forEach(([px, py], j) => j ? c.lineTo(px, py) : c.moveTo(px, py));
+  c.fillStyle = P.tail; c.beginPath(); [...edge(1), ...edge(-1).reverse()].forEach(([px, py], j) => j ? c.lineTo(px, py) : c.moveTo(px, py));
   c.closePath(); c.fill();
   c.beginPath(); c.arc(tp[tp.length - 1][0], tp[tp.length - 1][1], 2, 0, Math.PI * 2); c.fill();
   // oreja de atrás: una hoja redondeada de color más intenso, inclinada hacia atrás (la base queda tapada por la cabeza)
@@ -1590,7 +1592,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0) {
   if (blink) { c.strokeStyle = S.eyeShut; c.lineWidth = 5; c.beginPath(); c.arc(163, 326, 14, 0.35, Math.PI - 0.35); c.stroke(); }
   else {
     c.fillStyle = S.eyes; c.beginPath(); c.arc(163, 330, 19, 0, Math.PI * 2); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.8)'; c.beginPath(); c.arc(168, 324, 4, 0, Math.PI * 2); c.fill();
+    c.fillStyle = `rgba(${hexRgb(P.shine).join(',')},0.8)`; c.beginPath(); c.arc(168, 324, 4, 0, Math.PI * 2); c.fill();
   }
   // bigotes largos: salen del hocico, cerca de la nariz, y se abren hacia atrás y abajo pasando por el cachete
   c.strokeStyle = ink; c.lineWidth = 2.4; c.globalAlpha = 0.85; c.beginPath();
@@ -1613,7 +1615,7 @@ function drawRatBall(c, x, y, size, i, rot = 0, t = 0) {
   const bz = (p0, p1, p2, p3, u) => { const v = 1 - u; return v * v * v * p0 + 3 * v * v * u * p1 + 3 * v * u * u * p2 + u * u * u * p3; };
   const segs = [[[60, 40], [118, 82], [40, 112], [-30, 104]], [[-30, 104], [-70, 100], [-96, 86], [-106, 62]]];
   let prev = null, n = 0;
-  c.strokeStyle = P.paws;
+  c.strokeStyle = P.tail;
   for (const [a, b, d, e] of segs) for (let u = 0; u <= 1.001; u += 0.1, n++) {
     const pt = [bz(a[0], b[0], d[0], e[0], u), bz(a[1], b[1], d[1], e[1], u)];
     if (prev) { c.lineWidth = Math.max(2.5, 16 - n * 0.62); c.beginPath(); c.moveTo(...prev); c.lineTo(...pt); c.stroke(); }
@@ -3576,7 +3578,7 @@ function drawMouse(c, alpha) {
         c.fillStyle = eg; c.beginPath(); c.arc(ex, sy * 2.9, 2.8, 0, Math.PI * 2); c.fill();
       }
       c.fillStyle = S.eyes; c.beginPath(); c.arc(ex, sy * 2.9, 1.1, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(ex + 0.4, sy * 2.5, 0.38, 0, Math.PI * 2); c.fill();
+      c.fillStyle = `rgba(${hexRgb(S.shine).join(',')},0.9)`; c.beginPath(); c.arc(ex + 0.4, sy * 2.5, 0.38, 0, Math.PI * 2); c.fill();
     }
     // bigotes: salen junto a la nariz y se abren bien a los costados; tiemblan apenas y mucho al chocar
     const wt = M.caught ? 0 : G.time;   // atrapada: los bigotes quedan quietos
@@ -3884,7 +3886,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0) {
     const an = 0.25 + n / 40 * 2.2, ball = [BALL_C[0] + Math.cos(an) * 322, BALL_C[1] + Math.sin(an) * 318];
     return m2(p, ball);
   });
-  c.fillStyle = P.paws; taper(tp, m(44, 38), m(11, 10), 5.5);
+  c.fillStyle = P.tail; taper(tp, m(44, 38), m(11, 10), 5.5);
   // --- cuerpo y cabeza (con el aplastado del aterrizaje) ---
   c.save(); squash(sqB, 1);
   // orejas (atrás de la cabeza): sentada grandes y redondas; hecha bolita quedan escondidas adentro de la bola, detrás
@@ -3946,7 +3948,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0) {
     const e = m2([590 + sd * 137, 517], [590 + sd * 111, 598]), er = m(38, 30);
     if (closed) { c.strokeStyle = S.eyeShut; c.lineWidth = 7; c.beginPath(); c.arc(e[0], e[1] - er * 0.33, er * 0.8, 0.35, Math.PI - 0.35); c.stroke(); continue; }
     c.fillStyle = S.eyes; c.beginPath(); c.arc(e[0], e[1], er, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(e[0] + 10, e[1] - 14, 11, 0, Math.PI * 2); c.fill();
+    c.fillStyle = P.shine; c.beginPath(); c.arc(e[0] + 10, e[1] - 14, 11, 0, Math.PI * 2); c.fill();
   }
   // nariz y boca en "ω" (la boca se esconde detrás de las manitos en la bolita)
   const nc = m2([590, 598], [590, 671]), ns = m(1, 0.8);
@@ -4038,6 +4040,160 @@ function renderRatGallery() {
   });
 }
 
+// ===================== LIBRERÍA DE RATITAS (index.html?libreria) =====================
+// Herramienta para el usuario (no es parte del juego): las 20 ratitas en sus 3 vistas (laberinto desde arriba, de
+// costado y de frente), animadas, con selectores para cambiar sus colores en vivo. Cada color se elige una sola vez y
+// se usa en las 3 vistas (la paleta es la de la ratita de frente, portraitOf; skinOf la toma para el laberinto). Los
+// cambios se guardan en este navegador (raton.lib) y solo se aplican en la librería; "Aplicar cambios" baja un archivo
+// (ratitas-colores.json, a Descargas) con todos los colores, que Claude lee y pasa al código; "Ver cambios" muestra la lista
+// de lo que cambió (PORTRAIT_COLORS y RATS). En el panel del navegador: openLib().
+const LIB = /libreria/i.test(location.search + location.hash);
+let libOn = false;
+const LIB_ORIG = { rats: RATS.map(r => r.slice()), port: JSON.parse(JSON.stringify(PORTRAIT_COLORS)) };
+// [campo, etiqueta]: claves de portraitOf, o 'r' + índice en RATS (ojos, arnés, linterna, manchas)
+const LIB_FIELDS = [['fur', 'Pelaje'], ['ear', 'Oreja externa'], ['earDark', 'Oreja interna (y la de atrás, de costado)'],
+  ['earLine', 'Línea de la oreja'], ['nose', 'Nariz'], ['paws', 'Patas'], ['tail', 'Cola'], ['r5', 'Ojos'], ['shine', 'Brillo del ojo'],
+  ['line', 'Líneas de la cara'], ['legLine', 'Líneas de las patas'], ['r3', 'Arnés'], ['r4', 'Linterna'], ['r7', 'Manchas']];
+// los automáticos de portraitOf salen de otro color: al cambiar ese, se fijan antes con el valor que tenían, así cada
+// selector cambia solo lo suyo
+const LIB_DEPS = { fur: ['line', 'legLine'], ear: ['earDark', 'earLine', 'nose', 'paws', 'tail'], paws: ['tail'], line: ['legLine'] };
+const libPal = i => { const P = portraitOf(i), r = RATS[i]; return { ...P, r3: r[3], r4: r[4], r5: r[5], r7: r[7] }; };
+const LIB_PAL0 = RATS.map((_, i) => libPal(i));   // cómo eran antes de los cambios
+const Lib = {
+  load() {   // los cambios guardados de antes
+    let d = null; try { d = JSON.parse(localStorage.getItem('raton.lib')); } catch (_) {}
+    if (!d) return;
+    for (const i in d.rats || {}) d.rats[i].forEach((v, k) => { if (v) RATS[i][k] = v; });
+    for (const i in d.port || {}) PORTRAIT_COLORS[i] = { ...(PORTRAIT_COLORS[i] || {}), ...d.port[i] };
+  },
+  save() {
+    const d = { rats: {}, port: {} };
+    RATS.forEach((r, i) => { if (r.some((v, k) => v !== LIB_ORIG.rats[i][k])) d.rats[i] = r.map((v, k) => v !== LIB_ORIG.rats[i][k] ? v : null); });
+    for (const i in PORTRAIT_COLORS) { const o = PORTRAIT_COLORS[i], a = LIB_ORIG.port[i] || {}, ch = {};
+      for (const k in o) if (o[k] !== a[k]) ch[k] = o[k];
+      if (Object.keys(ch).length) d.port[i] = ch; }
+    try { localStorage.setItem('raton.lib', JSON.stringify(d)); } catch (_) {}
+  },
+  // lista legible de lo que cambió (para copiar y pasarle a Claude)
+  changes() {
+    const out = [];
+    RATS.forEach((r, i) => {
+      const now = libPal(i), was = LIB_PAL0[i];
+      const L = LIB_FIELDS.filter(([k]) => now[k] && now[k] !== was[k]).map(([k, lab]) => `${lab.toLowerCase()}: ${was[k]} → ${now[k]}`);
+      if (L.length) out.push(`Ratita ${i} · ${r[0]}\n  ` + L.join('\n  '));
+    });
+    return out.length ? out.join('\n') : 'Sin cambios.';
+  },
+};
+function openLib() {
+  if (libOn) return; libOn = true;
+  Lib.load(); for (const k in skinCache) delete skinCache[k];
+  closeOpts(); clearTimeout(cardTimer); $card.classList.add('hidden');
+  const st = document.createElement('style');
+  st.textContent = `
+  #lib { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: #ececec; color: #2a2622; font-family: 'Special Elite', monospace; padding: 16px 16px 60px; }
+  #lib h1 { font-family: 'Permanent Marker', cursive; font-weight: normal; margin: 0 0 4px; font-size: 32px; }
+  #lib .bar { position: sticky; top: -16px; z-index: 2; background: #ececec; padding: 10px 0 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #ccc; }
+  #lib button { font-family: 'Permanent Marker', cursive; font-size: 16px; padding: 6px 14px; border: 0; background: #e2d6b8; box-shadow: 0 2px 0 #6b4c2c; cursor: pointer; }
+  #lib .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: 16px; margin-top: 14px; }
+  #lib .rc { background: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  #lib .rc h2 { font-family: 'Permanent Marker', cursive; font-weight: normal; margin: 0 0 6px; font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
+  #lib .rc h2 button { font-size: 12px; padding: 3px 8px; }
+  #lib .views { display: flex; gap: 6px; justify-content: space-between; background: #f3f1ec; border-radius: 8px; }
+  #lib .views figure { margin: 0; flex: 1; text-align: center; font-size: 11px; color: #777; }
+  #lib .views canvas { display: block; width: 100%; aspect-ratio: 1; }
+  #lib .eds { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; margin-top: 10px; font-size: 12px; }
+  #lib label { display: flex; align-items: center; gap: 6px; }
+  #lib input[type=color] { width: 34px; height: 22px; padding: 0; border: 1px solid #bbb; background: none; cursor: pointer; flex: none; }
+  #lib label code { color: #888; font-size: 11px; }
+  #lib label.ch code { color: #c0392b; }
+  #lib textarea { width: 100%; height: 160px; margin-top: 10px; font-family: monospace; font-size: 12px; }
+  @media (max-width: 560px) { #lib .eds { grid-template-columns: 1fr; } }`;
+  document.head.appendChild(st);
+  const box = document.createElement('div'); box.id = 'lib';
+  box.innerHTML = `<h1>Librería de ratitas</h1>
+    <div class="bar"><button data-l="apply">Aplicar cambios</button><button data-l="copy">Ver cambios</button><button data-l="reset">Borrar todos los cambios</button>
+      <span id="libMsg" style="font-size:12px;color:#777">Cada color se usa en las 3 vistas. Cuando termines, apretá "Aplicar cambios" y avisame: los paso al juego.</span></div>
+    <textarea id="libOut" readonly hidden></textarea>
+    <div class="cards">${RATS.map((r, i) => `<div class="rc" data-i="${i}"><h2><span>${i} · ${r[0]}</span><button data-l="undo" data-i="${i}">Restaurar</button></h2>
+      <div class="views"><figure><canvas data-v="maze"></canvas>laberinto</figure><figure><canvas data-v="side"></canvas>costado</figure><figure><canvas data-v="front"></canvas>frente</figure></div>
+      <div class="eds">${LIB_FIELDS.filter(([k]) => k !== 'r7' || r[7]).map(([k, lab]) => `<label><input type="color" data-f="${k}">${lab} <code></code></label>`).join('')}</div></div>`).join('')}</div>`;
+  document.body.appendChild(box);
+  const refresh = i => {   // los valores que se ven
+    const card = box.querySelector(`.rc[data-i="${i}"]`), pal = libPal(i), o = PORTRAIT_COLORS[i] || {};
+    card.querySelectorAll('input[data-f]').forEach(inp => {
+      const k = inp.dataset.f, v = pal[k], auto = k[0] !== 'r' && !o[k];
+      if (document.activeElement !== inp) inp.value = v;
+      inp.parentNode.querySelector('code').textContent = auto ? v + ' (auto)' : v;
+      inp.parentNode.classList.toggle('ch', v !== LIB_PAL0[i][k]);
+    });
+  };
+  RATS.forEach((_, i) => refresh(i));
+  box.addEventListener('input', e => {
+    const inp = e.target, card = inp.closest('.rc'); if (!card || !inp.dataset.f) return;
+    const i = +card.dataset.i, k = inp.dataset.f, v = inp.value;
+    if (k[0] === 'r') RATS[i][+k.slice(1)] = v;
+    else {
+      const pal = portraitOf(i), o = PORTRAIT_COLORS[i] = { ...(PORTRAIT_COLORS[i] || {}) };
+      const pin = key => (LIB_DEPS[key] || []).forEach(d => { if (!o[d]) { pin(d); o[d] = pal[d]; } });   // los que dependen de este, quietos
+      pin(k); o[k] = v;
+    }
+    delete skinCache[i]; Lib.save(); refresh(i);
+  });
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button[data-l]'); if (!b) return;
+    const out = document.getElementById('libOut');
+    if (b.dataset.l === 'apply') {
+      // guarda un archivo (en Descargas) con todos los colores de ahora; Claude lo lee de ahí y lo pasa al código
+      const data = { app: 'Maze Mouse', tipo: 'colores de ratitas', fecha: new Date().toISOString(), cambios: Lib.changes(),
+        RATS: RATS.map(r => r.slice()), PORTRAIT_COLORS: JSON.parse(JSON.stringify(PORTRAIT_COLORS)) };
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+      a.download = 'ratitas-colores.json'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      document.getElementById('libMsg').textContent = 'Listo: se guardó "ratitas-colores.json" en Descargas. Avisame y lo aplico al juego.';
+    } else if (b.dataset.l === 'copy') {
+      out.hidden = !out.hidden; out.value = Lib.changes();
+    } else if (b.dataset.l === 'undo' || (b.dataset.l === 'reset' && confirm('¿Borrar todos los cambios de colores?'))) {
+      const list = b.dataset.l === 'undo' ? [+b.dataset.i] : RATS.map((_, i) => i);
+      for (const i of list) {
+        RATS[i] = LIB_ORIG.rats[i].slice();
+        if (LIB_ORIG.port[i]) PORTRAIT_COLORS[i] = { ...LIB_ORIG.port[i] }; else delete PORTRAIT_COLORS[i];
+        delete skinCache[i]; refresh(i);
+      }
+      Lib.save();
+    }
+  });
+  // solo se dibujan las tarjetas que están a la vista
+  const io = new IntersectionObserver(es => es.forEach(en => { en.target.vis = en.isIntersecting; }), { root: box });
+  box.querySelectorAll('.rc').forEach(c => io.observe(c));
+}
+function renderLib(dt = 1 / 60) {
+  const box = document.getElementById('lib'); if (!box) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  box.querySelectorAll('.rc').forEach(card => {
+    if (!card.vis) return;
+    const i = +card.dataset.i, t = G.time + i * 0.7;
+    card.querySelectorAll('canvas').forEach(cv2 => {
+      const W = Math.round(cv2.clientWidth * dpr); if (!W) return;
+      if (cv2.width !== W || cv2.height !== W) { cv2.width = W; cv2.height = W; }
+      const g = cv2.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, W);
+      const v = cv2.dataset.v;
+      if (v === 'side') drawRatPortrait(g, W / 2, W * 0.52, W * 0.86, i, t);
+      else if (v === 'front') drawRatFront(g, W * 0.46, W * 0.92, W * 0.8, i, t);
+      else {   // la del laberinto, desde arriba, mirando para arriba (lejos de las paredes del laberinto de fondo)
+        const keep = { x: M.x, y: M.y, a: M.a, tail: M.tail, feet: M.feet }, so = skinOverride, s = W / 74;
+        Object.assign(M, { x: -9000, y: -9000, a: -Math.PI / 2, tail: card.tail || null, feet: null }); skinOverride = i;   // cada una con su cola
+        if (card.tail) updateTail(Math.min(dt, 1 / 30)); else for (let n = 0; n < 90; n++) updateTail(1 / 30);   // la primera vez la cola crece de golpe
+        card.tail = M.tail;
+        g.setTransform(s, 0, 0, s, W / 2 + 9000 * s, W * 0.36 + 9000 * s);
+        drawMouse(g, 1);
+        Object.assign(M, keep); skinOverride = so;
+      }
+    });
+  });
+}
+
 // ===================== LOOP =====================
 let last = performance.now();
 function frame(now) {
@@ -4047,11 +4203,13 @@ function frame(now) {
   if (RAT_GALLERY) { G.time += dt; renderRatGallery(); return; }
   if (FRONT_GALLERY) { G.time += dt; renderFrontGallery(); return; }
   if (PORTRAIT_GALLERY) { G.time += dt; renderPortraitGallery(); return; }
+  if (libOn) { G.time += dt; renderLib(dt); return; }
   update(dt); render();
 }
 resize();
 showTitle();
 if (GALLERY || RAT_GALLERY || FRONT_GALLERY || PORTRAIT_GALLERY) { document.getElementById('vignette').style.display = 'none'; $coins.style.display = 'none'; clearTimeout(cardTimer); $card.classList.add('hidden'); $hint.style.display = $hintTouch.style.display = 'none'; }
+if (LIB) openLib();
 requestAnimationFrame(frame);
 </script>
 </body>
