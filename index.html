@@ -464,12 +464,12 @@ const Story = {
     return prev;
   },
 };
-const STAR_COINS = 5;   // monedas por cada estrella que conseguís por primera vez en un nivel
 
 // ===================== MONEDAS Y RATITAS =====================
 // Monedas: se juntan en el laberinto y quedan guardadas aunque pierdas. Con COIN_SPIN se gira la máquina de ratitas
 // (como el Crossy Road): sale una al azar; si ya la tenías, te devuelve COIN_DUP.
-const COIN_SPIN = 0, COIN_DUP = COIN_SPIN / 2;   // provisorio: gratis para probar la máquina (la idea es 100 por giro); la repetida devuelve la mitad
+const COIN_PRICE = 20, FREE_SPIN = true;   // lo que cuesta girar la máquina; FREE_SPIN: provisorio, gratis para probarla
+const COIN_SPIN = FREE_SPIN ? 0 : COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
@@ -498,7 +498,24 @@ const RATS = [
   ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#4f4f4f'],
   ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#275a20', '#c1d268'],
   ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#fe9ae3', '#a8ba20'],
+  ['Dorada',      '#f0bf2a', '#f8d66a', '#3b2a05', '#c9a227', '#c8102e', '#f8d66a'],
 ];
+// Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada): 10 comunes, 6 infrecuentes, 3 raras y 1
+// legendaria (la Dorada). La máquina primero sortea la rareza (w: chance de cada una) y después una ratita de esa rareza
+const RARITY = {
+  comun:      { name: 'Común',       color: '#e6dcc4', w: 0.62 },
+  infrecuente:{ name: 'Infrecuente', color: '#86d67a', w: 0.26 },
+  rara:       { name: 'Rara',        color: '#6fb8ff', w: 0.105 },
+  legendaria: { name: 'Legendaria',  color: '#ffcc33', w: 0.015 },
+};
+const RAT_RARITY = [null, 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'rara', 'comun',
+  'infrecuente', 'infrecuente', 'infrecuente', 'infrecuente', 'comun', 'rara', 'rara', 'infrecuente', 'infrecuente', 'legendaria'];
+function rollRat() {
+  let r = Math.random(), tier = 'comun';
+  for (const k in RARITY) { if ((r -= RARITY[k].w) < 0) { tier = k; break; } }
+  const pool = RAT_RARITY.map((t, i) => t === tier ? i : -1).filter(i => i >= 0);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 const Skins = {
   data: (() => { try { return JSON.parse(localStorage.getItem('raton.skins')); } catch (_) { return null; } })() || { owned: [0], sel: 0 },
   save() { try { localStorage.setItem('raton.skins', JSON.stringify(this.data)); } catch (_) {} },
@@ -919,27 +936,39 @@ function placeItems(L, m, rng) {
   return items;
 }
 
-// Monedas que hacen elegir, no juntar por juntar: en el camino más corto hay pocas y sueltas (la ruta directa es la más
-// rápida pero rinde poco), y fuera del camino van en tesoros de 2 a 5 monedas, más grandes cuanto más lejos quedan
-// del camino (el desvío cuesta tiempo, y la tercera estrella pide un tiempo justo, pero rinde más). Así ni ir directo
-// ni explorar todo es siempre lo mejor. Usan su propio rng, así no cambian dónde caen los otros items. No van en la
-// entrada, la salida ni encima de otro item.
-const COIN_PATH_GAP = 7;     // en el camino: una moneda suelta cada tantas celdas, más o menos
-const COIN_DETOUR_S = 2.5;   // en los tesoros: una moneda por cada tantos segundos de desvío (de 2 a 8)
-function placeCoins(m, items, seed) {
+// Monedas que hacen elegir, no juntar por juntar, y pocas (una ratita sale COIN_PRICE): en el camino más corto van
+// unas pocas sueltas (la ruta directa es la más rápida pero rinde poco) y fuera del camino un tesorito de 3 a 5, más
+// grande cuanto más largo es el desvío (cuesta tiempo, y la tercera estrella pide un tiempo justo). En Historia son
+// unas 6 a 9 por nivel (dos o tres sueltas y un tesoro; dos tesoros en los laberintos grandes). En Desafío el nivel N
+// tiene N monedas en total (budget): sirve para juntar, pero rinde ir más lejos. Usan su propio rng, así no cambian
+// dónde caen los otros items. No van en la entrada, la salida ni encima de otro item.
+const COIN_DETOUR_S = 2.5;   // en los tesoros: una moneda por cada tantos segundos de desvío (de 3 a 5)
+function placeCoins(m, items, seed, budget = null) {
   const rng = mulberry32(seed), { W, H } = m, out = [];
   const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), D = dE[m.exitRow * W];
   const busy = (x, y) => items.some(it => Math.hypot((it.x ?? it.wx) - x, (it.y ?? it.wy) - y) < C * 0.75) ||
     out.some(o => Math.hypot(o.x - x, o.y - y) < C * 0.75);
   const isEnd = (c, r) => (c === W - 1 && r === m.entRow) || (c === 0 && r === m.exitRow);
   const coin = (x, y) => out.push({ type: 'coin', x, y, got: false, ph: rng() * 6 });
-  // 1) en el camino más corto: sueltas y espaciadas
+  // cuántas sueltas y qué tesoros: en Historia fijo según el tamaño; en Desafío se reparten las N del nivel
+  let singles, treasures;
+  if (budget == null) {
+    singles = 2 + (rng() < 0.5 ? 1 : 0);
+    treasures = Array(W * H >= 220 ? 2 : 1).fill(null);   // null: el tamaño sale del desvío
+  } else {
+    singles = Math.min(budget, budget <= 3 ? budget : 2);
+    treasures = [];
+    for (let left = budget - singles; left > 0; left -= 5) treasures.push(Math.min(5, left));
+  }
+  // 1) en el camino más corto: sueltas, repartidas parejo a lo largo
   const path = [];
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (dE[r * W + c] >= 0 && dE[r * W + c] + dX[r * W + c] === D) path.push([c, r, dE[r * W + c]]);
-  path.sort((a, b) => a[2] - b[2]);
-  for (let k = 2 + Math.floor(rng() * 3); k < path.length - 1; k += COIN_PATH_GAP - 1 + Math.floor(rng() * 3)) {
-    const [c, r] = path[k], x = (c + 0.5) * C, y = (r + 0.5) * C;
-    if (!isEnd(c, r) && !busy(x, y)) coin(x, y);
+  path.sort((p, q) => p[2] - q[2]);
+  let placed = 0;
+  for (let k = 0; k < singles * 3 && placed < singles; k++) {   // si un lugar está ocupado, prueba un poco más allá
+    const f = (placed + 0.5 + (rng() - 0.5) * 0.4) / singles, idx = clamp(Math.round(2 + f * (path.length - 4)) + (k % 3), 1, path.length - 2);
+    const [c, r] = path[idx], x = (c + 0.5) * C, y = (r + 0.5) * C;
+    if (!isEnd(c, r) && !busy(x, y)) { coin(x, y); placed++; }
   }
   // 2) tesoros fuera del camino: los callejones pesan más; cada uno vale más cuanto más largo es el desvío
   const off = [];
@@ -949,15 +978,15 @@ function placeCoins(m, items, seed) {
     const walls = [m.vW[c][r], m.vW[c + 1][r], m.hW[r][c], m.hW[r + 1][c]].filter(Boolean).length;
     off.push({ c, r, det, w: (walls === 3 ? 2.5 : 1) * Math.min(det, 12) });
   }
-  const nStash = clamp(Math.round(W * H / 26), 3, 10), stash = [];
-  while (stash.length < nStash && off.length) {
-    let tot = off.reduce((a, o) => a + o.w, 0), pick = rng() * tot, j = 0;
+  const stash = [];
+  while (stash.length < treasures.length && off.length) {
+    let tot = off.reduce((acc, o) => acc + o.w, 0), pick = rng() * tot, j = 0;
     while (j < off.length - 1 && (pick -= off[j].w) > 0) j++;
-    const s = off.splice(j, 1)[0], x = (s.c + 0.5) * C, y = (s.r + 0.5) * C;
-    if (stash.some(o => Math.abs(o.c - s.c) + Math.abs(o.r - s.r) < 3) || busy(x, y)) continue;
-    stash.push(s);
-    const n = clamp(Math.round(s.det * C / SPEED / COIN_DETOUR_S), 2, 8);   // una moneda cada COIN_DETOUR_S segundos de desvío
-    const L = !m.vW[s.c][s.r], R = !m.vW[s.c + 1][s.r], U = !m.hW[s.r][s.c], Dn = !m.hW[s.r + 1][s.c];
+    const st = off.splice(j, 1)[0], x = (st.c + 0.5) * C, y = (st.r + 0.5) * C;
+    if (stash.some(o => Math.abs(o.c - st.c) + Math.abs(o.r - st.r) < 3) || busy(x, y)) continue;
+    const n = treasures[stash.length] ?? clamp(Math.round(st.det * C / SPEED / COIN_DETOUR_S), 3, 5);
+    stash.push(st);
+    const L = !m.vW[st.c][st.r], R = !m.vW[st.c + 1][st.r], U = !m.hW[st.r][st.c], Dn = !m.hW[st.r + 1][st.c];
     const horiz = L && R && !U && !Dn, vert = U && Dn && !L && !R;
     if (horiz || vert) {   // en hilera a lo largo del pasillo (de a dos filas si son más de 4)
       const rows = n > 4 ? 2 : 1, per = Math.ceil(n / rows);
@@ -965,7 +994,8 @@ function placeCoins(m, items, seed) {
         const row = Math.floor(k / per), cnt = row ? n - per : per, o = (k % per - (cnt - 1) / 2) * 15, side = rows > 1 ? (row ? 9 : -9) : 0;
         coin(x + (horiz ? o : side), y + (vert ? o : side));
       }
-    } else { const rad = n > 4 ? 19 : 13; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2 - Math.PI / 2; coin(x + Math.cos(a) * rad, y + Math.sin(a) * rad); } }   // en ronda
+    } else if (n === 1) coin(x, y);
+    else { const rad = n > 4 ? 19 : 13; for (let k = 0; k < n; k++) { const ang = k / n * Math.PI * 2 - Math.PI / 2; coin(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); } }   // en ronda
   }
   return out;
 }
@@ -1349,7 +1379,7 @@ function loadLevel(n) {
   G.mode = 'challenge'; G.level = n; G.viewLevel = n;
   const [W, H] = sizeFor(n);
   buildMaze(W, H, G.baseSeed + n * 7919, Math.min(0.05, 0.008 * (n - 1)));
-  G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777); G.runCoins = 0; G.coinsTotal = G.items.length;
+  G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777, n); G.runCoins = 0; G.coinsTotal = G.items.length;
   G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
   G.timeLimit = timeFor(n, pathLen(G.maze));
   starTimes(0);
@@ -1552,6 +1582,7 @@ const PORTRAIT_COLORS = {
   17: { fur: '#454545', ear: '#7a5c57', earDark: '#674b46', earLine: '#594440', nose: '#764841', paws: '#7a5c57', tail: '#cfa59f', line: '#86735f', legLine: '#3b2b1c' },   // Pandita
   18: { fur: '#8c9e33', ear: '#b0bf69', earDark: '#9ead53', earLine: '#7d8a3d', nose: '#c1d268', paws: '#bed062', tail: '#bfd454', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
   19: { fur: '#650887', ear: '#772296', earDark: '#6a0d8c', earLine: '#5c047c', nose: '#6c3281', paws: '#6c3281', tail: '#4d2b5a', line: '#795e82', legLine: '#7d37c3', shine: '#ffd6e8' },   // Radium
+  20: { fur: '#f0bf2a', ear: '#f8d66a', earDark: '#e0a91c', earLine: '#a8790c', nose: '#f8d66a', paws: '#f8d66a', tail: '#e8b52a', line: '#8a6410', legLine: '#b8860b', shine: '#fff6cc' },   // Dorada (legendaria)
 };
 // Colores del retrato (y de la ratita de frente): se sacan de RATS, y PORTRAIT_COLORS puede pisar algunos o todos.
 // ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás y el interior de la oreja,
@@ -1889,7 +1920,7 @@ function gachaButtons(after) {
 function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
-  Gacha.pick = 1 + Math.floor(Math.random() * (RATS.length - 1));   // la Albina ya la tenés de entrada
+  Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
   Gacha.cap = CAP_COLORS[Math.floor(Math.random() * CAP_COLORS.length)];
@@ -2205,6 +2236,8 @@ function drawGacha(g, n) {
       g.font = "11px 'Special Elite', 'Courier New', monospace";
       g.lineWidth = 3.5; g.strokeText(sub, 0, 17);
       g.fillStyle = '#ffffff'; g.fillText(sub, 0, 17);
+      const rar = RARITY[RAT_RARITY[P.pick]];   // y la rareza, de su color
+      if (rar) { g.font = "12px 'Permanent Marker', cursive"; g.lineWidth = 4; g.strokeText(rar.name.toUpperCase(), 0, 34); g.fillStyle = rar.color; g.fillText(rar.name.toUpperCase(), 0, 34); }
       g.restore();
     }
   }
@@ -2619,8 +2652,6 @@ function showWinCard() {
     if (story) { prev = Story.finish(G.story, st, time); best = Story.data.best[G.story]; }
     else { prev = { stars: G.chStars, best: G.chBest }; G.chStars = Math.max(G.chStars, st); best = G.chBest = G.chBest == null ? time : Math.min(G.chBest, time); }
     const record = prev.best != null && time < Math.floor(prev.best);
-    const bonus = Math.max(0, st - prev.stars) * STAR_COINS;
-    if (bonus) Wallet.add(bonus);
     const [goal, goalSub] = nextGoal(st, best);   // (las monedas no se muestran acá: se ven en el contador de arriba)
     const cheeseIco = document.querySelector('#cheese svg').outerHTML;
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
@@ -2781,7 +2812,8 @@ function updateButtons() {
   if (nav) nav.style.visibility = back ? '' : 'hidden';   // mientras anda la máquina, tampoco el botón Bioterio
   $coins.classList.toggle('below', back);
   // al terminar el nivel (ganado o perdido) el contador de monedas no se muestra: tapaba el cartel en el celular
-  $coins.style.visibility = !G.screen && ['won', 'lost'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
+  // (ni en el selector de niveles: ahí no se usan y en el celular tapaban el cartel)
+  $coins.style.visibility = !G.screen && ['won', 'lost', 'select'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
