@@ -2779,7 +2779,9 @@ function updateButtons() {
   $btnBack.classList.toggle('hidden', !back);
   const nav = document.getElementById('gachaNav');
   if (nav) nav.style.visibility = back ? '' : 'hidden';   // mientras anda la máquina, tampoco el botón Bioterio
-  $coins.classList.toggle('below', back);   // las monedas en la esquina; con flechita, debajo de ella
+  $coins.classList.toggle('below', back);
+  // al terminar el nivel (ganado o perdido) el contador de monedas no se muestra: tapaba el cartel en el celular
+  $coins.style.visibility = !G.screen && ['won', 'lost'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
@@ -3976,6 +3978,18 @@ function headTilt(t, i, land = -1) {
   const a = lerp(tgt(n - 1), tgt(n), s) + 0.012 * Math.sin(t * 1.3 + i);   // y un vaivén chiquito siempre
   return land >= 0 ? a * clamp((land - 1.2) / 0.8, 0, 1) : a;   // al caer de la máquina: quieta hasta que termina el rebote
 }
+// Nariz de frente: de a ratos olfatea (un temblor rápido que entra y sale suave, de medio segundo a casi uno), al azar
+// pero sacado de t como la cabeza. En algunos tramos de SNIFF_SEG s hay olfateo, en un momento al azar del tramo
+const SNIFF_SEG = 2.4, SNIFF_HZ = 7.5;
+function sniffAt(t, i, land = -1) {
+  if (t <= 0 || (land >= 0 && land < 1.6)) return 0;   // no mientras cae y rebota
+  const n = Math.floor(t / SNIFF_SEG), f = t / SNIFF_SEG - n;
+  if (hash1(n * 6.1 + i * 3.3) > 0.6) return 0;
+  const dur = 0.45 + 0.4 * hash1(n * 2.7 + i), st = 0.05 + (0.9 - dur / SNIFF_SEG) * hash1(n * 4.9 + i * 0.7);
+  const tau = (f - st) * SNIFF_SEG;
+  if (tau < 0 || tau > dur) return 0;
+  return Math.sin(tau * Math.PI * 2 * SNIFF_HZ) * Math.sin(Math.PI * tau / dur);
+}
 // Manitos de frente: cada tanto una sacude rapidito (unas idas y vueltas que se apagan). Igual que la cabeza: tramos de
 // HAND_SEG s, cada mano con los suyos; en algunos tramos (al azar) hay sacudida, en un momento al azar del tramo
 const HAND_SEG = 2.3, HAND_SHAKE_T = 0.45;
@@ -3992,7 +4006,9 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0) {
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line, u = clamp(curl, 0, 1), m = (a, b) => lerp(a, b, u), m2 = (a, b) => lerp2(a, b, u);
   const breath = 1 + lerp(0.014, 0.02, u) * Math.sin(t * 2.6), blink = t > 0 && (t % 3.7) < 0.13;
   const tw = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.12 : 0;   // oreja que se mueve
-  const sway = t > 0 ? Math.sin(t * 1.4) * (1 - u) : 0, wh = t > 0 ? Math.sin(t * 9) * 1.5 * ((t % 2.9) < 0.5 ? 1 : 0) : 0;
+  // olfateo: de a ratos la nariz tiembla rapidito (y los bigotes con ella); además los bigotes se mecen apenas siempre
+  const sn = sniffAt(t, i, land) * (1 - u);
+  const sway = t > 0 ? Math.sin(t * 1.4) * (1 - u) : 0, wh = (t > 0 ? Math.sin(t * 1.7 + i) * 2.5 * (1 - u) : 0) + sn * 9;
   // Aterrizaje: rebotes amortiguados encadenados (cuerpo → manitos → cabeza → nariz → bigotes); las patas no se mueven
   const L = land >= 0 && land < 1.8 ? land : -1;
   const reb = (d, lam, w) => { const v = L - d; return L < 0 || v <= 0 ? 0 : Math.exp(-lam * v) * Math.sin(w * v); };
@@ -4107,7 +4123,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0) {
   }
   // nariz y boca en "ω" (la boca se esconde detrás de las manitos en la bolita)
   const nc = m2([590, 598], [590, 671]), ns = m(1, 0.8);
-  c.save(); c.translate(nc[0], nc[1] + noseDy); c.scale(ns, ns); c.translate(-590, -598);
+  c.save(); c.translate(nc[0], nc[1] + noseDy - 4 * Math.abs(sn)); c.scale(ns * (1 + 0.07 * sn), ns * (1 - 0.05 * sn)); c.translate(-590, -598);
   c.fillStyle = P.nose; c.beginPath();
   c.moveTo(560, 578); c.quadraticCurveTo(590, 568, 620, 578); c.quadraticCurveTo(636, 586, 622, 602);
   c.quadraticCurveTo(598, 628, 590, 628); c.quadraticCurveTo(582, 628, 558, 602); c.quadraticCurveTo(544, 586, 560, 578); c.fill();
@@ -4122,7 +4138,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0) {
   const WS = [[[590, 568, 330, 560], [677, 667, 223, 650]], [[604, 592, 352, 606], [691, 692, 223, 693]], [[620, 628, 326, 668], [704, 720, 223, 736]]];
   for (const sd of [-1, 1]) for (const [A, B] of WS) {
     const y0 = m(A[0], B[0]), cyy = m(A[1], B[1]), ex = m(A[2], B[2]), ey = m(A[3], B[3]), x0 = 590 + sd * m(100, 86), cxx = 590 + sd * m(225, 155);
-    c.beginPath(); c.moveTo(x0, y0 + noseDy * 0.5); c.quadraticCurveTo(cxx, cyy + whDy * 0.6, 590 + sd * ex, ey + wh + whDy * 1.3); c.stroke();
+    c.beginPath(); c.moveTo(x0, y0 + noseDy * 0.5 - 2 * Math.abs(sn)); c.quadraticCurveTo(cxx, cyy + whDy * 0.6, 590 + sd * ex, ey + wh + whDy * 1.3); c.stroke();
   }
   c.restore();
   // --- bracitos: del hombro (con el cuerpo) a la manito (con las manitos); en la bolita suben hasta la boca ---
