@@ -2298,7 +2298,7 @@ function drawGacha(g, n) {
     // (drawRatFrontPose con curl 1 → 0): en el camino cada pieza se desplaza a su lugar, no hay cambio de dibujo.
     // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco dando un giro
     // completo y cae sentada mirando a la cámara, con el rebote del aterrizaje
-    const TRAVEL = 0.8, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 166, size: 172 }, NAME_Y = 262;
+    const TRAVEL = 0.8, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 103, size: 172 }, NAME_Y = 199;
     const turn = (c, cx, cy, a, fn) => { c.save(); c.translate(cx, cy); c.rotate(a); c.translate(-cx, -cy); fn(c); c.restore(); };
     const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
     const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
@@ -2311,18 +2311,18 @@ function drawGacha(g, n) {
     const na = clamp((t - TRAVEL) / 0.3, 0, 1);
     if (na > 0) {
       const name = P.dup ? RATS[P.pick][0] : `¡${RATS[P.pick][0]}!`;
-      const sub = P.dup ? `Ya la tenías: te devolvemos ${COIN_DUP} monedas` : '¡Ratita nueva!';
+      const sub = P.dup ? ['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`] : ['¡Ratita nueva!'];
       const s = 0.7 + 0.3 * (1 + 2.7 * Math.pow(na - 1, 3) + 1.7 * Math.pow(na - 1, 2));   // crece y se pasa un poquito
       g.save(); g.globalAlpha = na; g.translate(150, NAME_Y); g.scale(s, s);
       g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
       g.font = "26px 'Permanent Marker', cursive";
       g.strokeStyle = '#140c05'; g.lineWidth = 6; g.strokeText(name, 0, 0);
       g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
-      g.font = "11px 'Special Elite', 'Courier New', monospace";
-      g.lineWidth = 3.5; g.strokeText(sub, 0, 17);
-      g.fillStyle = '#ffffff'; g.fillText(sub, 0, 17);
-      const rar = RARITY[RAT_RARITY[P.pick]];   // y la rareza, de su color
-      if (rar) { g.font = "12px 'Permanent Marker', cursive"; g.lineWidth = 4; g.strokeText(rar.name.toUpperCase(), 0, 34); g.fillStyle = rar.color; g.fillText(rar.name.toUpperCase(), 0, 34); }
+      const rar = RARITY[RAT_RARITY[P.pick]];   // debajo, la rareza entre paréntesis y de su color
+      let ty = 19;
+      if (rar) { const rt = `(${rar.name.toUpperCase()})`; g.font = "12px 'Permanent Marker', cursive"; g.lineWidth = 4; g.strokeText(rt, 0, ty); g.fillStyle = rar.color; g.fillText(rt, 0, ty); ty += 19; }
+      g.font = "11px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5;   // y el aviso, en una o dos líneas
+      sub.forEach((l, k) => { g.strokeText(l, 0, ty + k * 14); g.fillStyle = '#ffffff'; g.fillText(l, 0, ty + k * 14); });
       g.restore();
     }
   }
@@ -3311,14 +3311,18 @@ function visible(R, v, pad) { return R.x + R.w > v.x0 - pad && R.x < v.x1 + pad 
 
 // Cinta de peligro amarilla y negra pegada en el piso, en la boca del corral de inicio: se ve de una dónde se arranca
 // (aunque no sepas leer). Plástico con un brillo a lo largo y arruguitas. También marca el lado de paso de las puertas.
-function drawStartTape(c, x, y0, len, shade = 0) {
-  const w = 9;
-  c.save(); c.translate(x, y0 + len / 2); c.rotate(0.03);
+// Con checker es la cinta a cuadros blancos y negros de la salida, como una bandera de llegada.
+function drawStartTape(c, x, y0, len, shade = 0, checker = false) {
+  const w = checker ? 10 : 9;
+  c.save(); c.translate(x, y0 + len / 2); c.rotate(checker ? -0.03 : 0.03);
   c.beginPath(); c.rect(-w / 2, -len / 2, w, len);
   c.save(); c.clip();
-  c.fillStyle = '#ebb917'; c.fillRect(-w / 2, -len / 2, w, len);
+  c.fillStyle = checker ? '#ece8df' : '#ebb917'; c.fillRect(-w / 2, -len / 2, w, len);
   c.fillStyle = '#1c1b18';
-  for (let s = -len / 2 - w; s < len / 2 + w; s += 8) {
+  if (checker) {   // dos columnas de cuadritos alternados
+    const q = w / 2;
+    for (let n = 0, s = -len / 2; s < len / 2; s += q, n++) c.fillRect(n % 2 ? 0 : -q, s, q, q);
+  } else for (let s = -len / 2 - w; s < len / 2 + w; s += 8) {
     c.beginPath(); c.moveTo(-w / 2, s); c.lineTo(w / 2, s - w); c.lineTo(w / 2, s - w + 4); c.lineTo(-w / 2, s + 4); c.closePath(); c.fill();
   }
   c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(-w / 2 + 1, -len / 2, w * 0.28, len);
@@ -3367,6 +3371,7 @@ function drawFloor(c, v) {
   c.save(); c.translate((m.W + 0.5) * C, (m.entRow + 0.5) * C + 18); c.rotate(-0.08);
   c.fillStyle = 'rgba(30,20,12,0.55)'; c.font = `10px 'Permanent Marker', cursive`; c.fillText('INICIO', 0, 0); c.restore();
   drawStartTape(c, Wp, m.entRow * C + T / 2 - 2, C - T + 4);
+  drawStartTape(c, 0, m.exitRow * C + T / 2 - 2, C - T + 4, 0, true);   // la llegada, a cuadros
   // sombras de contacto al pie de las paredes
   for (const R of G.rects) {
     if (!visible(R, v, 10)) continue;
