@@ -2310,7 +2310,7 @@ function drawGachaFx(gcv) {
     if (g2) {   // la ratita, adelante y sin bordes que la corten (en las unidades del canvas de la máquina)
       const k = r.width / 300 * dpr2;
       g2.setTransform(k, 0, 0, k, (r.left - fr.left) * dpr2, (r.top - fr.top) * dpr2);
-      drawRevealRat(g2, P.t, P.pick); Gacha.fx2Used = true;
+      drawRevealRat(g2, P.t, P.pick); drawRevealCapsule(g2, P.t, P.cap); Gacha.fx2Used = true;   // la ratita sale de atrás de la cápsula
     }
     return;
   }
@@ -2331,18 +2331,52 @@ function drawGachaFx(gcv) {
   }
   // (los haces rojos que giraban por toda la pantalla se sacaron: quedan el halo redondo de la baliza y su espejo)
 }
-// La ratita del premio (fase reveal), en las unidades del canvas de la máquina (300 × 300)
-const TRAVEL = 0.8, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 132, size: 154 };
+// La ratita del premio (fase reveal), en las unidades del canvas de la máquina (300 × 300). Como la animación que armó
+// el usuario: sale de atrás de la cápsula hecha bolita, sube derecho (sin girar), en el aire se va deshaciendo la bolita
+// (salen las orejitas, después los ojos y la cola), arriba de todo se achata, al caer se estira, y toca la mesa a los
+// TRAVEL segundos; de ahí sigue el rebote del aterrizaje (drawRatFrontPose con land)
+const TRAVEL = 0.4, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 132, size: 154 };
+// cuadros clave cada REV_DT segundos: centro (y), bolita (curl: 1 bolita → 0 sentada), ancho de la bolita (w) y
+// estiramiento (sx, sy: achatada arriba, estirada al caer)
+const REV_DT = 0.05, REV_KEYS = {
+  y:    [CAP_Y, 173, 133, 112, 74, 53, 90, 117, KF2.y],
+  curl: [1, 1, 1, 1, 0.65, 0.15, 0, 0, 0],
+  w:    [64, 66, 70, 76, 80, 80, 80, 80, 80],
+  sx:   [1, 1, 1, 1, 1.12, 1.1, 0.96, 0.9, 1],
+  sy:   [1, 1, 1, 1, 0.82, 0.8, 0.92, 1.12, 1],
+};
+function revKey(k, t) {   // Catmull-Rom entre los cuadros clave (pasa suave por todos, sin frenar en cada uno)
+  const a = REV_KEYS[k], f = clamp(t / REV_DT, 0, a.length - 1), i = Math.min(a.length - 2, Math.floor(f)), u = f - i;
+  const p0 = a[Math.max(0, i - 1)], p1 = a[i], p2 = a[i + 1], p3 = a[Math.min(a.length - 1, i + 2)];
+  return 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
+}
 function drawRevealRat(g, t, pick) {
-  const ease = p => { p = clamp(p, 0, 1); return p * p * (3 - 2 * p); };
-  const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
-  const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
-  const a = -e * Math.PI * 2, mix = clamp((u - 0.1) / 0.45, 0, 1);
-  const curl = 1 - ease(mix);                                                            // 1 bolita → 0 sentada
-  const sz = lerp(KF1.size * 935 / (BALL_R * 2) * (1 + 0.35 * e), KF2.size, 1 - curl);   // y va creciendo
-  g.save(); g.translate(x, y); g.rotate(a); g.translate(-x, -y);
-  drawRatFrontPose(g, x, y, sz, pick, t, t - TRAVEL, curl);                             // al caer (t > TRAVEL) rebota
+  const x = KF2.x, y = t >= TRAVEL ? KF2.y : revKey('y', t);
+  const curl = t >= TRAVEL ? 0 : clamp(revKey('curl', t), 0, 1);
+  const sx = t >= TRAVEL ? 1 : revKey('sx', t), sy = t >= TRAVEL ? 1 : revKey('sy', t);
+  const sz = lerp(revKey('w', t) * 935 / (BALL_R * 2), KF2.size, 1 - curl);
+  g.save(); g.translate(x, y); g.scale(sx, sy); g.translate(-x, -y);
+  drawRatFrontPose(g, x, y, sz, pick, t, t - TRAVEL, curl);                             // al tocar la mesa (t > TRAVEL) rebota
   g.restore();
+}
+// Las dos mitades de la cápsula al abrirse, dibujadas DELANTE de la ratita (que sale de atrás): la de arriba sube,
+// frena, se achata y se apaga; la de abajo se cae rápido de la pantalla
+function drawRevealCapsule(g, t, col) {
+  if (t > 0.24) return;
+  const r = 58, u = clamp(t / 0.2, 0, 1), up = 195 * (1 - Math.pow(1 - u, 1.5));
+  const k = clamp((t - 0.1) / 0.11, 0, 1), flat = 1 - 0.95 * Math.pow(k, 1.6);
+  g.save(); g.globalAlpha = 1 - clamp((t - 0.15) / 0.08, 0, 1);
+  g.translate(150, CAP_Y - up); g.scale(1, flat); g.translate(-150, -CAP_Y);              // achatada desde su borde plano
+  g.beginPath(); g.rect(150 - r - 2, CAP_Y - r - 2, r * 2 + 4, r + 2); g.clip();          // solo la mitad de arriba
+  capsule(g, 150, CAP_Y, r, col, 0, 0.001);
+  g.restore();
+  const down = 71 * Math.pow(t / 0.05, 1.3);
+  if (t < 0.15) {
+    g.save(); g.globalAlpha = 1 - t / 0.15; g.translate(0, down);
+    g.beginPath(); g.rect(150 - r - 2, CAP_Y, r * 2 + 4, r + 2); g.clip();                // solo la mitad de abajo
+    capsule(g, 150, CAP_Y, r, col, 0, 0.001);
+    g.restore();
+  }
 }
 const machOff = document.createElement('canvas');   // la máquina se dibuja acá para poder desvanecerla entera
 const fadeOff = document.createElement('canvas');
@@ -2425,10 +2459,7 @@ function drawGacha(g, n) {
       g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(150, CAP_Y + 64, r * 0.9, r * 0.18, 0, 0, Math.PI * 2); g.fill();
     }
     capsule(g, x, y, r, P.cap, rot, 0);
-  } else if (P.phase === 'reveal' && t < 0.5) {   // las dos mitades salen disparadas (arriba y abajo) y se desvanecen
-    const p = t / 0.5, split = 260 * (1 - Math.pow(1 - p, 2.5));
-    g.globalAlpha = 1 - p; capsule(g, 150, CAP_Y, 58, P.cap, 0, split); g.globalAlpha = 1;
-  }
+  }   // (al abrirse, las dos mitades van en la capa de adelante, delante de la ratita: drawRevealCapsule)
   if (P.phase === 'reveal' && t < 0.3) {   // golpe de luz al abrirse
     const a = 1 - t / 0.3, fl = g.createRadialGradient(150, CAP_Y, 0, 150, CAP_Y, 60 + 150 * (1 - a));
     fl.addColorStop(0, `rgba(255,252,235,${0.9 * a})`); fl.addColorStop(1, 'rgba(255,252,235,0)');
