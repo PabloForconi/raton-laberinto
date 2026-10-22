@@ -1949,7 +1949,7 @@ const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf
 // en la referencia (de x 763 a 1154 en esta imagen) y el borde de abajo de la base (y 1284) cae sobre la mesada (y 920).
 // (Son los mismos lugares que en el fondo anterior, medidos: esta imagen es aquella achicada 0,88 y corrida.) Si la
 // pantalla es más alta que el fondo, lo que sobra abajo se pinta del color del borde de la imagen
-const MACH_BG = { src: 'img/fondo-maquina.jpg', w: 1920, h: 1232, baseX0: 763.2, baseX1: 1153.9, baseY: 920.2, fill: '#353946' };
+const MACH_BG = { src: 'img/fondo-maquina.jpg', w: 1920, h: 1232, baseX0: 763.2, baseX1: 1153.9, baseY: 920.2, fill: '#111019' };
 // Franjas oscuras arriba y abajo que se funden con el fondo (Máquina y Bioterio): la de arriba termina un poco después
 // del título y la de abajo un poco después del último botón (contando desde abajo)
 const BAND_DARK = 'rgba(0,0,0,0.9)';
@@ -1987,7 +1987,7 @@ function placeScreenBg() {
 // ubica como en la referencia que mandó el usuario: px = cuántos px de la imagen mide una unidad del canvas de la máquina
 // (la ratita sentada medía 433 px de alto ahí) y (x0, y0) es el punto de la imagen donde cae la esquina (0, 0) del canvas.
 // Si la pantalla es más grande que la imagen, el resto se pinta con fill (el usuario después completa la imagen)
-const LAB_BG = { src: 'img/fondo-ratalab.jpg', w: 1920, h: 1336, px: 2.74, x0: 564.6, y0: 155.6, fill: '#2b2a34' };   // (la segunda versión es la misma, alargada para abajo)
+const LAB_BG = { src: 'img/fondo-ratalab.jpg', w: 1920, h: 1336, px: 2.74, x0: 564.6, y0: 155.6, fill: '#272531' };   // (la segunda versión es la misma, alargada para abajo)
 // cuando la cápsula salta hacia adelante el fondo se apaga de a poco (queda todo negro para el premio) y con "Otra vez"
 // vuelve junto con la máquina
 const machBgDark = on => { const bg = $scr.querySelector('.scrbg'); if (bg) bg.classList.toggle('dark', on); };
