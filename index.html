@@ -175,8 +175,9 @@
   #screen .inner > .bandbot { position: absolute !important; left: 0; right: 0; bottom: 0; z-index: 1 !important; pointer-events: none;
     background: linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,0)); }
   /* fondo de la Máquina, en su capa: se apaga (y vuelve) fundiéndose */
-  #screen .inner > .scrbg { position: absolute !important; inset: 0; z-index: 0 !important; pointer-events: none; transition: opacity .6s ease; }
-  #screen .inner > .scrbg.dark { opacity: 0; }   /* el fondo se corta donde termina el deslizamiento */
+  #screen .inner > .scrbg { position: absolute !important; inset: -12px; z-index: 0 !important; pointer-events: none; transition: opacity .6s ease; }
+  #screen .inner > .scrbg.dark { opacity: 0; }
+  #screen .inner > .labbg { position: absolute !important; inset: -12px; z-index: 0 !important; pointer-events: none; opacity: 0; }   /* el laboratorio de la ratita del premio */   /* el fondo se corta donde termina el deslizamiento */
   .biohead { position: absolute; top: 12px; left: 0; right: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
   #screen .bionav { margin-top: auto; }
   .rack::-webkit-scrollbar { display: none; }
@@ -191,11 +192,14 @@
   /* la máquina grande y un poco más abajo; el espacio que sobra se reparte arriba de ella y antes del botón Bioterio */
   #gachaCv { display: block; width: min(calc(100vh - 230px), 100vw); aspect-ratio: 1; flex: 0 0 auto; margin-top: auto; }
   #gachaNav { margin-top: auto; }
-  #gachaBtns { min-height: 48px; }   /* aunque esté vacío (mientras anda) ocupa lo mismo: la máquina no se corre */
+  #gachaBtns { min-height: 48px;   /* aunque esté vacío (mientras anda) ocupa lo mismo: la máquina no se corre */
+    /* subido (sin mover nada más) hasta justo debajo del borde de la mesada, como marcó el usuario; la mesada termina
+       6,3 unidades antes del pie del canvas de la máquina, que mide min(100vh - 230px, 100vw) = 300 unidades */
+    top: calc(-9px - 0.021 * min(100vh - 230px, 100vw)); }
   #gachaRes:empty { min-height: 0; }   /* sin texto (en reposo) el botón Activar queda justo debajo de la máquina */
   /* luz de la baliza: un canvas a pantalla completa detrás del título, el texto y los botones */
   #gachaFx, #gachaFx2 { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-  #gachaFx2 { z-index: 2; mix-blend-mode: screen; }   /* los haces rojos pasan por delante de la máquina */
+  #gachaFx2 { z-index: 2; }   /* la capa de adelante: ahí va la ratita del premio, así no la corta el borde del canvas */
   #screen .inner > :not(#gachaFx):not(#gachaFx2) { position: relative; z-index: 1; }
   #screen .inner > .stitle, #gachaRes, #gachaBtns, #gachaNav { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
   #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; text-shadow: 0 0 6px #000, 0 2px 4px #000, 0 0 14px rgba(0,0,0,0.8); }
@@ -1580,7 +1584,8 @@ function layoutRack() {
 addEventListener('resize', () => { if (G.screen === 'ratitas') layoutRack(); });
 function showRatitas(from) {
   G.screen = 'ratitas'; placeScreenBg();
-  // sin lugar fijo: primero las que tenés, en el orden en que las fuiste sacando (la Albina primero); después las que
+  // sin título ni cantidad (el usuario los sacó): el título queda invisible solo para ubicar el fondo y la franja de arriba.
+  // Sin lugar fijo: primero las que tenés, en el orden en que las fuiste sacando (la Albina primero); después las que
   // faltan. De a 3 por estante
   const order = [...Skins.data.owned, ...RATS.map((_, i) => i).filter(i => !Skins.has(i))];
   const rows = [];
@@ -1588,7 +1593,7 @@ function showRatitas(from) {
   const cells = rows.map((row, ri) => row.map((i, ci) => `<button class="rat" data-act="pick" data-i="${i}" data-row="${ri}" data-col="${ci}" ${Skins.has(i) ? '' : 'disabled'}>
       <canvas width="330" height="300" data-rat="${i}"></canvas></button>`).join('')).join('');
   openScreen(`<div class="rack"><div class="bandtop"></div><div class="rackin"><div class="bgrack">${cells}</div>
-      <div class="biohead"><h2 class="stitle">BIOTERIO</h2><p class="ssub">${Skins.data.owned.length}/${RATS.length}</p></div></div></div>
+      <div class="biohead" aria-hidden="true" style="visibility:hidden"><h2 class="stitle">BIOTERIO</h2></div></div></div>
     <div class="bandbot"></div><div class="sbtns bionav"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de arriba a la izquierda
   updateButtons(); layoutRack();
   cageAnimLoop();
@@ -1959,21 +1964,38 @@ function placeScreenBg() {
   if (!cv || !bg) return;
   const r = cv.getBoundingClientRect(), u = r.width / 300;   // px por unidad del canvas de la máquina
   const k = (830 * MS) / (MACH_BG.baseX1 - MACH_BG.baseX0) * u;   // px de pantalla por px de la imagen
-  const cx = r.left + (MX + 573 * MS) * u, by = r.top + (MY + 1284 * MS) * u, [bt, bb] = bandHeights();
+  // (la capa sobresale de la pantalla, así el sacudón de cámara no deja ver sus bordes: todo se mide desde su esquina)
+  const br = bg.getBoundingClientRect(), ox = -br.left, oy = -br.top;
+  const cx = r.left + ox + (MX + 573 * MS) * u, by = r.top + oy + (MY + 1284 * MS) * u, [bt, bb] = bandHeights();
   bg.style.backgroundColor = MACH_BG.fill;
-  bg.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt}px), linear-gradient(to top, ${BAND_DARK}, rgba(0,0,0,0) ${bb}px), url(${MACH_BG.src})`;
+  bg.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt + oy}px), linear-gradient(to top, ${BAND_DARK}, rgba(0,0,0,0) ${bb + br.bottom - innerHeight}px), url(${MACH_BG.src})`;
   bg.style.backgroundRepeat = 'no-repeat';
   bg.style.backgroundSize = `100% 100%, 100% 100%, ${MACH_BG.w * k}px ${MACH_BG.h * k}px`;
   bg.style.backgroundPosition = `0 0, 0 0, ${cx - (MACH_BG.baseX0 + MACH_BG.baseX1) / 2 * k}px ${by - MACH_BG.baseY * k}px`;
+  // el fondo del laboratorio, detrás de la ratita del premio: la ratita (KF2) queda sobre la mesada como en la referencia
+  const lab = $scr.querySelector('.labbg');
+  if (lab) {
+    const lr = lab.getBoundingClientRect(), kl = u / LAB_BG.px;   // px de pantalla por px de la imagen
+    lab.style.backgroundColor = LAB_BG.fill;
+    lab.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt - lr.top}px), linear-gradient(to top, ${BAND_DARK}, rgba(0,0,0,0) ${bb + lr.bottom - innerHeight}px), url(${LAB_BG.src})`;
+    lab.style.backgroundRepeat = 'no-repeat';
+    lab.style.backgroundSize = `100% 100%, 100% 100%, ${LAB_BG.w * kl}px ${LAB_BG.h * kl}px`;
+    lab.style.backgroundPosition = `0 0, 0 0, ${r.left - lr.left - LAB_BG.x0 * kl}px ${r.top - lr.top - LAB_BG.y0 * kl}px`;
+  }
 }
+// Fondo del laboratorio para la ratita de frente (img/fondo-ratalab.jpg, "bg_ratalab_01" del usuario, 1920 × 1081). Se
+// ubica como en la referencia que mandó el usuario: px = cuántos px de la imagen mide una unidad del canvas de la máquina
+// (la ratita sentada medía 433 px de alto ahí) y (x0, y0) es el punto de la imagen donde cae la esquina (0, 0) del canvas.
+// Si la pantalla es más grande que la imagen, el resto se pinta con fill (el usuario después completa la imagen)
+const LAB_BG = { src: 'img/fondo-ratalab.jpg', w: 1920, h: 1336, px: 2.74, x0: 564.6, y0: 155.6, fill: '#2b2a34' };   // (la segunda versión es la misma, alargada para abajo)
 // cuando la cápsula salta hacia adelante el fondo se apaga de a poco (queda todo negro para el premio) y con "Otra vez"
 // vuelve junto con la máquina
 const machBgDark = on => { const bg = $scr.querySelector('.scrbg'); if (bg) bg.classList.toggle('dark', on); };
 addEventListener('resize', () => { if (G.screen) placeScreenBg(); });
 function showMachine(from) {
   G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = []; Gacha.spark = []; Gacha.caps = null; Gacha.level = 0;   // al volver, la cúpula está llena otra vez
-  openScreen(`<div class="scrbg"></div><canvas id="gachaFx"></canvas>
-    <h2 class="stitle up">MÁQUINA</h2>
+  openScreen(`<div class="scrbg"></div><div class="labbg"></div><canvas id="gachaFx"></canvas>
+    <h2 class="stitle up" aria-hidden="true" style="visibility:hidden">MÁQUINA</h2><!-- sin título (el usuario lo sacó): queda invisible para que la máquina y la franja de arriba no se muevan -->
     <canvas id="gachaCv" width="900" height="900"></canvas>
     <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
@@ -1985,7 +2007,8 @@ function showMachine(from) {
   const step = now => {
     if (G.screen !== 'machine') return;
     Gacha.raf = requestAnimationFrame(step);
-    gachaUpdate(Math.min(0.05, (now - last) / 1000)); last = now;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    gachaUpdate(dt); gachaShake(dt);
     const cv2 = document.getElementById('gachaCv');
     if (cv2) { drawGachaFx(cv2); drawGacha(cv2.getContext('2d'), cv2.width); }
   };
@@ -2148,6 +2171,22 @@ function machinePhysics(dt) {
   m.tl = m.tub * amp * 0.09 * Math.sin(m.ph * 0.5 + 1.2);
   m.tr = m.tub * amp * 0.09 * Math.sin(m.ph * 0.5 + 2.4);
 }
+// Sacudón de cámara (toda la pantalla, fondo incluido) cuando el motor llega a su pico: crece de a poco con el motor y,
+// cuando frena, se apaga suave (baja más despacio de lo que sube). Solo mueve, sin zoom: el fondo (.scrbg) sobresale
+// 12 px de la pantalla, así no se ven sus bordes
+const SHAKE_PX = 5, SHAKE_UP = 2.5, SHAKE_DOWN = 0.9;   // cuánto se mueve (px) · qué tan rápido sube / se apaga (por s)
+function gachaShake(dt) {
+  const P = Gacha, I = P.mach ? P.mach.I : 0;
+  const target = P.phase === 'run' ? clamp((I - 0.55) / 0.4, 0, 1) : 0;   // solo cerca del pico del motor
+  const a = P.shakeA || 0;
+  P.shakeA = target > a ? a + (target - a) * Math.min(1, dt * SHAKE_UP) : Math.max(target, a - dt * SHAKE_DOWN);
+  const inner = $scr.querySelector('.inner'); if (!inner) return;
+  const A = P.shakeA * P.shakeA * (3 - 2 * P.shakeA);
+  if (A < 0.002) { if (inner.style.transform) inner.style.transform = ''; return; }
+  const c = P.clock || 0, ph = P.mach ? P.mach.ph : 0;   // al ritmo de los pulsos del motor, con un temblor más fino encima
+  const x = SHAKE_PX * A * (0.7 * Math.sin(ph * 0.5 + 0.3) + 0.3 * Math.sin(c * 53)), y = SHAKE_PX * A * (0.6 * Math.sin(ph + 1.1) + 0.4 * Math.sin(c * 41 + 2));
+  inner.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
+}
 function gachaUpdate(dt) {
   const P = Gacha, L = P.L, t = P.t, dur = GACHA_T[P.phase];
   P.t += dt; P.clock += dt;
@@ -2184,6 +2223,11 @@ function gachaUpdate(dt) {
     P.spark.push({ x: 150 + Math.cos(a) * r, y: 150 + Math.sin(a) * r * 0.8, t: 0, life: 0.5 + Math.random() * 0.6, s: 4 + Math.random() * 6,
       col: ['#ffffff', '#fff3a0', '#9ff0ff', '#ffc4e8'][Math.floor(Math.random() * 4)] });
   }
+  // el laboratorio aparece a medida que se apagan las líneas cinéticas; con "Otra vez" se va suave junto con la vuelta
+  // de la máquina
+  if (P.phase === 'reveal') { const o = 1 - clamp((P.t - SPEED_HOLD) / SPEED_FADE, 0, 1); P.labA = 1 - o * o * (3 - 2 * o); }
+  else P.labA = Math.max(0, (P.labA || 0) - dt * 1.6);
+  const lab = $scr.querySelector('.labbg'); if (lab) lab.style.opacity = P.labA.toFixed(3);
   for (const s of P.spark) s.t += dt;
   P.spark = P.spark.filter(s => s.t < s.life);
   for (const f of P.conf) { f.vy += 320 * dt; f.vx *= 1 - dt * 0.8; f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.vr * dt; }
@@ -2230,12 +2274,19 @@ function drawGachaFx(gcv) {
   const dpr = Math.min(1.5, window.devicePixelRatio || 1), W = Math.round(fx.clientWidth * dpr), H = Math.round(fx.clientHeight * dpr);
   if (fx.width !== W || fx.height !== H) { fx.width = W; fx.height = H; }
   let g = fx.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
-  const fx2 = document.getElementById('gachaFx2'), g2 = fx2 && fx2.getContext('2d');   // la capa de adelante
-  if (g2) { if (fx2.width !== W || fx2.height !== H) { fx2.width = W; fx2.height = H; } g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, W, H); }
+  // la capa de adelante (pantalla completa, con más resolución porque ahí va la ratita del premio)
+  const fx2 = document.getElementById('gachaFx2'), g2 = fx2 && fx2.getContext('2d'), dpr2 = Math.min(2.5, window.devicePixelRatio || 1);
+  const W2 = fx2 ? Math.round(fx2.clientWidth * dpr2) : 0, H2 = fx2 ? Math.round(fx2.clientHeight * dpr2) : 0;
+  if (g2) { if (fx2.width !== W2 || fx2.height !== H2) { fx2.width = W2; fx2.height = H2; } g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, W2, H2); }
   const P = Gacha;
   if (P.phase === 'reveal') {   // líneas cinéticas desde donde se abre la cápsula, en toda la pantalla
     const r = gcv.getBoundingClientRect(), fr = fx.getBoundingClientRect();
     drawSpeedLines(g, W, H, (r.left - fr.left + 150 / 300 * r.width) * dpr, (r.top - fr.top + CAP_Y / 300 * r.height) * dpr, P.t);
+    if (g2) {   // la ratita, adelante y sin bordes que la corten (en las unidades del canvas de la máquina)
+      const k = r.width / 300 * dpr2;
+      g2.setTransform(k, 0, 0, k, (r.left - fr.left) * dpr2, (r.top - fr.top) * dpr2);
+      drawRevealRat(g2, P.t, P.pick);
+    }
     return;
   }
   const r = gcv.getBoundingClientRect(), fr = fx.getBoundingClientRect();
@@ -2255,6 +2306,19 @@ function drawGachaFx(gcv) {
     g.globalCompositeOperation = 'source-over';
   }
   // (los haces rojos que giraban por toda la pantalla se sacaron: quedan el halo redondo de la baliza y su espejo)
+}
+// La ratita del premio (fase reveal), en las unidades del canvas de la máquina (300 × 300)
+const TRAVEL = 0.8, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 132, size: 154 };
+function drawRevealRat(g, t, pick) {
+  const ease = p => { p = clamp(p, 0, 1); return p * p * (3 - 2 * p); };
+  const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
+  const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
+  const a = -e * Math.PI * 2, mix = clamp((u - 0.1) / 0.45, 0, 1);
+  const curl = 1 - ease(mix);                                                            // 1 bolita → 0 sentada
+  const sz = lerp(KF1.size * 935 / (BALL_R * 2) * (1 + 0.35 * e), KF2.size, 1 - curl);   // y va creciendo
+  g.save(); g.translate(x, y); g.rotate(a); g.translate(-x, -y);
+  drawRatFrontPose(g, x, y, sz, pick, t, t - TRAVEL, curl);                             // al caer (t > TRAVEL) rebota
+  g.restore();
 }
 const machOff = document.createElement('canvas');   // la máquina se dibuja acá para poder desvanecerla entera
 const fadeOff = document.createElement('canvas');
@@ -2298,32 +2362,36 @@ function drawGacha(g, n) {
     // (drawRatFrontPose con curl 1 → 0): en el camino cada pieza se desplaza a su lugar, no hay cambio de dibujo.
     // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco dando un giro
     // completo y cae sentada mirando a la cámara, con el rebote del aterrizaje
-    const TRAVEL = 0.8, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 103, size: 172 }, NAME_Y = 199;
-    const turn = (c, cx, cy, a, fn) => { c.save(); c.translate(cx, cy); c.rotate(a); c.translate(-cx, -cy); fn(c); c.restore(); };
-    const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
-    const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
-    const a = -e * Math.PI * 2, mix = clamp((u - 0.1) / 0.45, 0, 1);
-
-    const curl = 1 - ease(mix);                                                            // 1 bolita → 0 sentada
-    const sz = lerp(KF1.size * 935 / (BALL_R * 2) * (1 + 0.35 * e), KF2.size, 1 - curl);   // y va creciendo
-    turn(g, x, y, a, c2 => drawRatFrontPose(c2, x, y, sz, P.pick, t, t - TRAVEL, curl));    // al caer (t > TRAVEL) rebota
+    // (la ratita se dibuja en la capa de adelante de pantalla completa, drawRevealRat desde drawGachaFx, así en el salto
+    // no se corta en el borde de arriba de este canvas)
+    // como la referencia del usuario sobre el laboratorio: el nombre arriba de la cabeza, la rareza debajo de la ratita
+    // (sobre la mesada) y el aviso en el borde de la mesada
+    // (el medio de la franja del borde de la mesada, y 812–884 de la imagen, es 252.7)
+    const NAME_Y = 46, RAR_Y = 226, TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
     // el nombre debajo de la ratita: aparece con un saltito cuando aterriza; con borde oscuro para leerse sobre los rayos
     const na = clamp((t - TRAVEL) / 0.3, 0, 1);
     if (na > 0) {
       const name = P.dup ? RATS[P.pick][0] : `¡${RATS[P.pick][0]}!`;
       const sub = P.dup ? ['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`] : ['¡Ratita nueva!'];
       const s = 0.7 + 0.3 * (1 + 2.7 * Math.pow(na - 1, 3) + 1.7 * Math.pow(na - 1, 2));   // crece y se pasa un poquito
-      g.save(); g.globalAlpha = na; g.translate(150, NAME_Y); g.scale(s, s);
-      g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
-      g.font = "26px 'Permanent Marker', cursive";
-      g.strokeStyle = '#140c05'; g.lineWidth = 6; g.strokeText(name, 0, 0);
-      g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
-      const rar = RARITY[RAT_RARITY[P.pick]];   // debajo, la rareza entre paréntesis y de su color
-      let ty = 19;
-      if (rar) { const rt = `(${rar.name.toUpperCase()})`; g.font = "12px 'Permanent Marker', cursive"; g.lineWidth = 4; g.strokeText(rt, 0, ty); g.fillStyle = rar.color; g.fillText(rt, 0, ty); ty += 19; }
-      g.font = "11px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5;   // y el aviso, en una o dos líneas
-      sub.forEach((l, k) => { g.strokeText(l, 0, ty + k * 14); g.fillStyle = '#ffffff'; g.fillText(l, 0, ty + k * 14); });
-      g.restore();
+      const txt = (ty, fn) => {
+        g.save(); g.globalAlpha = na; g.translate(150, ty); g.scale(s * TXT, s * TXT);
+        g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = '#140c05';
+        fn(); g.restore();
+      };
+      txt(NAME_Y, () => {
+        g.font = "26px 'Permanent Marker', cursive";
+        g.lineWidth = 6; g.strokeText(name, 0, 0);
+        g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
+      });
+      const rar = RARITY[RAT_RARITY[P.pick]];   // la rareza entre paréntesis y de su color
+      if (rar) txt(RAR_Y, () => { const rt = `(${rar.name.toUpperCase()})`; g.font = "12px 'Permanent Marker', cursive"; g.lineWidth = 4; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
+      txt(SUB_Y, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
+        g.font = "11px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.textBaseline = 'middle';
+        const one = sub.join(' '), room = (innerWidth - 32) / (g.canvas.clientWidth / 300) / TXT;   // ancho de pantalla, en las unidades del texto
+        const lines = g.measureText(one).width <= room ? [one] : sub;
+        lines.forEach((l, k) => { const ly = (k - (lines.length - 1) / 2) * 13.5; g.strokeText(l, 0, ly); g.fillStyle = '#ffffff'; g.fillText(l, 0, ly); });
+      });
     }
   }
   // la cápsula premiada
@@ -2378,7 +2446,7 @@ function capsule(g, x, y, r, col, rot, split) {
 // cuadro solo se pega girado (un drawImage) con un brillo en el centro. Pocos rayos, con todos los del mismo color en un
 // solo trazo.
 const SPEED_MAX = 900;
-const speedCv = document.createElement('canvas');
+const speedCv = document.createElement('canvas'), speedCv2 = document.createElement('canvas');   // dorados · blancos de encima
 function buildSpeedLines(FR) {
   const P = Gacha, sc = Math.min(1, SPEED_MAX / (FR * 2)), n = Math.max(2, Math.round(FR * 2 * sc));
   speedCv.width = speedCv.height = n;
@@ -2389,8 +2457,9 @@ function buildSpeedLines(FR) {
   if (last.white === rays[0].white && rays.length > 1) last.white = !last.white;
   for (const white of [false, true]) {
     const gr = g.createRadialGradient(0, 0, 0, 0, 0, FR);
-    if (white) { gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.06, '#ffffff'); gr.addColorStop(1, '#dde0e8'); }
-    else { gr.addColorStop(0, 'rgba(214,226,80,0)'); gr.addColorStop(0.06, '#d3df4f'); gr.addColorStop(1, '#b3c22a'); }
+    // dorados como la referencia del usuario: rayos claros y oscuros que van del amarillo del centro al naranja tostado
+    if (white) { gr.addColorStop(0, 'rgba(255,236,170,0)'); gr.addColorStop(0.06, '#ffe08a'); gr.addColorStop(0.4, '#f6a82c'); gr.addColorStop(1, '#bb5a0e'); }
+    else { gr.addColorStop(0, 'rgba(240,160,50,0)'); gr.addColorStop(0.06, '#f0a038'); gr.addColorStop(0.4, '#cf7116'); gr.addColorStop(1, '#7a3208'); }
     g.fillStyle = gr; g.beginPath();
     for (const ry of rays) if (ry.white === white) { g.moveTo(0, 0); g.arc(0, 0, FR, ry.a, ry.a + ry.w + 0.004); g.closePath(); }
     g.fill();
@@ -2400,21 +2469,51 @@ function buildSpeedLines(FR) {
   fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.45, 'rgba(0,0,0,0.85)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = fade; g.fillRect(-FR, -FR, FR * 2, FR * 2);
   g.globalCompositeOperation = 'source-over';
+  // la segunda capa (idea del usuario): rayos blancos más finos y separados, superpuestos a los dorados y girando a otra
+  // velocidad; muy blancos en el centro y se pierden antes de llegar a los bordes
+  const sc2 = Math.min(1, SPEED_MAX / (FR * 2));
+  speedCv2.width = speedCv2.height = n;
+  const w2 = speedCv2.getContext('2d'); w2.setTransform(sc2, 0, 0, sc2, n / 2, n / 2); w2.clearRect(-FR, -FR, FR * 2, FR * 2);
+  const wg = w2.createRadialGradient(0, 0, 0, 0, 0, FR);
+  wg.addColorStop(0, 'rgba(255,255,255,1)'); wg.addColorStop(0.3, 'rgba(255,253,240,0.75)'); wg.addColorStop(0.65, 'rgba(255,250,230,0.3)'); wg.addColorStop(1, 'rgba(255,250,230,0)');
+  w2.fillStyle = wg; w2.beginPath();
+  for (let b = Math.random() * 0.3; b < Math.PI * 2 - 0.08; b += 0.16 + Math.random() * 0.3) {
+    const bw = 0.025 + Math.pow(Math.random(), 2) * 0.07;
+    w2.moveTo(0, 0); w2.arc(0, 0, FR, b, b + bw); w2.closePath();
+  }
+  w2.fill();
   P.raysKey = FR;
 }
 const SPEED_HOLD = 2.4, SPEED_FADE = 1.4;   // las líneas cinéticas del premio: cuánto quedan y cuánto tardan en apagarse (s)
+// a prueba: la imagen bg_cinetica_01 del usuario (img/fondo-cinetica.jpg) en vez de los rayos dibujados (false = dibujados)
+const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg';
+const SPEED_SPIN = 0.15, SPEED_SPIN2 = 0.45;   // cuánto giran los rayos dorados y los blancos de encima (radianes por segundo)
 function drawSpeedLines(g, W, H, cx, cy, t) {
   const P = Gacha, FR = Math.round(Math.max(W, H) * 0.62);
-  if (t < 0.02 || P.raysKey !== FR) buildSpeedLines(FR);   // uno nuevo por premio (o si cambió el tamaño de la pantalla)
+  if ((t < 0.02 || P.raysKey !== FR) && !(SPEED_USE_IMG && SPEED_IMG.naturalWidth)) buildSpeedLines(FR);   // (con la imagen no hace falta)   // uno nuevo por premio (o si cambió el tamaño de la pantalla)
   // aparece de golpe al abrirse y, cuando la ratita ya cayó, se va apagando suave hasta que queda todo negro
   const out = 1 - clamp((t - SPEED_HOLD) / SPEED_FADE, 0, 1), o = out * out * (3 - 2 * out);
   if (o <= 0) return;
   const inA = Math.min(1, t / 0.12) * o, flash = Math.max(0, 1 - t / 0.5);
   g.save(); g.translate(cx, cy);
-  g.save(); g.rotate(t * 0.06); g.globalAlpha = inA; g.drawImage(speedCv, -FR, -FR, FR * 2, FR * 2); g.restore();
-  // brillo en el centro (más fuerte justo al abrirse)
-  const gr = Math.max(W, H) * (0.1 + 0.08 * flash), glow = g.createRadialGradient(0, 0, 0, 0, 0, gr);
-  glow.addColorStop(0, `rgba(255,255,240,${0.9 * inA})`); glow.addColorStop(1, 'rgba(255,255,240,0)');
+  if (SPEED_USE_IMG && SPEED_IMG.complete && SPEED_IMG.naturalWidth) {
+    // la imagen del usuario (bg_cinetica_01): girada alrededor de su centro; tan grande que el círculo que entra en el
+    // cuadrado cubre hasta la esquina más lejana de la pantalla, así al girar nunca se ven sus bordes
+    const R = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy));
+    g.save(); g.rotate(t * SPEED_SPIN); g.globalAlpha = inA; g.drawImage(SPEED_IMG, -R, -R, R * 2, R * 2); g.restore();
+    if (flash > 0) {   // solo el fogonazo de cuando se abre la cápsula (la imagen ya trae su centro blanco)
+      const fr = Math.max(W, H) * 0.3, fl = g.createRadialGradient(0, 0, 0, 0, 0, fr);
+      fl.addColorStop(0, `rgba(255,255,245,${flash * inA})`); fl.addColorStop(1, 'rgba(255,250,220,0)');
+      g.fillStyle = fl; g.beginPath(); g.arc(0, 0, fr, 0, Math.PI * 2); g.fill();
+    }
+    g.restore(); return;
+  }
+  g.save(); g.rotate(t * SPEED_SPIN); g.globalAlpha = inA; g.drawImage(speedCv, -FR, -FR, FR * 2, FR * 2); g.restore();
+  g.save(); g.rotate(0.7 + t * SPEED_SPIN2); g.globalAlpha = inA; g.drawImage(speedCv2, -FR, -FR, FR * 2, FR * 2); g.restore();
+  // brillo en el centro (más fuerte justo al abrirse): un núcleo casi blanco con un halo dorado
+  const gr = Math.max(W, H) * (0.2 + 0.1 * flash), glow = g.createRadialGradient(0, 0, 0, 0, 0, gr);
+  glow.addColorStop(0, `rgba(255,252,235,${inA})`); glow.addColorStop(0.12, `rgba(255,246,205,${0.95 * inA})`);
+  glow.addColorStop(0.35, `rgba(255,214,120,${0.55 * inA})`); glow.addColorStop(0.7, `rgba(255,170,60,${0.18 * inA})`); glow.addColorStop(1, 'rgba(255,160,50,0)');
   g.fillStyle = glow; g.beginPath(); g.arc(0, 0, gr, 0, Math.PI * 2); g.fill();
   g.restore();
 }
@@ -4018,7 +4117,7 @@ function render() {
     // linterna y en la sirena
     $timer.textContent = fmtUp(G.timeLimit - G.timeLeft);
     $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
-    $cheese.classList.toggle('hidden', !G.cheeseTotal);
+    $cheese.classList.toggle('hidden', !G.cheeseTotal || ['won', 'lost'].includes(G.state));   // detrás del cartel de fin de nivel, no (ya está en el cartel)
     $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
   }
   const showHint = G.state === 'play' && G.level <= 2;
