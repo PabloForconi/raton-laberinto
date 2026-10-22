@@ -175,7 +175,8 @@
   #screen .inner > .bandbot { position: absolute !important; left: 0; right: 0; bottom: 0; z-index: 1 !important; pointer-events: none;
     background: linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,0)); }
   /* fondo de la Máquina, en su capa: se apaga (y vuelve) fundiéndose */
-  #screen .inner > .scrbg { position: absolute !important; inset: -12px; z-index: 0 !important; pointer-events: none; transition: opacity .6s ease; }
+  #screen .inner > .scrbg { position: absolute !important; inset: -12px; z-index: 0 !important; pointer-events: none; transition: opacity .25s ease; }
+  #screen .inner > .scrbg.dark { transition: opacity .6s ease; }   /* se apaga despacio cuando salta la cápsula; vuelve rápido con "Otra vez" */
   #screen .inner > .scrbg.dark { opacity: 0; }
   #screen .inner > .labbg { position: absolute !important; inset: -12px; z-index: 0 !important; pointer-events: none; opacity: 0; will-change: opacity; }   /* el laboratorio de la ratita del premio (en su propia capa: aparecer cambiándole la opacidad cuadro a cuadro no lo vuelve a pintar) */
   #screen .inner > .scrbg { will-change: opacity; }   /* el fondo se corta donde termina el deslizamiento */
@@ -512,7 +513,7 @@ const RATS = [
   ['Fuego',       '#e01f1f', '#f27a6e', '#1f1d1c', '#4a4f57', '#ffd400', '#e01f1f'],
   ['Burbuja',     '#2fc9c0', '#8fd8f0', '#12285e', '#1d1e21', '#2f6fd6', '#2fc9c0'],
   ['Lila',        '#d9cdf2', '#b79be6', '#4b2a7a', '#4a4f57', '#7b3fd1', '#d9cdf2'],
-  ['Draculín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#000000', '#5e1020'],
+  ['Bordolín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#000000', '#5e1020'],
   ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#4f4f4f'],
   ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#275a20', '#c1d268'],
   ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#fe9ae3', '#a8ba20'],
@@ -1629,7 +1630,7 @@ const PORTRAIT_COLORS = {
   11: { fur: '#3b7af7', ear: '#8ad8ff', earDark: '#82c0df', earLine: '#537a8e', nose: '#8fd3f5', paws: '#8fd3f5', tail: '#8fd3f5', line: '#0f2d69', legLine: '#4d88ff' },   // Voltio
   14: { fur: '#6cdafe', ear: '#8ae2ff', earDark: '#69cae8', earLine: '#5badc8', nose: '#00bfff', paws: '#9ee7ff', tail: '#8fd8f0', line: '#165e5a', legLine: '#3fb3d9' },   // Burbuja
   15: { ear: '#d8c7ff', earDark: '#c4aaee', earLine: '#a88bda', nose: '#b79be6', paws: '#b79be6', tail: '#b79be6', line: '#7c67a8', legLine: '#c9adff' },   // Lila
-  16: { fur: '#63081a', ear: '#63081a', earDark: '#a22040', earLine: '#812c40', nose: '#b0475f', paws: '#b0475f', tail: '#e63760', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Draculín
+  16: { fur: '#63081a', ear: '#63081a', earDark: '#a22040', earLine: '#812c40', nose: '#b0475f', paws: '#b0475f', tail: '#e63760', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Bordolín
   17: { fur: '#454545', ear: '#7a5c57', earDark: '#674b46', earLine: '#594440', nose: '#764841', paws: '#7a5c57', tail: '#cfa59f', line: '#86735f', legLine: '#3b2b1c' },   // Pandita
   18: { fur: '#8c9e33', ear: '#b0bf69', earDark: '#9ead53', earLine: '#7d8a3d', nose: '#c1d268', paws: '#bed062', tail: '#bfd454', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
   19: { fur: '#650887', ear: '#772296', earDark: '#6a0d8c', earLine: '#5c047c', nose: '#6c3281', paws: '#6c3281', tail: '#4d2b5a', line: '#795e82', legLine: '#7d37c3', shine: '#ffd6e8' },   // Radium
@@ -1938,9 +1939,20 @@ function cageAnimLoop() {
 //          keyframe 2 (pose normal) dando un giro; rayos de luz, destellos y papelitos
 const GACHA_STAGES = ['wake', 'run', 'clack', 'door', 'launch', 'hover', 'reveal'];
 // clack dura lo que tardan en bajar las cápsulas de la pecera (~1,4 s) más una pausita antes de que se abra la puerta
-const GACHA_T = { wake: 0.7, run: 3.4, clack: 1.75, door: 2.1, launch: 0.85, hover: 0.22 };
-// en 'door': la puerta sube en DOOR_OPEN_T; la rampa arranca casi junto con ella y baja más despacio, terminando después
-const DOOR_OPEN_T = 1.15, RAMP_FROM = 0.05, RAMP_TO = 2.0;
+const GACHA_T = { wake: 0.7, run: 3.4, clack: 1.75, door: 2.3, launch: 0.85, hover: 0.22 };
+const RETURN_T = 0.25;   // con "Otra vez": en cuánto se va el laboratorio y vuelven la máquina y su fondo (s)
+// en 'door': la puerta sube en DOOR_OPEN_T (despacito); la rampa arranca casi junto con ella y baja mientras la puerta
+// se abre (así se ve bajar la cápsula; antes llegaba escondida detrás de la puerta y después frenaba tan despacio que
+// parecía quieta): arranca suave, llega abajo con un poco de velocidad (RAMP_FROM → RAMP_HIT) y hace un rebotito para
+// arriba, suave y no muy rápido (RAMP_BOUNCE de alto, en RAMP_BT s), y uno chiquitito más
+const DOOR_OPEN_T = 1.5, RAMP_FROM = 0.15, RAMP_HIT = 1.45, RAMP_BOUNCE = 0.04, RAMP_BT = 0.36;   // (rebote sutil, como pidió el usuario)
+function rampAt(t) {   // 0 arriba → 1 abajo
+  if (t < RAMP_HIT) { const u = clamp((t - RAMP_FROM) / (RAMP_HIT - RAMP_FROM), 0, 1); return u * u * (2 - u); }
+  const s = t - RAMP_HIT, b2 = RAMP_BT * 0.55;
+  if (s < RAMP_BT) return 1 - RAMP_BOUNCE * Math.sin(Math.PI * s / RAMP_BT);                       // el rebotito
+  if (s < RAMP_BT + b2) return 1 - RAMP_BOUNCE * 0.25 * Math.sin(Math.PI * (s - RAMP_BT) / b2);    // y otro más chiquito
+  return 1;
+}
 const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
   caps: null, onStage: null, L: { beacon: 0, tubeL: 0, tubeR: 0, inner: 0, door: 0 }, vib: [0, 0] };
@@ -1995,7 +2007,7 @@ setTimeout(() => ['img/fondo-maquina.jpg', 'img/fondo-bioterio.jpg', 'img/fondo-
   const im = new Image(); im.src = src; (window.bgKeep = window.bgKeep || []).push(im);
   if (im.decode) im.decode().catch(() => {});
 }), 1200);
-const LAB_BG = { src: 'img/fondo-ratalab.jpg', w: 1920, h: 1336, px: 2.74, x0: 564.6, y0: 155.6, fill: '#272531' };   // (la segunda versión es la misma, alargada para abajo)
+const LAB_BG = { src: 'img/fondo-ratalab.jpg', w: 2544, h: 1336, px: 2.74, x0: 876.6, y0: 155.6, fill: '#272531' };   // (las versiones nuevas son la misma, alargada para abajo y después 312 px a cada costado)
 // cuando la cápsula salta hacia adelante el fondo se apaga de a poco (queda todo negro para el premio) y con "Otra vez"
 // vuelve junto con la máquina
 const machBgDark = on => { const bg = $scr.querySelector('.scrbg'); if (bg) bg.classList.toggle('dark', on); };
@@ -2236,7 +2248,7 @@ function gachaUpdate(dt) {
   // el laboratorio aparece a medida que se apagan las líneas cinéticas; con "Otra vez" se va suave junto con la vuelta
   // de la máquina
   if (P.phase === 'reveal') { const o = 1 - clamp((P.t - SPEED_HOLD) / SPEED_FADE, 0, 1); P.labA = 1 - o * o * (3 - 2 * o); }
-  else P.labA = Math.max(0, (P.labA || 0) - dt * 1.6);
+  else P.labA = Math.max(0, (P.labA || 0) - dt / RETURN_T);
   const lab = $scr.querySelector('.labbg'); if (lab) lab.style.opacity = P.labA.toFixed(3);
   for (const s of P.spark) s.t += dt;
   P.spark = P.spark.filter(s => s.t < s.life);
@@ -2310,14 +2322,18 @@ function drawGachaFx(gcv) {
     if (g2) {   // la ratita, adelante y sin bordes que la corten (en las unidades del canvas de la máquina)
       const k = r.width / 300 * dpr2;
       g2.setTransform(k, 0, 0, k, (r.left - fr.left) * dpr2, (r.top - fr.top) * dpr2);
-      drawRevealRat(g2, P.t, P.pick); drawRevealCapsule(g2, P.t, P.cap); Gacha.fx2Used = true;   // la ratita sale de atrás de la cápsula
+      // la ratita sale de atrás de la cápsula: las mitades van delante solo al principio (mientras está adentro); después
+      // van detrás, así la mitad de arriba no le tapa las orejas cuando ya se desplegó
+      const capFront = P.t < REV_CAP_FRONT;
+      if (!capFront) drawRevealCapsule(g2, P.t, P.cap);
+      drawRevealRat(g2, P.t, P.pick); if (capFront) drawRevealCapsule(g2, P.t, P.cap); Gacha.fx2Used = true;
     }
     return;
   }
   const bx = (r.left - fr.left + (MX + 572 * MS) / 300 * r.width) * dpr, by = (r.top - fr.top + (MY + 72 * MS) / 300 * r.height) * dpr;
   // halo de la baliza: acá, en pantalla completa, así no se corta en el borde del dibujo de la máquina. Se ve mientras la
   // máquina está a la vista (aparece y se apaga con ella)
-  const vis = ['idle', 'wake', 'run', 'clack', 'door'].includes(P.phase) ? (P.phase === 'wake' && P.reappear ? clamp(P.t / 0.35, 0, 1) : 1)
+  const vis = ['idle', 'wake', 'run', 'clack', 'door'].includes(P.phase) ? (P.phase === 'wake' && P.reappear ? clamp(P.t / RETURN_T, 0, 1) : 1)
     : P.phase === 'launch' ? 1 - clamp(P.t / MACHINE_FADE, 0, 1) : 0;
   const bl = P.L.beacon, flash = beaconFlash() * bl * (P.spinA || 0);
   if (vis > 0 && bl > 0.15) {
@@ -2335,26 +2351,40 @@ function drawGachaFx(gcv) {
 // el usuario: sale de atrás de la cápsula hecha bolita, sube derecho (sin girar), en el aire se va deshaciendo la bolita
 // (salen las orejitas, después los ojos y la cola), arriba de todo se achata, al caer se estira, y toca la mesa a los
 // TRAVEL segundos; de ahí sigue el rebote del aterrizaje (drawRatFrontPose con land)
-const TRAVEL = 0.4, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 132, size: 154 };
 // cuadros clave cada REV_DT segundos: centro (y), bolita (curl: 1 bolita → 0 sentada), ancho de la bolita (w) y
-// estiramiento (sx, sy: achatada arriba, estirada al caer)
-const REV_DT = 0.05, REV_KEYS = {
-  y:    [CAP_Y, 173, 133, 112, 74, 53, 90, 117, KF2.y],
-  curl: [1, 1, 1, 1, 0.65, 0.15, 0, 0, 0],
-  w:    [64, 66, 70, 76, 80, 80, 80, 80, 80],
-  sx:   [1, 1, 1, 1, 1.12, 1.1, 0.96, 0.9, 1],
-  sy:   [1, 1, 1, 1, 0.82, 0.8, 0.92, 1.12, 1],
+// estiramiento (sx, sy: achatada arriba, estirada al caer). Los cuadros del usuario iban cada 0,05 s; le pareció muy
+// rápido, así que van más espaciados (REV_SLOW veces), y con la mitad de deformación. La subida son los cuadros 0–5
+// (el 5 es lo más alto); la caída (cuadros 5–8) dura REV_FALL y es como con gravedad: arranca quieta y llega rápido
+// (antes frenaba al llegar a la mesa y se sentía lenta). Como el salto viene hacia la cámara, la ratita va creciendo
+// por el camino (REV_NEAR: el tamaño con que sale, respecto del final)
+// REV_HIGH: cuánto más alto que en los cuadros del usuario (le pidió un salto un poco más alto)
+const REV_DT = 0.085, REV_SLOW = REV_DT / 0.05, REV_APEX = 5, REV_FALL = 0.2, REV_NEAR = 0.8, REV_HIGH = 1.15, REV_KEYS = {
+  y:    [CAP_Y, 173, 133, 112, 74, 53, 74].map(v => CAP_Y - (CAP_Y - v) * REV_HIGH),   // (el último solo es para que arriba de todo quede quieta)
+  // la bolita dura poco: se despliega subiendo y llega arriba ya normal (cuadro 4 desplegada, 5 lo más alto). Subiendo
+  // se estira apenas (va rápido), arriba queda normal y al caer se va estirando cada vez más hasta justo antes de tocar
+  // la mesa; el achatamiento es al tocar, en el rebote. (Se probó achatarla arriba, en el aire: parecía que se volvía a
+  // encoger, y se sacó)
+  curl: [1, 0.85, 0.5, 0.18, 0, 0, 0, 0, 0],
+  w:    [64, 68, 74, 80, 80, 80, 80, 80, 80],
+  sx:   [1, 0.99, 0.98, 0.99, 1, 1, 0.985, 0.95, 1],
+  sy:   [1, 1.02, 1.04, 1.02, 1, 1, 1.02, 1.07, 1],
 };
+const REV_CAP_FRONT = 0.06;   // hasta cuándo las mitades de la cápsula van delante de la ratita (después, detrás)
+const REV_RISE = REV_DT * REV_APEX, TRAVEL = REV_RISE + REV_FALL, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 132, size: 154 };
 function revKey(k, t) {   // Catmull-Rom entre los cuadros clave (pasa suave por todos, sin frenar en cada uno)
-  const a = REV_KEYS[k], f = clamp(t / REV_DT, 0, a.length - 1), i = Math.min(a.length - 2, Math.floor(f)), u = f - i;
+  // en la subida, un cuadro cada REV_DT; en la caída, los cuadros que quedan repartidos en REV_FALL
+  const ft = t <= REV_RISE ? t / REV_DT : REV_APEX + (t - REV_RISE) / REV_FALL * (REV_KEYS.curl.length - 1 - REV_APEX);
+  const a = REV_KEYS[k], f = clamp(ft, 0, a.length - 1), i = Math.min(a.length - 2, Math.floor(f)), u = f - i;
   const p0 = a[Math.max(0, i - 1)], p1 = a[i], p2 = a[i + 1], p3 = a[Math.min(a.length - 1, i + 2)];
   return 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
 }
 function drawRevealRat(g, t, pick) {
-  const x = KF2.x, y = t >= TRAVEL ? KF2.y : revKey('y', t);
+  const fall = clamp((t - REV_RISE) / REV_FALL, 0, 1), yTop = REV_KEYS.y[REV_APEX];
+  const x = KF2.x, y = t >= TRAVEL ? KF2.y : t <= REV_RISE ? revKey('y', t) : yTop + (KF2.y - yTop) * fall * fall;   // cae con gravedad
   const curl = t >= TRAVEL ? 0 : clamp(revKey('curl', t), 0, 1);
   const sx = t >= TRAVEL ? 1 : revKey('sx', t), sy = t >= TRAVEL ? 1 : revKey('sy', t);
-  const sz = lerp(revKey('w', t) * 935 / (BALL_R * 2), KF2.size, 1 - curl);
+  const near = lerp(REV_NEAR, 1, clamp(t / TRAVEL, 0, 1));                               // se acerca a la cámara
+  const sz = lerp(revKey('w', t) * 935 / (BALL_R * 2), KF2.size * near, 1 - curl);
   g.save(); g.translate(x, y); g.scale(sx, sy); g.translate(-x, -y);
   drawRatFrontPose(g, x, y, sz, pick, t, t - TRAVEL, curl);                             // al tocar la mesa (t > TRAVEL) rebota
   g.restore();
@@ -2362,10 +2392,12 @@ function drawRevealRat(g, t, pick) {
 // Las dos mitades de la cápsula al abrirse, dibujadas DELANTE de la ratita (que sale de atrás): la de arriba sube,
 // frena, se achata y se apaga; la de abajo se cae rápido de la pantalla
 function drawRevealCapsule(g, t, col) {
-  if (t > 0.24) return;
-  const r = 58, u = clamp(t / 0.2, 0, 1), up = 195 * (1 - Math.pow(1 - u, 1.5));
-  const k = clamp((t - 0.1) / 0.11, 0, 1), flat = 1 - 0.95 * Math.pow(k, 1.6);
-  g.save(); g.globalAlpha = 1 - clamp((t - 0.15) / 0.08, 0, 1);
+  t /= REV_SLOW;   // (los tiempos de abajo son los de los cuadros del usuario; va al mismo ritmo que la ratita)
+  if (t > 0.16) return;
+  // (sale más rápido que la ratita y se apaga antes: si no, quedaba arriba de su cabeza como un sombrero)
+  const r = 58, u = clamp(t / 0.14, 0, 1), up = 300 * (1 - Math.pow(1 - u, 1.5));
+  const k = clamp((t - 0.06) / 0.09, 0, 1), flat = 1 - 0.95 * Math.pow(k, 1.6);
+  g.save(); g.globalAlpha = 1 - clamp((t - 0.07) / 0.08, 0, 1);
   g.translate(150, CAP_Y - up); g.scale(1, flat); g.translate(-150, -CAP_Y);              // achatada desde su borde plano
   g.beginPath(); g.rect(150 - r - 2, CAP_Y - r - 2, r * 2 + 4, r + 2); g.clip();          // solo la mitad de arriba
   capsule(g, 150, CAP_Y, r, col, 0, 0.001);
@@ -2397,7 +2429,7 @@ function drawGacha(g, n) {
   const front = ['launch', 'hover', 'reveal'].includes(P.phase);
   // la máquina (cámara fija): cuando la cápsula viene al frente, se achica y se oscurece para quedar de fondo
   if (!front || P.phase === 'launch') {   // mientras la cápsula viene al frente, la máquina se va para atrás y se oscurece hasta no verse
-    const rs = recedeScale(t), fade = P.phase === 'launch' ? ease(t / MACHINE_FADE) : P.phase === 'wake' && P.reappear ? 1 - ease(t / 0.35) : 0;
+    const rs = recedeScale(t), fade = P.phase === 'launch' ? ease(t / MACHINE_FADE) : P.phase === 'wake' && P.reappear ? 1 - ease(t / RETURN_T) : 0;
     // se dibuja aparte y se pega con transparencia (si no, al desvanecerse se veían las piezas unas a través de otras)
     if (machOff.width !== n) { machOff.width = machOff.height = n; }
     const m = machOff.getContext('2d');
@@ -2757,9 +2789,9 @@ function drawMachine(g) {
 
   // la rampa (dorada): arranca a bajar un poquito después de que la puerta empieza a subir, y la cápsula premiada viene
   // apoyada arriba de ella. La puerta gris (cerrada tapa todo el arco) sube entera y deja ver la luz
-  // arranca apenas empieza a subir la puerta, baja más despacio que ella (termina después) y frena muy de a poco
-  const rampU = P.phase === 'door' ? clamp((P.t - RAMP_FROM) / (RAMP_TO - RAMP_FROM), 0, 1) : doorOpen;
-  const rampTop = TRAY_UP + (TRAY_DOWN - TRAY_UP) * (1 - Math.pow(1 - Math.pow(rampU, 1.3), 3));
+  // arranca apenas empieza a subir la puerta y baja como un resorte blando, con un rebotito al llegar (rampAt)
+  const rampU = P.phase === 'door' ? rampAt(P.t) : doorOpen;
+  const rampTop = TRAY_UP + (TRAY_DOWN - TRAY_UP) * rampU;
   g.save(); g.beginPath(); g.rect(448, 860, 248, 350); g.clip();                              // hasta la franja de peligro
   g.fillStyle = '#9d7f41'; rr(468, rampTop, 208, 1210 - rampTop, 6); g.fill();
   g.fillStyle = '#d2ac5d'; rr(468, rampTop, 208, 18, 6); g.fill();                            // canto de arriba
