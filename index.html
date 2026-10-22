@@ -164,13 +164,24 @@
   #screen .ssub { margin: 0; font-size: 15px; color: #bfae8c; }
   /* Bioterio y Máquina: el título sube a la altura de la flechita y el engranaje; los estantes arrancan debajo de las monedas */
   #screen .stitle.up { margin-top: -52px; }
-  #screen .stitle.up + .ssub + .rack { margin-top: 30px; }
   #screen .sbtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; flex: 0 0 auto; }
   /* ratitas: estantes de metal de punta a punta de la pantalla, sobre el negro; las jaulas centradas en cada estante */
-  .rack { flex: 1 1 auto; min-height: 0; overflow-y: auto; width: 100vw; margin: 0 -12px; }
-  .shelfrow { position: relative; display: flex; justify-content: center; }
-  .shelfrow::after { content: ''; position: absolute; left: 0; right: 0; top: 86%; height: 7%;
-    background: linear-gradient(#f7f8f9, #c3c8cc 45%, #8e959a); }
+  /* Bioterio: el fondo, las jaulas y el título se deslizan juntos detrás de los botones, que quedan fijos (sin barra) */
+  #screen .inner > .rack { position: absolute !important; inset: 0; z-index: 0 !important; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+  .rackin { position: relative; overflow: hidden; }
+  /* franjas oscuras: la de arriba queda pegada arriba mientras se desliza (por encima de las jaulas, debajo del título) */
+  .bandtop { position: sticky; top: 0; z-index: 1; pointer-events: none; background: linear-gradient(rgba(0,0,0,.9), rgba(0,0,0,0)); }
+  .rackin .biohead { z-index: 2; }
+  #screen .inner > .bandbot { position: absolute !important; left: 0; right: 0; bottom: 0; z-index: 1 !important; pointer-events: none;
+    background: linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,0)); }
+  /* fondo de la Máquina, en su capa: se apaga (y vuelve) fundiéndose */
+  #screen .inner > .scrbg { position: absolute !important; inset: 0; z-index: 0 !important; pointer-events: none; transition: opacity .6s ease; }
+  #screen .inner > .scrbg.dark { opacity: 0; }   /* el fondo se corta donde termina el deslizamiento */
+  .biohead { position: absolute; top: 12px; left: 0; right: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  #screen .bionav { margin-top: auto; }
+  .rack::-webkit-scrollbar { display: none; }
+  .bgrack { position: absolute; background: url(img/fondo-bioterio.jpg) 0 0 / 100% 100% no-repeat; }
+  .bgrack .rat { position: absolute; }
   .rat { position: relative; z-index: 1; background: none; border: 0; padding: 0; cursor: pointer; display: block;
     width: min(calc(100vw / var(--cols)), 280px); -webkit-tap-highlight-color: transparent; }
   .rat canvas { display: block; width: 100%; aspect-ratio: 330 / 300; }
@@ -213,6 +224,8 @@
   #card td { padding: 2px 8px; }
 
   /* arriba a la derecha: la ruedita (jugando pausa; en los menús abre las opciones) */
+  #btnBack, #coins, #btnGear, #gachaNav { transition: opacity .3s ease; }
+  .faded { opacity: 0 !important; pointer-events: none !important; }   /* se desvanece (la máquina andando) */
   #topbtns { position: fixed; top: 12px; right: 14px; display: flex; gap: 8px; z-index: 8; }
   #btnGear svg { width: 27px; height: 27px; }
   /* ventana de pausa / opciones: Música y Sonido con interruptores, y abajo la casita y Reanudar (o Cerrar) */
@@ -1531,21 +1544,53 @@ function closeScreen() {
 }
 
 // ---- Ratitas: un mueble de estantes con las 20 jaulas; las que tenés se eligen tocándolas ----
+// Fondo del Bioterio (img/fondo-bioterio.jpg, 1920 × 2257, "Estantes_02" del usuario): una alcoba con 6 estantes
+// iluminados y la base, con lugar de más a los costados y arriba (es el "Estantes_01" agrandado 1,25 veces y centrado,
+// así que los estantes quedan donde estaban). Va detrás de toda la pantalla, también debajo del título, y se desliza
+// entero junto con las jaulas y el título; los botones (casita, monedas, engranaje y "Máquina") quedan fijos encima.
+// Cada jaula se apoya en un estante, de a 3 (7 filas para las 21 ratitas), centrada en la luz amarilla de su columna.
+// Las jaulas tienen un tamaño fijo en píxeles del fondo (entran entre un estante y el de arriba) y el fondo se escala
+// parejo, sin deformarse, para que las 3 de una fila llenen casi todo el ancho de la pantalla (en la PC, con un tope)
+const BIO_BG = { src: 'img/fondo-bioterio.jpg', w: 1920, h: 2257,
+  shelves: [633, 832, 1029, 1231, 1432, 1629, 1839],   // borde de arriba de cada estante y de la base (y en el fondo)
+  cols: [674.5, 960, 1245.5],                          // centro de las luces amarillas de cada columna (x)
+  cageW: 237.6, gap: 47.9,                             // ancho de cada jaula y espacio entre jaulas (px del fondo)
+  titleY: 330,     // el título va sobre la caja de la lámpara del techo (como la referencia del usuario): así arranca la galería
+  end: 2016 };     // hasta dónde se desliza: un poco debajo de la base, donde empieza el piso (como marcó el usuario)
+function layoutRack() {
+  const rack = $scr.querySelector('.rack'), bg = rack && rack.querySelector('.bgrack'), head = rack && rack.querySelector('.biohead');
+  if (!bg) return;
+  const B = BIO_BG, rowW = 3 * B.cageW + 2 * B.gap, k = Math.min(rack.clientWidth * 0.96 / rowW, 1);   // (en la PC no tan grande)
+  const h2 = head.querySelector('.stitle'), ty = head.offsetTop + h2.offsetTop + h2.offsetHeight / 2;   // centro del título
+  const top = ty - B.titleY * k;
+  const [bt, bb] = bandHeights();   // las franjas oscuras
+  rack.querySelector('.bandtop').style.height = bt + 'px'; rack.querySelector('.bandtop').style.marginBottom = -bt + 'px';
+  $scr.querySelector('.bandbot').style.height = bb + 'px';
+  bg.style.width = B.w * k + 'px'; bg.style.height = B.h * k + 'px';
+  bg.style.left = (rack.clientWidth - B.w * k) / 2 + 'px'; bg.style.top = top + 'px';
+  rack.querySelector('.rackin').style.height = Math.max(rack.clientHeight, top + B.end * k) + 'px';
+  const cw = B.cageW * k, ch = cw * 300 / 330;
+  bg.querySelectorAll('.rat').forEach(el => {
+    const row = +el.dataset.row, col = +el.dataset.col;
+    el.style.width = cw + 'px';
+    el.style.left = (B.cols[col] * k - cw / 2) + 'px';
+    el.style.top = ((B.shelves[row] - 2.5) * k - 0.86 * ch) + 'px';   // el fondo de la caja (86% del dibujo) apoyado justo arriba de la línea amarilla del estante
+  });
+}
+addEventListener('resize', () => { if (G.screen === 'ratitas') layoutRack(); });
 function showRatitas(from) {
-  G.screen = 'ratitas';
-  // de a filas: cada fila es un estante que va de punta a punta de la pantalla (3 jaulas por fila, en la PC y en el celular)
-  const cols = 3, cell = i => `<button class="rat" data-act="pick" data-i="${i}" ${Skins.has(i) ? '' : 'disabled'}>
-      <canvas width="330" height="300" data-rat="${i}"></canvas></button>`;
-  let rows = '';
-  // sin lugar fijo: primero las que tenés, en el orden en que las fuiste sacando (la Albina primero); después las que faltan
+  G.screen = 'ratitas'; placeScreenBg();
+  // sin lugar fijo: primero las que tenés, en el orden en que las fuiste sacando (la Albina primero); después las que
+  // faltan. De a 3 por estante
   const order = [...Skins.data.owned, ...RATS.map((_, i) => i).filter(i => !Skins.has(i))];
-  order.push(-1);   // y una jaula vacía de más al final
-  for (let r = 0; r < order.length; r += cols) rows += `<div class="shelfrow">${order.slice(r, r + cols).map(cell).join('')}</div>`;
-  openScreen(`<h2 class="stitle up">BIOTERIO</h2>
-    <p class="ssub">${Skins.data.owned.length}/${RATS.length}</p>
-    <div class="rack" style="--cols: ${cols}">${rows}</div>
-    <div class="sbtns"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de arriba a la izquierda
-  updateButtons();
+  const rows = [];
+  for (let r = 0; r < order.length; r += 3) rows.push(order.slice(r, r + 3));
+  const cells = rows.map((row, ri) => row.map((i, ci) => `<button class="rat" data-act="pick" data-i="${i}" data-row="${ri}" data-col="${ci}" ${Skins.has(i) ? '' : 'disabled'}>
+      <canvas width="330" height="300" data-rat="${i}"></canvas></button>`).join('')).join('');
+  openScreen(`<div class="rack"><div class="bandtop"></div><div class="rackin"><div class="bgrack">${cells}</div>
+      <div class="biohead"><h2 class="stitle">BIOTERIO</h2><p class="ssub">${Skins.data.owned.length}/${RATS.length}</p></div></div></div>
+    <div class="bandbot"></div><div class="sbtns bionav"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de arriba a la izquierda
+  updateButtons(); layoutRack();
   cageAnimLoop();
 }
 function pickRat(i) {
@@ -1799,6 +1844,11 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = Math.max(1, w * 0.006); g.stroke(box);
   // tapa de reja
   const ly = top - h * 0.07;
+  // atrás de la reja, la otra pared de la tapa (como la referencia): una franja oscura en la mitad de abajo y barritas
+  // oscuras que suben, paralelas a las de adelante pero corridas, así asoman entre los alambres
+  const lh2 = top - ly;
+  g.fillStyle = '#17191c'; g.fillRect(x0 - w * 0.01, top - lh2 * 0.45, x1 - x0 + w * 0.02, lh2 * 0.45);
+  for (let x = x0 + w * 0.02 + w * 0.0175; x <= x1 - w * 0.02; x += w * 0.035) g.fillRect(x - w * 0.005, ly + lh2 * 0.12, w * 0.01, lh2 * 0.5);
   g.strokeStyle = '#9aa2a8'; g.lineWidth = Math.max(1, w * 0.008);
   g.beginPath();
   for (let x = x0 + w * 0.02; x <= x1 - w * 0.02; x += w * 0.035) { g.moveTo(x, ly); g.lineTo(x, top); }
@@ -1888,16 +1938,48 @@ const DOOR_OPEN_T = 1.15, RAMP_FROM = 0.05, RAMP_TO = 2.0;
 const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
   caps: null, onStage: null, L: { beacon: 0, tubeL: 0, tubeR: 0, inner: 0, door: 0 }, vib: [0, 0] };
+// Fondo de la Máquina (img/fondo-maquina.jpg, 1920 × 1232, "bg_maquina_01" del usuario: una alcoba con una mesada,
+// más grande que la primera para llenar la pantalla; va detrás de todo, también de los botones). La máquina queda donde
+// está y el fondo se acomoda a ella: el ancho de su base turquesa (830 en las coordenadas de la máquina) mide lo mismo que
+// en la referencia (de x 763 a 1154 en esta imagen) y el borde de abajo de la base (y 1284) cae sobre la mesada (y 920).
+// (Son los mismos lugares que en el fondo anterior, medidos: esta imagen es aquella achicada 0,88 y corrida.) Si la
+// pantalla es más alta que el fondo, lo que sobra abajo se pinta del color del borde de la imagen
+const MACH_BG = { src: 'img/fondo-maquina.jpg', w: 1920, h: 1232, baseX0: 763.2, baseX1: 1153.9, baseY: 920.2, fill: '#353946' };
+// Franjas oscuras arriba y abajo que se funden con el fondo (Máquina y Bioterio): la de arriba termina un poco después
+// del título y la de abajo un poco después del último botón (contando desde abajo)
+const BAND_DARK = 'rgba(0,0,0,0.9)';
+function bandHeights() {
+  const t = $scr.querySelector('.stitle'), b = $scr.querySelector('#gachaNav, .bionav');
+  const top = t ? t.getBoundingClientRect().bottom + 40 : 110;
+  const bot = b ? innerHeight - b.getBoundingClientRect().top + 40 : 110;
+  return [Math.round(top), Math.round(bot)];
+}
+function placeScreenBg() {
+  const cv = G.screen === 'machine' && document.getElementById('gachaCv'), bg = $scr.querySelector('.scrbg');
+  if (!cv || !bg) return;
+  const r = cv.getBoundingClientRect(), u = r.width / 300;   // px por unidad del canvas de la máquina
+  const k = (830 * MS) / (MACH_BG.baseX1 - MACH_BG.baseX0) * u;   // px de pantalla por px de la imagen
+  const cx = r.left + (MX + 573 * MS) * u, by = r.top + (MY + 1284 * MS) * u, [bt, bb] = bandHeights();
+  bg.style.backgroundColor = MACH_BG.fill;
+  bg.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt}px), linear-gradient(to top, ${BAND_DARK}, rgba(0,0,0,0) ${bb}px), url(${MACH_BG.src})`;
+  bg.style.backgroundRepeat = 'no-repeat';
+  bg.style.backgroundSize = `100% 100%, 100% 100%, ${MACH_BG.w * k}px ${MACH_BG.h * k}px`;
+  bg.style.backgroundPosition = `0 0, 0 0, ${cx - (MACH_BG.baseX0 + MACH_BG.baseX1) / 2 * k}px ${by - MACH_BG.baseY * k}px`;
+}
+// cuando la cápsula salta hacia adelante el fondo se apaga de a poco (queda todo negro para el premio) y con "Otra vez"
+// vuelve junto con la máquina
+const machBgDark = on => { const bg = $scr.querySelector('.scrbg'); if (bg) bg.classList.toggle('dark', on); };
+addEventListener('resize', () => { if (G.screen) placeScreenBg(); });
 function showMachine(from) {
   G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = []; Gacha.spark = []; Gacha.caps = null; Gacha.level = 0;   // al volver, la cúpula está llena otra vez
-  openScreen(`<canvas id="gachaFx"></canvas>
+  openScreen(`<div class="scrbg"></div><canvas id="gachaFx"></canvas>
     <h2 class="stitle up">MÁQUINA</h2>
     <canvas id="gachaCv" width="900" height="900"></canvas>
     <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
     <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>
     <div class="sbtns" id="gachaNav"><button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio
-  updateButtons();
+  updateButtons(); placeScreenBg();
   cancelAnimationFrame(Gacha.raf);
   let last = performance.now();
   const step = now => {
@@ -1929,7 +2011,7 @@ function gachaSpin() {
   // Las luces siguen desde como estaban (en reposo, apenas prendidas): si se ponían en 0 se veía un apagón antes de
   // despertarse. Después del premio la máquina no estaba a la vista: vuelve en reposo y aparece de a poco (reappear)
   Gacha.reappear = Gacha.phase === 'reveal';
-  if (Gacha.reappear) { Gacha.caps = null; Object.assign(Gacha.L, { beacon: 0.12, tubeL: 0.15, tubeR: 0.15, inner: 0.3, door: 0 }); }
+  if (Gacha.reappear) { Gacha.caps = null; Object.assign(Gacha.L, { beacon: 0.12, tubeL: 0.15, tubeR: 0.15, inner: 0.3, door: 0 }); machBgDark(false); }
   Gacha.conf = []; Gacha.spark = [];
   Gacha.beaconOn = false;
   document.getElementById('gachaRes').textContent = '';   // sin textos mientras anda: así la máquina no se corre
@@ -1946,11 +2028,12 @@ function gachaStage(id) {
     capsDrop();
   }
   else if (id === 'door') Snd.hiss(DOOR_OPEN_T);
+  else if (id === 'launch') machBgDark(true);
   else if (id === 'reveal') {
     Snd.popOpen(); gachaResult();
     for (let k = 0; k < 90; k++) {   // papelitos
       const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 230;
-      P.conf.push({ x: 150, y: 150, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 90, r: Math.random() * 6, vr: (Math.random() - 0.5) * 14,
+      P.conf.push({ x: 150, y: CAP_Y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 90, r: Math.random() * 6, vr: (Math.random() - 0.5) * 14,
         w: 4 + Math.random() * 4, h: 2 + Math.random() * 2.5, col: CAP_COLORS[k % CAP_COLORS.length] });
     }
   }
@@ -2114,16 +2197,19 @@ function gachaResult() {
   document.getElementById('gachaBtns').innerHTML = gachaButtons(true); updateButtons();
 }
 // Posición de la cápsula premiada mientras salta hacia la cámara: [x, y, radio, giro]
+// CAP_Y: altura de la cápsula adelante (y de la ratita hecha bolita); apoyada sobre la misma línea que los pies de la
+// ratita sentada, como marcó el usuario
+const CAP_Y = 198;
 function prizeCapsule(t) {
   const [dx, dy] = MACHINE_DOOR, ease = p => p * p * (3 - 2 * p);
   if (Gacha.phase === 'launch') {
     const p = clamp(t / GACHA_T.launch, 0, 1), pa = clamp(p / 0.72, 0, 1), e = ease(pa);
     const x0 = 150 + (dx - 150) * recedeScale(t), y0 = 150 + (dy - 150) * recedeScale(t);   // la compuerta, donde quedó la máquina al retroceder
-    let y = y0 + (158 - y0) * e - Math.sin(pa * Math.PI) * 70;                 // salto en arco hacia adelante
-    if (p > 0.72) y = 158 - Math.sin((p - 0.72) / 0.28 * Math.PI) * 16;          // un rebotecito en el aire
+    let y = y0 + (CAP_Y - y0) * e - Math.sin(pa * Math.PI) * 70;                 // salto en arco hacia adelante
+    if (p > 0.72) y = CAP_Y - Math.sin((p - 0.72) / 0.28 * Math.PI) * 16;          // un rebotecito en el aire
     return [x0 + (150 - x0) * e, y, 12 + 46 * ease(clamp(p / 0.85, 0, 1)), (1 - e) * 2.4 + Math.sin(p * 12) * 0.08 * (1 - p)];
   }
-  return [150, 158 + Math.sin(Gacha.clock * 4) * 3, 58, Math.sin(Gacha.clock * 3) * 0.05];
+  return [150, CAP_Y + Math.sin(Gacha.clock * 4) * 3, 58, Math.sin(Gacha.clock * 3) * 0.05];
 }
 const MACHINE_RECEDE = 1;   // cuánto se achica la máquina cuando la cápsula viene al frente (1 = no se va para atrás)
 const MACHINE_FADE = 0.25;  // en cuánto se apaga la máquina cuando sale la cápsula
@@ -2149,7 +2235,7 @@ function drawGachaFx(gcv) {
   const P = Gacha;
   if (P.phase === 'reveal') {   // líneas cinéticas desde donde se abre la cápsula, en toda la pantalla
     const r = gcv.getBoundingClientRect(), fr = fx.getBoundingClientRect();
-    drawSpeedLines(g, W, H, (r.left - fr.left + 150 / 300 * r.width) * dpr, (r.top - fr.top + 158 / 300 * r.height) * dpr, P.t);
+    drawSpeedLines(g, W, H, (r.left - fr.left + 150 / 300 * r.width) * dpr, (r.top - fr.top + CAP_Y / 300 * r.height) * dpr, P.t);
     return;
   }
   const r = gcv.getBoundingClientRect(), fr = fx.getBoundingClientRect();
@@ -2204,7 +2290,6 @@ function drawGacha(g, n) {
       m.fillStyle = lg; m.fillRect(0, 0, 300, 300); m.restore();
     }
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1 - fade; g.drawImage(machOff, 0, 0); g.restore();
-    if (fade) { g.fillStyle = `rgba(0,0,0,${0.7 * fade})`; g.fillRect(0, 0, 300, 300); }
   }
 
   if (P.phase === 'reveal') {
@@ -2213,7 +2298,7 @@ function drawGacha(g, n) {
     // (drawRatFrontPose con curl 1 → 0): en el camino cada pieza se desplaza a su lugar, no hay cambio de dibujo.
     // Apenas se abre la cápsula ya arranca el salto (nunca se la ve quieta hecha bolita): viaja en arco dando un giro
     // completo y cae sentada mirando a la cámara, con el rebote del aterrizaje
-    const TRAVEL = 0.8, KF1 = { x: 150, y: 158, size: 64 }, KF2 = { x: 150, y: 166, size: 172 }, NAME_Y = 262;
+    const TRAVEL = 0.8, KF1 = { x: 150, y: CAP_Y, size: 64 }, KF2 = { x: 150, y: 166, size: 172 }, NAME_Y = 262;
     const turn = (c, cx, cy, a, fn) => { c.save(); c.translate(cx, cy); c.rotate(a); c.translate(-cx, -cy); fn(c); c.restore(); };
     const u = clamp(t / TRAVEL, 0, 1), e = 1 - Math.pow(1 - u, 3);                       // sale disparada y frena al llegar
     const x = KF1.x + (KF2.x - KF1.x) * e, y = KF1.y + (KF2.y - KF1.y) * e - Math.sin(Math.PI * u) * 60;
@@ -2245,15 +2330,15 @@ function drawGacha(g, n) {
   if (['launch', 'hover'].includes(P.phase)) {   // (mientras se abre la compuerta, la dibuja drawMachine adentro)
     const [x, y, r, rot] = prizeCapsule(t);
     if (P.phase === 'launch' && t > GACHA_T.launch * 0.72) {   // sombra: se acerca al frente
-      g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(150, 222, r * 0.9, r * 0.18, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(150, CAP_Y + 64, r * 0.9, r * 0.18, 0, 0, Math.PI * 2); g.fill();
     }
     capsule(g, x, y, r, P.cap, rot, 0);
   } else if (P.phase === 'reveal' && t < 0.5) {   // las dos mitades salen disparadas (arriba y abajo) y se desvanecen
     const p = t / 0.5, split = 260 * (1 - Math.pow(1 - p, 2.5));
-    g.globalAlpha = 1 - p; capsule(g, 150, 158, 58, P.cap, 0, split); g.globalAlpha = 1;
+    g.globalAlpha = 1 - p; capsule(g, 150, CAP_Y, 58, P.cap, 0, split); g.globalAlpha = 1;
   }
   if (P.phase === 'reveal' && t < 0.3) {   // golpe de luz al abrirse
-    const a = 1 - t / 0.3, fl = g.createRadialGradient(150, 158, 0, 150, 158, 60 + 150 * (1 - a));
+    const a = 1 - t / 0.3, fl = g.createRadialGradient(150, CAP_Y, 0, 150, CAP_Y, 60 + 150 * (1 - a));
     fl.addColorStop(0, `rgba(255,252,235,${0.9 * a})`); fl.addColorStop(1, 'rgba(255,252,235,0)');
     g.fillStyle = fl; g.fillRect(0, 0, 300, 300);
   }  for (const s of P.spark) {   // destellos: estrellitas de cuatro puntas que crecen y se apagan
@@ -2338,7 +2423,7 @@ function drawSpeedLines(g, W, H, cx, cy, t) {
 // pantallita con barras y pulso, y franja de peligro. Se dibuja en las coordenadas de la referencia (≈1145 × 1374)
 // achicadas a MS dentro del canvas de 300 × 300. Al activarla: tiembla, la baliza destella, las barras se llenan y las
 // cápsulas se sacuden; la compuerta se ilumina más cuando sale la cápsula.
-const MS = 0.205, MX = 150 - 572 * MS, MY = 8;
+const MS = 0.205, MX = 150 - 572 * MS, MY = 16;   // MY: un poco más abajo, con la base sobre la línea que marcó el usuario
 const TRAY_UP = 1048, TRAY_DOWN = 1180;   // borde de arriba de la rampa amarilla: cerrada / abierta
 const DOOR_LIFT = 302;   // cuánto sube la puerta gris (queda un pedacito arriba sin abrir)
 const MACHINE_DOOR = [150, MY + (TRAY_DOWN - 60) * MS];   // dónde queda la cápsula, apoyada en la rampa (en el canvas de 300)
@@ -2803,13 +2888,14 @@ function updateButtons() {
   // en el Bioterio y la Máquina el botón de la esquina es la casita (lleva a la portada); en el resto, la flechita
   const icon = G.screen ? 'home' : 'back';
   if ($btnBack.dataset.icon !== icon) { $btnBack.dataset.icon = icon; $btnBack.innerHTML = G.screen ? ICONS.home : BACK_ARROW; }
-  $btnLight.classList.toggle('hidden', !isMenu());   // el botón de la luz de prueba solo está en la portada y el selector
-  // flechita para volver a los niveles (arriba a la izquierda, donde va la casita): solo con los resultados de Historia
-  const back = G.screen === 'ratitas' || (G.screen === 'machine' && ['idle', 'reveal'].includes(Gacha.phase)) ||
-    (!G.screen && (G.state === 'select' || (G.state === 'won' && G.winCard)));
+  $btnLight.classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el botón de la luz de prueba solo está en la portada
+  // flechita / casita arriba a la izquierda: en el selector, los resultados, el Bioterio y la Máquina
+  const back = !!G.screen || (G.state === 'select' || (G.state === 'won' && G.winCard));
   $btnBack.classList.toggle('hidden', !back);
-  const nav = document.getElementById('gachaNav');
-  if (nav) nav.style.visibility = back ? '' : 'hidden';   // mientras anda la máquina, tampoco el botón Bioterio
+  // mientras anda la máquina, la casita, las monedas, el engranaje y el botón Bioterio se desvanecen (sin moverse de
+  // lugar) y vuelven cuando sale la ratita
+  const running = G.screen === 'machine' && !['idle', 'reveal'].includes(Gacha.phase);
+  for (const el of [$btnBack, $coins, $btnGear, document.getElementById('gachaNav')]) if (el) el.classList.toggle('faded', running);
   $coins.classList.toggle('below', back);
   // al terminar el nivel (ganado o perdido) el contador de monedas no se muestra: tapaba el cartel en el celular
   // (ni en el selector de niveles: ahí no se usan y en el celular tapaban el cartel)
