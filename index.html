@@ -4271,13 +4271,15 @@ function renderGallery() {
 // cualquier ratita. (cx, cy) es el centro del cuerpo y size la altura sentada. t la anima (respira, parpadea, mueve una
 // oreja, la cola y los bigotes) y land (segundos desde que tocó el piso) hace el rebote al caer.
 const lerp = (a, b, u) => a + (b - a) * u, lerp2 = (p, q, u) => [lerp(p[0], q[0], u), lerp(p[1], q[1], u)];
-// contorno de la panza sentada (campana con muslos largos), muestreado en FRONT_N puntos parejos desde abajo al medio
-// hacia la izquierda; la bolita usa un círculo muestreado igual, así los puntos se corresponden
+// contorno de la panza sentada, muestreado en FRONT_N puntos parejos desde abajo al medio hacia la izquierda; la
+// bolita usa un círculo muestreado igual, así los puntos se corresponden. Como el último cuadro del salto que dibujó el
+// usuario (img/salto-ratita.png), así al fundirse con él no se ven dos pares de patas: el cuerpo baja recto desde la
+// cabeza y se abre en dos ancas redondas que llegan al piso (antes era una campana con la base recta)
 const FRONT_N = 96;
 const BELLY_PTS = (() => {
-  const segs = [[[590, 1092], [322, 1092]], [[322, 1092], [262, 1092], [232, 1045], [233, 975]], [[233, 975], [234, 905], [258, 852], [286, 818]],
-    [[286, 818], [300, 760], [316, 700], [342, 648]], [[342, 648], [838, 648]], [[838, 648], [864, 700], [880, 760], [894, 818]],
-    [[894, 818], [922, 852], [946, 905], [947, 975]], [[947, 975], [948, 1045], [918, 1092], [858, 1092]], [[858, 1092], [590, 1092]]];
+  const segs = [[[590, 1092], [360, 1092]], [[360, 1092], [260, 1092], [214, 1010], [215, 940]], [[215, 940], [216, 870], [250, 815], [288, 790]],
+    [[288, 790], [290, 700], [292, 650], [300, 600]], [[300, 600], [880, 600]], [[880, 600], [888, 650], [890, 700], [892, 790]],
+    [[892, 790], [930, 815], [964, 870], [965, 940]], [[965, 940], [966, 1010], [920, 1092], [820, 1092]], [[820, 1092], [590, 1092]]];
   const at = (s, u) => s.length === 2 ? lerp2(s[0], s[1], u) : (() => { const v = 1 - u; return [0, 1].map(k => v * v * v * s[0][k] + 3 * v * v * u * s[1][k] + 3 * v * u * u * s[2][k] + u * u * u * s[3][k]); })();
   const dense = []; for (const s of segs) for (let n = 0; n < 40; n++) dense.push(at(s, n / 40));
   const len = [0]; for (let n = 1; n < dense.length; n++) len.push(len[n - 1] + Math.hypot(dense[n][0] - dense[n - 1][0], dense[n][1] - dense[n - 1][1]));
@@ -4292,7 +4294,7 @@ const TAIL_W = 2.4, TAIL_SWISH = 0.42;   // cola de frente: velocidad de la onda
 // Cabeza de frente: cada tanto se ladea un poco para un lado o el otro, o vuelve al medio, al azar (pero sale de t, así
 // cada momento da siempre lo mismo y no hace falta guardar nada). El tiempo se corta en tramos de HEAD_SEG s; cada tramo
 // tiene su destino (al medio más seguido) y arranca a moverse en un momento al azar del tramo, despacito y frenando
-const HEAD_PIVOT = 790, HEAD_SEG = 1.7, HEAD_WAIT = 3, HEAD_EASE = 1.2;   // HEAD_WAIT / HEAD_EASE: después de aterrizar
+const HEAD_PIVOT = 790, HEAD_SEG = 1.7, HEAD_WAIT = 6, HEAD_EASE = 1.5;   // HEAD_WAIT / HEAD_EASE: después de aterrizar
 const hash1 = x => { const s = Math.sin(x * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
 function headTilt(t, i, land = -1) {
   if (t <= 0) return 0;
@@ -4392,7 +4394,8 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   const eu = (e => e * e * (3 - 2 * e))(clamp((u - 0.5) / 0.5, 0, 1)), me = (a, b) => lerp(a, b, eu);
   for (const sd of [-1, 1]) {
     c.save(); headT();
-    const ec = lerp2([590 + sd * 252, 315], [590 + sd * 120, 560], eu), rot = me(0, sd * 0.5) + (sd === 1 ? tw : 0) + sd * earR;
+    // (sentada, donde las tiene el salto del usuario)
+    const ec = lerp2([590 + sd * 260, 290], [590 + sd * 120, 560], eu), rot =me(0, sd * 0.5) + (sd === 1 ? tw : 0) + sd * earR;
     c.translate(...ec); c.rotate(rot);
     c.fillStyle = P.ear; c.beginPath(); c.ellipse(0, 0, me(155, 70), me(155, 55), 0, 0, Math.PI * 2); c.fill();
     const iy = me(25, 11), irx = me(96, 44), iry = me(96, 34);
@@ -4427,11 +4430,12 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   c.fillStyle = fur; c.fill(head);
   if (S.spots) { c.save(); c.clip(head); c.fillStyle = S.spots; c.beginPath(); c.ellipse(...m2([455, 515], [476, 582]), m(70, 64), m(60, 55), -0.2, 0, Math.PI * 2); c.fill(); c.restore(); }
   c.restore();
-  // --- patas de atrás: sentada apoyadas (base recta), hecha bolita metidas abajo de la bola ---
+  // --- patas de atrás: sentada apoyadas arriba de las ancas, enteras (como el salto del usuario); hecha bolita metidas
+  // abajo de la bola ---
   for (const sd of [-1, 1]) {
-    const fc = m2([590 + sd * 225, 1068], [590 + sd * 114, 864]);
+    const fc = m2([590 + sd * 245, 1032], [590 + sd * 114, 864]);
     c.save(); c.beginPath(); c.rect(fc[0] - 160, fc[1] - 140, 320, m(1092, 1400) - (fc[1] - 140)); c.clip();
-    c.fillStyle = P.paws; c.beginPath(); c.ellipse(fc[0], fc[1], m(106, 71), m(62, 42), m(0, sd * 0.15), 0, Math.PI * 2); c.fill(); c.restore();
+    c.fillStyle = P.paws; c.beginPath(); c.ellipse(fc[0], fc[1], m(110, 71), m(41, 42), m(0, sd * 0.15), 0, Math.PI * 2); c.fill(); c.restore();
     c.strokeStyle = P.earLine; c.lineWidth = 5;
     for (const dx of [-14, 14]) {
       const a = m2([fc[0] + sd * 50 + dx - sd * 12, fc[1] - 18], [fc[0] - sd * 27 + dx, fc[1] - 9]), b = m2([fc[0] + sd * 50 + dx, fc[1] + 20], [fc[0] - sd * 33 + dx, fc[1] + 25]);
@@ -4469,11 +4473,11 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   }
   c.restore();
   // --- bracitos: del hombro (con el cuerpo) a la manito (con las manitos); en la bolita suben hasta la boca ---
-  const hand = sd => ({ c: m2([590 + sd * 78, 880], [590 + sd * 47, 725]), rx: m(60, 45), ry: m(43, 36), rot: m(-sd * 0.75, sd * 0.5) });
+  const hand = sd => ({ c: m2([590 + sd * 114, 870], [590 + sd * 47, 725]), rx: m(42, 45), ry: m(50, 36), rot: m(-sd * 0.35, sd * 0.5) });   // (sentada: como el salto del usuario)
   c.strokeStyle = P.legLine; c.lineWidth = 6;
   for (const sd of [-1, 1]) {
     const a = sqPt(sqB, m2([590 + sd * 207, 760], [590 + sd * 205, 760])), mm = sqPt((sqB + sqH) / 2, m2([590 + sd * 202, 852], [590 + sd * 200, 700]));
-    const b = sqPt(sqH, m2([590 + sd * 124, 864], [590 + sd * 85, 738]));
+    const b = sqPt(sqH, m2([590 + sd * 130, 832], [590 + sd * 85, 738]));
     c.beginPath(); c.moveTo(...a); c.quadraticCurveTo(...mm, ...b); c.stroke();
   }
   // --- manitos (siguen el aplastado un poquito desfasadas): sentada juntas abajo, hecha bolita tapando la boca ---
@@ -4482,7 +4486,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
     const h = hand(sd), sh = handShake(t, i, sd, land) * (1 - u);
     c.save();
     if (sh) {   // cada tanto sacude rapidito la manito, con el pivote en la muñeca (donde llega el bracito)
-      const wr = m2([590 + sd * 124, 864], [590 + sd * 85, 738]), pv = lerp2(wr, [h.c[0], h.c[1] - h.ry * 0.7], 0.5);
+      const wr = m2([590 + sd * 130, 832], [590 + sd * 85, 738]), pv = lerp2(wr, [h.c[0], h.c[1] - h.ry * 0.7], 0.5);
       c.translate(...pv); c.rotate(sh); c.translate(-pv[0], -pv[1]);
     }
     c.fillStyle = P.paws; c.beginPath(); c.ellipse(h.c[0], h.c[1], h.rx, h.ry, h.rot, 0, Math.PI * 2); c.fill();
