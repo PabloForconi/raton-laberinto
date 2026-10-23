@@ -2464,7 +2464,7 @@ function drawGacha(g, n) {
     // como la referencia del usuario sobre el laboratorio: el nombre arriba de la cabeza, la rareza debajo de la ratita
     // (sobre la mesada) y el aviso en el borde de la mesada
     // (el medio de la franja del borde de la mesada, y 812–884 de la imagen, es 252.7)
-    const NAME_Y = 46, RAR_Y = 226, TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
+    const NAME_Y = 46, RAR_Y = 233, TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
     // el nombre debajo de la ratita: aparece con un saltito cuando aterriza; con borde oscuro para leerse sobre los rayos
     const na = clamp((t - TRAVEL) / 0.3, 0, 1);
     if (na > 0) {
@@ -4278,7 +4278,7 @@ const lerp = (a, b, u) => a + (b - a) * u, lerp2 = (p, q, u) => [lerp(p[0], q[0]
 const FRONT_N = 96;
 const BELLY_PTS = (() => {
   const segs = [[[590, 1092], [360, 1092]], [[360, 1092], [260, 1092], [214, 1010], [215, 940]], [[215, 940], [216, 870], [250, 815], [288, 790]],
-    [[288, 790], [290, 700], [292, 650], [300, 600]], [[300, 600], [880, 600]], [[880, 600], [888, 650], [890, 700], [892, 790]],
+    [[288, 790], [288, 720], [300, 668], [345, 640]], [[345, 640], [835, 640]], [[835, 640], [880, 668], [892, 720], [892, 790]],
     [[892, 790], [930, 815], [964, 870], [965, 940]], [[965, 940], [966, 1010], [920, 1092], [820, 1092]], [[820, 1092], [590, 1092]]];
   const at = (s, u) => s.length === 2 ? lerp2(s[0], s[1], u) : (() => { const v = 1 - u; return [0, 1].map(k => v * v * v * s[0][k] + 3 * v * v * u * s[1][k] + 3 * v * u * u * s[2][k] + u * u * u * s[3][k]); })();
   const dense = []; for (const s of segs) for (let n = 0; n < 40; n++) dense.push(at(s, n / 40));
@@ -4364,8 +4364,9 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
     for (let n = L2.length - 1; n >= 0; n--) c.lineTo(...L2[n]); c.closePath(); c.fill();
   };
   // --- cola (atrás): sentada sale del costado derecho, sube y se curva; hecha bolita abraza la bola por abajo ---
-  const segs = [[[850, 1046], [1060, 1050], [1185, 965 + tailB * 0.3], [1172, 850 + tailB * 0.6]],
-    [[1172, 850 + tailB * 0.6], [1155, 760 + tailB * 0.8], [1062, 712 + tailB], [960, 703 + tailB]]];
+  // (un poco más levantada que antes, como pidió el usuario)
+  const segs = [[[850, 1040], [1060, 1012], [1190, 918 + tailB * 0.3], [1176, 800 + tailB * 0.6]],
+    [[1176, 800 + tailB * 0.6], [1159, 710 + tailB * 0.8], [1066, 662 + tailB], [962, 653 + tailB]]];
   const bz = (q, v) => { const w = 1 - v; return [0, 1].map(kk => w * w * w * q[0][kk] + 3 * w * w * v * q[1][kk] + 3 * w * v * v * q[2][kk] + v * v * v * q[3][kk]); };
   const rest = [];
   for (let n = 0; n <= 40; n++) { const v = n / 40, sg = v < 0.5 ? 0 : 1; rest.push(bz(segs[sg], sg ? v * 2 - 1 : v * 2)); }
@@ -4419,9 +4420,12 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
     const hx = 590 + (hc0[0] - 590) * cs - (hc0[1] - HEAD_PIVOT) * sn, hy = HEAD_PIVOT + (hc0[0] - 590) * sn + (hc0[1] - HEAD_PIVOT) * cs + headDy - lift;
     const by = 1092 - (1092 - 835) * breath, ins = p => m2(p, [590, 700]);   // hecha bolita se esconde adentro
     c.fillStyle = fur;
+    // (curva que sale del costado de la cabeza siguiendo su borde, para abajo, y entra derecho al costado del cuerpo:
+    // antes era casi una recta, y con la cabeza ladeada se veía como un corte en el hombro)
     for (const sd of [-1, 1]) {
-      const p1 = ins([hx + sd * R * cs, hy + sd * R * sn]), p2 = ins([590 + sd * 318, by]), cc = ins([590 + sd * 300, (p1[1] + by) / 2 + 30]);
-      c.beginPath(); c.moveTo(...p1); c.quadraticCurveTo(...cc, ...p2); c.lineTo(590, p2[1]); c.lineTo(590, p1[1]); c.closePath(); c.fill();
+      const p1 = ins([hx + sd * R * cs, hy + sd * R * sn]), p2 = ins([590 + sd * 302, by]), L = Math.max(40, (by - p1[1]) * 0.45);
+      const c1 = ins([hx + sd * R * cs - sn * L, hy + sd * R * sn + cs * L]), c2 = ins([590 + sd * 302, by - L]);
+      c.beginPath(); c.moveTo(...p1); c.bezierCurveTo(...c1, ...c2, ...p2); c.lineTo(590, p2[1]); c.lineTo(590, p1[1]); c.closePath(); c.fill();
     }
   }
   // cabeza (se mueve sola, encima de la panza)
@@ -4433,8 +4437,8 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   // --- patas de atrás: sentada apoyadas arriba de las ancas, enteras (como el salto del usuario); hecha bolita metidas
   // abajo de la bola ---
   for (const sd of [-1, 1]) {
-    const fc = m2([590 + sd * 245, 1032], [590 + sd * 114, 864]);
-    c.save(); c.beginPath(); c.rect(fc[0] - 160, fc[1] - 140, 320, m(1092, 1400) - (fc[1] - 140)); c.clip();
+    const fc = m2([590 + sd * 245, 1088], [590 + sd * 114, 864]);   // (sentada: el centro del pie en la línea donde termina el cuerpo, como pidió el usuario)
+    c.save(); c.beginPath(); c.rect(fc[0] - 160, fc[1] - 140, 320, m(1200, 1400) - (fc[1] - 140)); c.clip();
     c.fillStyle = P.paws; c.beginPath(); c.ellipse(fc[0], fc[1], m(110, 71), m(41, 42), m(0, sd * 0.15), 0, Math.PI * 2); c.fill(); c.restore();
     c.strokeStyle = P.earLine; c.lineWidth = 5;
     for (const dx of [-14, 14]) {
