@@ -4464,7 +4464,10 @@ function drawCoin(c, it) {
 function drawFloorItems(c, v) {
   drawPrints(c);
   for (const it of G.items) {
-    if (it.x < v.x0 - 60 || it.x > v.x1 + 60 || it.y < v.y0 - 60 || it.y > v.y1 + 60) continue;
+    // (el pegamento guarda su esquina y su tamaño, y es más largo que el margen: se mide con su rectángulo, si no
+    // aparecía tarde al entrar por la izquierda o por arriba)
+    const x1 = it.x + (it.w || 0), y1 = it.y + (it.h || 0);
+    if (x1 < v.x0 - 60 || it.x > v.x1 + 60 || y1 < v.y0 - 60 || it.y > v.y1 + 60) continue;
     if (it.type === 'sticky') drawSticky(c, it);
     else if (it.type === 'trap') drawTrap(c, it);
     else if (it.type === 'cheese' && !it.got) drawCheese(c, it);
