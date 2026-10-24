@@ -410,6 +410,7 @@
   #opts .tog.on { background: #6f9e3c; } #opts .tog.on::after { left: 29px; }
   :is(#card, #opts) .wbtns.home { grid-template-columns: 66px 1fr; }   /* el botón cuadrado (casita o niveles) y el principal a lo ancho */
   :is(#card, #opts) .wbtns.three { grid-template-columns: 62px 1fr 1.25fr; gap: 10px; }
+  #opts .wbtns.pause { grid-template-columns: 66px 66px 1fr; gap: 10px; }   /* pausa: casita, reiniciar y Reanudar */
   :is(#card, #opts) .wbtn.sq { padding: 0; } :is(#card, #opts) .wbtn.sq svg { width: 30px; height: 30px; }
   .btn.tape { position: static; width: 44px; height: 44px; padding: 0; border: 0; display: grid; place-items: center;
     color: #2a1a0c; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -463,21 +464,21 @@
   /* ---- HUD y botones sueltos con el formato de los carteles nuevos ----
      fichas de papel derechas (sin cinta ni inclinación), con esquinas redondeadas, borde marrón y sombra de botón */
   .tape { background: #efdcb6; background-image: radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.4), transparent 70%);
-    border: 2.5px solid #9b7041; border-radius: 11px; box-shadow: 0 3px 0 #75522c, 0 5px 10px rgba(0,0,0,.45); color: #2b1a0b; }
+    border: 0; border-radius: 11px; box-shadow: 0 3px 0 #75522c, 0 5px 10px rgba(0,0,0,.45); color: #2b1a0b; }   /* sin borde, como los botones flotantes */
   #coins, #cheese, #lamp, .btn.tape:nth-child(odd), .btn.tape:nth-child(even) { transform: none; }
   #level, #timer { transform: translateX(-50%); }
   /* monedas, queso y batería, con el mismo aire entre las fichas (8 px) */
   #cheese, #lamp.up { top: 69px; } #lamp { top: 123px; }
   @media (max-width: 560px) { #lamp { top: 118px; } }
   /* el nivel, una etiqueta oscura montada sobre el borde de arriba del reloj */
-  #level { z-index: 2; top: 6px; padding: 1px 10px 0; background: #2b1a0b; color: #f3e4c4; border-color: #2b1a0b; border-radius: 7px; box-shadow: 0 2px 4px rgba(0,0,0,.5); letter-spacing: .5px; }
-  #timer { top: 24px; padding: 8px 16px 2px; }
-  @media (max-width: 560px) { #timer { top: 22px; } }
+  #level { z-index: 2; top: 6px; padding: 1px 10px 0; background: #2b1a0b; color: #f3e4c4; border-radius: 7px; box-shadow: 0 2px 4px rgba(0,0,0,.5); letter-spacing: .5px; }
+  #timer { top: 24px; padding: 6px 12px 1px; min-width: 0; font-size: 26px; }   /* más chico, con minutos de dos cifras (00:25) */
+  @media (max-width: 560px) { #timer { top: 22px; font-size: 22px; } }
   /* Bioterio y Máquina: los botones de abajo y Activar, como los botones de los carteles */
   #screen .sbtns .cbtn { transform: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 4px 24px 0;
-    font-size: 23px; border-radius: 14px; background: #ecd7ae; color: #2b1a0b; border: 3px solid #9b7041; box-shadow: 0 4px 0 #75522c, 0 6px 12px rgba(0,0,0,.35); }
+    font-size: 23px; border-radius: 14px; background: #ecd7ae; color: #2b1a0b; border: 0; box-shadow: 0 4px 0 #75522c, 0 6px 12px rgba(0,0,0,.35); }   /* flotantes: sin borde, como el engranaje */
   #screen .sbtns .cbtn.home { padding: 0 14px; }
-  #screen #gachaBtns .cbtn { background: linear-gradient(#ffdc45, #f4b00e); border-color: #b77d06; box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.35); }
+  #screen #gachaBtns .cbtn { background: linear-gradient(#ffdc45, #f4b00e); box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.35); }
   #screen .sbtns .cbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
   #screen #gachaBtns .cbtn:active { box-shadow: 0 1px 0 #8f5f05; }
 </style>
@@ -759,7 +760,6 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 function smooth(e0, e1, x) { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); }
 function mk(w, h) { const c = document.createElement('canvas'); if (w) { c.width = w; c.height = h; } return [c, c.getContext('2d')]; }
 function fmt(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-function fmtUp(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }   // reloj que sube (redondea para abajo)
 
 // ===================== SONIDO (todo sintetizado) =====================
 const Snd = {
@@ -3340,8 +3340,8 @@ function renderOpts() {
       <div class="opt"><span>${ICONS.music} Música</span><button class="tog${Music.muted ? '' : ' on'}" data-o="music" aria-label="Música"></button></div>
       <div class="opt"><span>${ICONS.sound} Sonido</span><button class="tog${Snd.muted ? '' : ' on'}" data-o="sound" aria-label="Sonido"></button></div>
     </div>
-    <div class="wbtns ${paused ? 'home' : 'one'}">${paused
-      ? `<button class="wbtn re" data-o="home" title="Salir al menú (Q)" aria-label="Salir al menú">${ICONS.home}</button><button class="wbtn go" data-o="resume">${PLAY_SVG}Reanudar</button>`
+    <div class="wbtns ${paused ? 'pause' : 'one'}">${paused
+      ? `<button class="wbtn re" data-o="home" title="Salir al menú (Q)" aria-label="Salir al menú">${ICONS.home}</button><button class="wbtn re" data-o="retry" title="Reiniciar el nivel" aria-label="Reiniciar el nivel">${RETRY_SVG}</button><button class="wbtn go" data-o="resume">${PLAY_SVG}Reanudar</button>`
       : '<button class="wbtn re" data-o="close">Cerrar</button>'}</div></div>`;
 }
 function openOpts() { clearTimeout(optsT); $opts.classList.remove('closing'); $opts.innerHTML = ''; renderOpts(); animIn($opts.querySelector('.box'), { kind: 'opts' }, false); $opts.classList.remove('hidden'); Snd.click(); }
@@ -3359,6 +3359,7 @@ $opts.addEventListener('click', e => {
   else if (o === 'resume') togglePause();
   else if (o === 'close') closeOpts();
   else if (o === 'home') { closeOpts(); act('menu'); }
+  else if (o === 'retry') { closeOpts(); act('retry'); }   // reiniciar: el mismo laberinto desde la entrada, con el reloj en cero
 });
 // Acción principal: ESPACIO en teclado o tocar la pantalla
 function primaryAction() {
@@ -4601,7 +4602,7 @@ function render() {
     $level.textContent = 'NIVEL ' + G.level;
     // El reloj sube (lo que vas tardando), igual que los resultados y los objetivos; el límite se ve en la batería de la
     // linterna y en la sirena
-    $timer.textContent = fmtUp(G.elapsed);
+    $timer.textContent = fmtMS(G.elapsed);
     $timer.classList.toggle('warn', G.lamp && G.timeLeft <= 10 && G.state === 'play');
     $cheese.classList.toggle('hidden', !G.cheeseTotal || ['won', 'lost'].includes(G.state));   // detrás del cartel de fin de nivel, no (ya está en el cartel)
     $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
