@@ -12,12 +12,8 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
 ## Modos
 
 - **Historia:** 40 niveles diseñados (siempre iguales). Se guardan los niveles desbloqueados, las estrellas (1 a 3) y tu mejor tiempo de cada nivel. Cada meta suma una estrella: una por escapar, una por juntar los quesos del objetivo y una por escapar en el tiempo objetivo o antes. El cartel de inicio te muestra el objetivo (quesos y tiempo) y al terminar ves tus estrellas, tu tiempo, si fue récord y las monedas que juntaste. Hay pocas monedas por nivel (unas 6 a 9): un par sueltas en el camino directo y un tesorito de 3 a 5 en algún desvío o callejón, que rinde pero cuesta tiempo. Las mecánicas aparecen de a una y después se combinan, con laberintos cada vez más grandes:
-  - **1–6, quesos:** el nivel 1 no tiene (ahí aprendés a escapar a tiempo), el 2 pide uno y después van subiendo; a veces hay uno de más. Desde el nivel 2 todos los niveles tienen al menos un queso.
-  - **7–12, pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
-  - **13–20, trampas:** al fondo de los callejones sin salida; si tocás una, perdés.
-  - **21–28, puertas:** puertitas de un solo sentido. Del lado de la cinta empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
-  - **29–34, molinetes:** aspas de cartón que giran en los cruces; no te atrapan, te empujan: esperá el hueco y pasá.
-  - **35–40:** todo junto.
+  - **1:** escapar a tiempo. **2–3:** quesos. **4–5:** pegote. **6–7:** trampas. **8–9:** puertas de un solo sentido. **10–11:** molinetes. **12–13:** compuertas que se abren y se cierran.
+  - **14–40:** todo combinado, con laberintos cada vez más grandes. Desde el nivel 2 todos los niveles tienen al menos un queso.
 - **Luz y oscuridad (Historia):** en la mayoría de los niveles la luz del laberinto está prendida: se ve todo, el reloj corre libre y no se pierde por tiempo. Unos pocos (el 30%) son a oscuras: la linterna tiene una pila de 60 segundos, que se ve abajo del queso en 4 bloques de 15, y en el laberinto hay pilas que la vuelven a llenar. Si se termina la pila, perdés. Con la luz prendida la rata va sin arnés ni linterna.
 - **Desafío:** laberintos al azar, infinitos, cada vez más grandes y con la cámara más cerca.
 - **Monedas y ratitas:** juntá monedas en los laberintos (se guardan aunque pierdas). En **Desafío** el nivel N tiene N monedas: sirve para juntar, y rinde llegar más lejos. En la **Máquina** cada giro cuesta 20 monedas (por ahora es gratis, para probarla) y te da una ratita según su rareza: 10 comunes, 6 infrecuentes, 3 raras y 1 legendaria, la Dorada (si sale repetida, te devuelve la mitad). Para verlas todas juntas: `index.html?ratas`. En el **Bioterio** elegís con cuál jugar.

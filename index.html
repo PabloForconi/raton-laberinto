@@ -549,104 +549,99 @@ function timeFor(n, pathCells) {
 }
 
 // ===================== MODO HISTORIA =====================
-// 40 niveles diseñados: semilla fija (siempre el mismo laberinto). Cada mecánica se presenta sola y después se combina:
-// 1–6 quesos · 7–12 pegote (y algún queso) · 13–20 trampas (con pegote y quesos) · 21–28 puertas (con todo lo anterior) ·
-// 29–40 todo junto, con laberintos cada vez más grandes y más cosas. El tiempo se calcula solo (camino + extras).
-// Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos),
-// traps / sticky / cheese / doors (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional: pisa el tiempo calculado).
+// 40 niveles diseñados: semilla fija (siempre el mismo laberinto). Las mecánicas se presentan rápido, una cada dos
+// niveles (el usuario lo pidió así): 1 escapar · 2–3 quesos · 4–5 pegote · 6–7 trampas · 8–9 puertas · 10–11 molinetes ·
+// 12–13 compuertas · 14–40 combinadas, con laberintos que crecen parejo de 10×6 a 24×14 y cada vez más cosas.
+// El tiempo se calcula solo (camino + extras).
+// Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos), traps / sticky / cheese /
+// doors / spinners / gates (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional).
 const LEVELS = [
-  // --- quesos ---
-  { name: 'Primeros pasos', seed: 1101, size: [10, 6], loops: 0.04,
+  { name: 'Primeros pasos', seed: 1101, size: [10, 6], loops: 0.03,
     intro: 'Encontrá la salida antes del tiempo objetivo.' },
-  { name: 'Olor a queso', seed: 1207, size: [11, 6], loops: 0.04, cheese: 1,
+  { name: 'Olor a queso', seed: 1202, size: [10, 6], loops: 0.03, cheese: 1,
     intro: 'Hay un queso escondido. Agarralo y escapá a tiempo.' },
-  { name: 'Gruyère', seed: 1313, size: [12, 7], loops: 0.03, cheese: 3, cheeseGoal: 2,
+  { name: 'Gruyère', seed: 1303, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
     intro: 'Más agujeros que queso... y más quesos que antes.' },
-  { name: 'Picada', seed: 1429, size: [12, 7], loops: 0.06, cheese: 4, cheeseGoal: 3,
-    intro: 'Algunos quesos y pasillos que se cruzan: buscá el mejor recorrido.' },
-  { name: 'Tabla de quesos', seed: 1531, size: [14, 8], loops: 0.03, cheese: 5, cheeseGoal: 4,
-    intro: 'Un laberinto más grande y una tabla entera para picar.' },
-  { name: 'Queso rallado', seed: 1637, size: [14, 8], loops: 0.04, cheese: 6, cheeseGoal: 5,
-    intro: 'Quesos repartidos por todos lados. No te olvides de ninguno.' },
-  // --- pegote ---
-  { name: 'Pegote', seed: 2203, size: [12, 7], loops: 0.02, cheese: 1, sticky: 3,
-    intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito. Si podés, rodealas.' },
-  { name: 'Patas pegajosas', seed: 2311, size: [13, 7], loops: 0.03, sticky: 4, cheese: 3, cheeseGoal: 2,
+  { name: 'Pegote', seed: 1404, size: [11, 7], loops: 0.03, sticky: 2, cheese: 2,
+    intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un rato. Si podés, rodealas.' },
+  { name: 'Patas pegajosas', seed: 1505, size: [11, 7], loops: 0.03, sticky: 3, cheese: 3, cheeseGoal: 2,
     intro: 'Pegamento y unos quesitos. A veces el queso está del otro lado del pegote.' },
-  { name: 'Engrudo', seed: 2417, size: [14, 8], loops: 0.02, cheese: 1, sticky: 5,
-    intro: 'Cinco bandejas en el camino. Cada segundo cuenta.' },
-  { name: 'Plasticola', seed: 2521, size: [14, 8], loops: 0.04, sticky: 5, cheese: 5, cheeseGoal: 4,
-    intro: 'Quesos para juntar y pegamento para esquivar.' },
-  { name: 'Mermelada', seed: 2633, size: [15, 8], loops: 0.03, sticky: 6, cheese: 4, cheeseGoal: 3,
-    intro: 'Todo pegajoso. Elegí bien por dónde pasar.' },
-  { name: 'Pantano', seed: 2741, size: [16, 9], loops: 0.03, sticky: 8, cheese: 5, cheeseGoal: 4,
-    intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
-  // --- trampas ---
-  { name: 'La trampera', seed: 3307, size: [12, 7], loops: 0, cheese: 1, traps: 4,
+  { name: 'La trampera', seed: 1606, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
-  { name: 'Callejones', seed: 3413, size: [14, 8], loops: 0, cheese: 1, traps: 6,
-    intro: 'Muchos callejones sin salida, y en el fondo de varios hay una trampa.' },
-  { name: 'Cebo', seed: 3527, size: [14, 8], loops: 0.02, traps: 6, cheese: 5, cheeseGoal: 4,
-    intro: 'Hay quesos de verdad... y quesos de cebo en las trampas. No te confundas.' },
-  { name: 'Clic', seed: 3631, size: [15, 8], loops: 0, cheese: 1, traps: 8,
-    intro: 'Ocho trampas. Mirá bien antes de meterte en un pasillo.' },
-  { name: 'Peligro dulce', seed: 3739, size: [15, 9], loops: 0.02, cheese: 1, traps: 6, sticky: 4,
-    intro: 'Trampas en los callejones y pegamento en los pasillos.' },
-  { name: 'Campo minado', seed: 3847, size: [16, 9], loops: 0, cheese: 1, traps: 10,
-    intro: 'Diez trampas. Paso a paso.' },
-  { name: 'Trampa y pegote', seed: 3953, size: [16, 9], loops: 0.02, traps: 8, sticky: 5, cheese: 4, cheeseGoal: 3,
-    intro: 'Todo lo que aprendiste hasta ahora, en un mismo laberinto.' },
-  { name: 'Ratonera', seed: 4057, size: [17, 9], loops: 0.01, traps: 12, cheese: 5, cheeseGoal: 4,
-    intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
-  // --- puertas ---
-  { name: 'Puertas', seed: 4409, size: [14, 8], loops: 0, cheese: 1, doors: 2,
-    intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado, por más que empujes, no se abren.' },
-  { name: 'Atajos', seed: 4517, size: [15, 8], loops: 0, cheese: 1, doors: 3,
+  { name: 'Callejones', seed: 1707, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
+    intro: 'Callejones sin salida con trampas, y pegote en los pasillos.' },
+  { name: 'Puertas', seed: 1808, size: [13, 7], loops: 0.01, cheese: 2, doors: 2,
+    intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado no se abren.' },
+  { name: 'Atajos', seed: 1909, size: [13, 8], loops: 0.01, traps: 3, cheese: 3, cheeseGoal: 2, doors: 2,
     intro: 'Las puertas son atajos hacia la salida. Encontralas.' },
-  { name: 'Ida sin vuelta', seed: 4621, size: [16, 9], loops: 0.01, doors: 3, cheese: 5, cheeseGoal: 4,
-    intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
-  { name: 'Cortinas', seed: 4733, size: [16, 9], loops: 0.02, cheese: 1, doors: 4, sticky: 4,
-    intro: 'Puertas y pegamento. El atajo puede estar pegajoso.' },
-  { name: 'Pasadizo', seed: 4841, size: [17, 9], loops: 0, cheese: 1, doors: 4, traps: 6,
-    intro: 'Pasadizos secretos y trampas en los callejones.' },
-  { name: 'Laberinto de puertas', seed: 4951, size: [18, 10], loops: 0.01, doors: 5, cheese: 6, cheeseGoal: 5,
-    intro: 'Cinco puertas. Planeá el recorrido para no dejar quesos atrás.' },
-  { name: 'Puerta trampa', seed: 5059, size: [18, 10], loops: 0.01, cheese: 1, doors: 4, traps: 8, sticky: 3,
-    intro: 'Detrás de alguna puerta puede haber problemas.' },
-  { name: 'Contramano', seed: 5167, size: [18, 10], loops: 0.02, doors: 5, traps: 6, cheese: 6, cheeseGoal: 5,
-    intro: 'Puertas de un solo sentido, trampas y quesos. Ojo con el orden.' },
-  // --- molinetes (aspas que giran en los cruces: hay que pasar en el hueco) ---
-  { name: 'Molinete', seed: 6101, size: [16, 9], loops: 0.03, spinners: 2, cheese: 2,
+  { name: 'Molinete', seed: 2010, size: [13, 8], loops: 0.03, cheese: 2, spinners: 2,
     intro: 'En algunos cruces hay molinetes que giran. Esperá el hueco y pasá; si un aspa te agarra, te empuja.' },
-  { name: 'Aspas', seed: 6211, size: [17, 9], loops: 0.03, spinners: 3, cheese: 3, cheeseGoal: 2,
-    intro: 'Más molinetes en el camino. Medí el tiempo.' },
-  { name: 'Remolino', seed: 6317, size: [18, 10], loops: 0.03, spinners: 3, sticky: 3, cheese: 3,
-    intro: 'Molinetes y pegote: si te pegás, el aspa no te espera.' },
-  { name: 'Ventilador', seed: 6421, size: [18, 10], loops: 0.03, spinners: 4, traps: 6, cheese: 4, cheeseGoal: 3,
+  { name: 'Aspas', seed: 2111, size: [14, 8], loops: 0.03, sticky: 2, cheese: 3, cheeseGoal: 2, spinners: 3,
+    intro: 'Más molinetes, y pegote cerca. Medí el tiempo.' },
+  { name: 'Compuerta', seed: 2212, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
+    intro: 'Hay compuertas que se abren y se cierran. Pasá cuando están abiertas.' },
+  { name: 'Abre y cierra', seed: 2313, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
+    intro: 'Compuertas en los pasillos y trampas en los callejones.' },
+  { name: 'Picada', seed: 2414, size: [15, 9], loops: 0.03, cheese: 4, cheeseGoal: 3, spinners: 2, gates: 2,
+    intro: 'Compuertas y molinetes en el mismo laberinto.' },
+  { name: 'Engrudo', seed: 2515, size: [15, 9], loops: 0.02, sticky: 4, cheese: 4, cheeseGoal: 3, doors: 2,
+    intro: 'Pegote en el camino y puertas para atajar.' },
+  { name: 'Cebo', seed: 2616, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
+    intro: 'Hay quesos de verdad... y quesos de cebo en las trampas.' },
+  { name: 'Tabla de quesos', seed: 2717, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
+    intro: 'Una tabla entera para picar, entre pegote y compuertas.' },
+  { name: 'Clic', seed: 2818, size: [16, 9], loops: 0.02, traps: 6, cheese: 4, cheeseGoal: 3, doors: 3,
+    intro: 'Mirá bien antes de meterte en un pasillo.' },
+  { name: 'Remolino', seed: 2919, size: [16, 10], loops: 0.03, sticky: 4, cheese: 5, cheeseGoal: 4, spinners: 3,
+    intro: 'Si te pegás, el aspa no te espera.' },
+  { name: 'Peligro dulce', seed: 3020, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
+    intro: 'Trampas, pegote y compuertas.' },
+  { name: 'Ida sin vuelta', seed: 3121, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
+    intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
+  { name: 'Campo minado', seed: 3222, size: [18, 10], loops: 0.03, traps: 8, cheese: 5, cheeseGoal: 4, gates: 3,
+    intro: 'Muchas trampas. Paso a paso.' },
+  { name: 'Mermelada', seed: 3323, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
+    intro: 'Todo pegajoso. Elegí bien por dónde pasar.' },
+  { name: 'Ventilador', seed: 3424, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
     intro: 'Molinetes en los cruces y trampas en los callejones.' },
-  { name: 'Puerta giratoria', seed: 6529, size: [19, 10], loops: 0.03, spinners: 4, doors: 3, cheese: 4, cheeseGoal: 3,
-    intro: 'Puertas de un solo sentido y molinetes. Pensá el recorrido.' },
-  { name: 'Licuadora', seed: 6637, size: [19, 11], loops: 0.03, spinners: 5, traps: 6, sticky: 4, doors: 2, cheese: 5, cheeseGoal: 4,
-    intro: 'Todo lo que aprendiste, con molinetes en el medio.' },
-  // --- todo junto ---
-  { name: 'Contrarreloj', seed: 6743, size: [21, 12], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 2,
+  { name: 'Puerta giratoria', seed: 3525, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
+    intro: 'Puertas, compuertas y pegote. Pensá el recorrido.' },
+  { name: 'Ratonera', seed: 3626, size: [19, 11], loops: 0.03, traps: 10, cheese: 6, cheeseGoal: 5, spinners: 3,
+    intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
+  { name: 'Pantano', seed: 3727, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
+    intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
+  { name: 'Laberinto de puertas', seed: 3828, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
+    intro: 'Planeá el recorrido para no dejar quesos atrás.' },
+  { name: 'Licuadora', seed: 3929, size: [20, 12], loops: 0.03, sticky: 5, cheese: 6, cheeseGoal: 5, spinners: 5, gates: 3,
+    intro: 'Todo gira, se abre y se cierra.' },
+  { name: 'Combo', seed: 4030, size: [20, 12], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 2,
+    intro: 'Todo lo que aprendiste, junto.' },
+  { name: 'Hora pico', seed: 4131, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
+    intro: 'El laboratorio está lleno de cosas. Y el tiempo corre.' },
+  { name: 'Laboratorio', seed: 4232, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
+    intro: 'Un piso entero del laboratorio para escapar.' },
+  { name: 'Experimento', seed: 4333, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
+    intro: 'Te están mirando. Demostrales lo que sabés.' },
+  { name: 'Sótano', seed: 4434, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
+    intro: 'Más trampas y menos pasillos que se crucen.' },
+  { name: 'Depósito', seed: 4535, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+    intro: 'Cajas y cajas de cartón. Y en algún lado, la salida.' },
+  { name: 'Contrarreloj', seed: 4636, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Muchos caminos posibles. Elegí rápido.' },
-  { name: 'Laberinto mayor', seed: 6857, size: [22, 12], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 3,
+  { name: 'Laberinto mayor', seed: 4737, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
     intro: 'El más grande hasta ahora.' },
-  { name: 'Pegatrampas', seed: 6961, size: [22, 13], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 3,
+  { name: 'Pegatrampas', seed: 4838, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Pegamento por todos lados y trampas en cada callejón.' },
-  { name: 'Sin vuelta atrás', seed: 7069, size: [23, 13], loops: 0.01, traps: 14, sticky: 9, cheese: 8, cheeseGoal: 7, doors: 6, spinners: 4,
-    intro: 'Seis puertas de un solo sentido. Pensá antes de cruzar.' },
-  { name: 'Casi libre', seed: 7177, size: [24, 13], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 4,
+  { name: 'Casi libre', seed: 4939, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'Ya se huele el aire de afuera.' },
-  { name: 'La gran fuga', seed: 7283, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5,
+  { name: 'La gran fuga', seed: 5040, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
 // Niveles a oscuras de Historia (el 30%, repartidos; los que presentan una mecánica van con luz para aprenderla viendo):
 // en esos la linterna tiene una pila de LAMP_MAX segundos en bloques de LAMP_BLOCK, y en el laberinto hay pilas que
 // recargan un bloque. En los demás la luz del laberinto está prendida, el reloj corre libre y no se pierde por tiempo.
-const DARK_LEVELS = [4, 8, 11, 15, 18, 23, 26, 30, 32, 35, 38, 40];
+const DARK_LEVELS = [5, 9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40];
 const LAMP_MAX = 60, LAMP_BLOCK = 15;
 const BAT_EVERY = 45;   // una pila (que llena la batería) cada ~45 s del tiempo que daba el nivel, repartidas por el camino
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
@@ -899,6 +894,7 @@ const Snd = {
   // agarrar un queso: dos notitas para arriba
   star(k = 0) { const f = [784, 988, 1175][k] || 1175; this.tone(f, f * 1.5, 0.12, 'triangle', 0.16); this.tone(f * 2, f * 2, 0.18, 'sine', 0.06, 0.06); },
   cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
+  gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
   battery() { this.tone(330, 660, 0.12, 'square', 0.06); this.tone(660, 1320, 0.16, 'square', 0.05, 0.1); this.tone(1320, 1320, 0.1, 'triangle', 0.12, 0.24); },
   flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
   flapShut(v = 1) { this.noise(0.05, 650, 0.9, 0.3 * v, 'lowpass'); this.tone(190, 95, 0.07, 'sine', 0.16 * v); },   // la cortina golpea el marco
@@ -1147,6 +1143,21 @@ function placeItems(L, m, rng) {
     pick(on.concat(off), L.spinners, 2, used).forEach(([c, r], k) => {
       const [x, y] = center(c, r);
       items.push({ type: 'spinner', x, y, a0: rng() * Math.PI / 2, dir: k % 2 ? -1 : 1 });
+      used.push([c, r]);
+    });
+  }
+  // Compuertas: en pasillos rectos (paredes a los dos costados, entrada y salida enfrentadas), en lo posible en el
+  // camino más corto, lejos de la entrada, la salida y de los otros objetos. Cada una con su desfase en el ciclo.
+  if (L.gates) {
+    const straight = (c, r) => {
+      const up = m.hW[r][c], dn = m.hW[r + 1][c], lf = m.vW[c][r], rt = m.vW[c + 1][r];
+      return up && dn && !lf && !rt ? 'h' : lf && rt && !up && !dn ? 'v' : null;
+    };
+    const free = cells.filter(([c, r]) => straight(c, r) && !special(c, r, 2) && dE[idx(c, r)] >= 0);
+    const on = shuffle(free.filter(([c, r]) => onPath(idx(c, r)))), off = shuffle(free.filter(([c, r]) => !onPath(idx(c, r))));
+    pick(on.concat(off), L.gates, 2, used).forEach(([c, r]) => {
+      const [x, y] = center(c, r);
+      items.push({ type: 'gate', x, y, vert: straight(c, r) === 'v', ph: rng() * GATE_CYCLE });
       used.push([c, r]);
     });
   }
@@ -1640,7 +1651,7 @@ function loadStory(i) {
   const nCheese = G.items.filter(it => it.type === 'cheese').length;
   G.cheeseTotal = Math.min(nCheese, L.cheeseGoal || nCheese);   // cuántos hay que juntar (puede haber más dando vueltas)
   // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
-  const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5 + (L.spinners || 0) * 3;   // (esperar el hueco de un molinete, ~3 s)   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
+  const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5 + (L.spinners || 0) * 3 + (L.gates || 0) * 2;   // (esperar el hueco de un molinete, ~3 s)   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
   G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
   starTimes(extra);
   // a oscuras: la linterna arranca con LAMP_MAX segundos y hay pilas en el camino para que alcance el tiempo de antes
@@ -3604,6 +3615,7 @@ function collide() {
     let cx = M.x + ca * off, cy = M.y + sa * off;
     if (it === 0 && spinLeft > 0) {   // las aspas del molinete la empujan (las paredes se resuelven después y ganan)
       let [sx, sy] = spinPush(cx, cy, r, off > 0 ? 1 : off < 0 ? 2 : 0);
+      const [gx, gy] = gatePush(cx, cy, r); sx += gx; sy += gy;   // y las compuertas que bajan
       const L = Math.hypot(sx, sy);
       if (L > spinLeft) { sx *= spinLeft / L; sy *= spinLeft / L; }
       spinLeft -= Math.min(L, spinLeft);
@@ -3626,8 +3638,8 @@ function collide() {
     }
   }
   // un golpe de aspa: el golpecito y las orejas que se sacuden (no más de uno cada medio segundo)
-  if (G.items.some(it => it.type === 'spinner' && it.hit)) {
-    G.items.forEach(it => { if (it.type === 'spinner') it.hit = false; });
+  if (G.items.some(it => (it.type === 'spinner' || it.type === 'gate') && it.hit)) {
+    G.items.forEach(it => { if (it.type === 'spinner' || it.type === 'gate') it.hit = false; });
     if ((M.spinCd || 0) < G.time) { M.spinCd = G.time + 0.5; M.bumpT = BUMP_T; Snd.bump(); if (Math.random() < 0.5) Snd.squeak(); }
   }
   return pushed;
@@ -3764,6 +3776,9 @@ function update(dt) {
     if (!G.dark) G.light = 1;   // luz prendida: sin linterna que parpadee
     G.light *= 1 - exitDarkness();
     updateItems();
+    for (const it of G.items) if (it.type === 'gate') {   // "clac" cuando una compuerta cercana empieza a bajar
+      const w = gateState(it).warn; if (w && !it.warned && Math.hypot(M.x - it.x, M.y - it.y) < C * 5) Snd.gate(); it.warned = w;
+    }
     if (G.state !== 'play') { /* una trampa terminó la partida */ }
     else if (M.x < -6) win();
     else if (G.dark && G.timeLeft <= 0) startDie('time');
@@ -4237,6 +4252,78 @@ function drawSpinner(c, it) {
   c.fillStyle = '#d7dce0'; c.beginPath(); c.arc(-0.6, -0.6, 1.3, 0, Math.PI * 2); c.fill();
   c.restore();
 }
+// Compuerta (después de una referencia del usuario): en un pasillo recto, dos hojas de cartón con cinta de peligro
+// colgadas de bisagras de madera en las dos paredes, que se levantan y bajan solas (GATE_CYCLE). Vistas de arriba,
+// al levantarse se acortan hacia la pared (se ven de canto) y dejan el pasillo libre. Un instante antes de bajar, las
+// bisagras tiemblan y suena un "clac". No atrapan: si bajan con la rata abajo, la empujan de a poco hacia el lado más
+// cercano (gatePush). Bajas, sin sombra, como el molinete.
+const GATE_CYCLE = 3.4, GATE_OPEN = 1.4, GATE_MOVE = 0.35, GATE_SHUT = 1.3, GATE_T = 6, GATE_HALF = C / 2 - T / 2;   // ciclo (s): abierta, moviéndose, cerrada; grosor; largo de cada hoja
+// cuánto está abierta (1 abierta del todo, 0 cerrada) y si está por cerrarse (para el temblor)
+function gateState(it) {
+  const t = ((G.time + it.ph) % GATE_CYCLE + GATE_CYCLE) % GATE_CYCLE, e = u => u * u * (3 - 2 * u);
+  if (t < GATE_OPEN) return { o: 1, warn: t > GATE_OPEN - 0.3 };
+  if (t < GATE_OPEN + GATE_MOVE) return { o: 1 - e((t - GATE_OPEN) / GATE_MOVE), warn: false };
+  if (t < GATE_OPEN + GATE_MOVE + GATE_SHUT) return { o: 0, warn: false };
+  return { o: e((t - GATE_OPEN - GATE_MOVE - GATE_SHUT) / GATE_MOVE), warn: false };
+}
+// largo de cada hoja vista de arriba (se acorta al levantarse)
+const gateLen = o => GATE_HALF * Math.cos(o * Math.PI / 2);
+// rectángulos sólidos de las dos hojas, en coordenadas del mundo
+function gateRects(it) {
+  const len = gateLen(gateState(it).o); if (len < 2) return [];
+  return it.vert
+    ? [{ x: it.x - GATE_HALF, y: it.y - GATE_T / 2, w: len, h: GATE_T }, { x: it.x + GATE_HALF - len, y: it.y - GATE_T / 2, w: len, h: GATE_T }]
+    : [{ x: it.x - GATE_T / 2, y: it.y - GATE_HALF, w: GATE_T, h: len }, { x: it.x - GATE_T / 2, y: it.y + GATE_HALF - len, w: GATE_T, h: len }];
+}
+// cuánto correr un círculo de la rata para sacarlo de las hojas: siempre a lo largo del pasillo, hacia el lado donde ya
+// está (si está justo en el medio, hacia adelante de la rata)
+function gatePush(cx, cy, r) {
+  let ox = 0, oy = 0;
+  for (const it of G.items) {
+    if (it.type !== 'gate' || Math.abs(cx - it.x) > C || Math.abs(cy - it.y) > C) continue;
+    for (const R of gateRects(it)) {
+      const px = clamp(cx, R.x, R.x + R.w), py = clamp(cy, R.y, R.y + R.h), dx = cx - px, dy = cy - py, d2 = dx * dx + dy * dy;
+      if (d2 >= r * r) continue;
+      const along = it.vert ? cy - it.y : cx - it.x, s = Math.abs(along) > 0.5 ? Math.sign(along) : (it.vert ? Math.sign(Math.sin(M.a)) : Math.sign(Math.cos(M.a))) || 1;
+      const pen = r + GATE_T / 2 - Math.abs(along);
+      if (pen <= 0) continue;
+      if (it.vert) oy += s * pen; else ox += s * pen;
+      it.hit = true;
+    }
+  }
+  return [ox, oy];
+}
+function drawGate(c, it) {
+  const { o, warn } = gateState(it), len = gateLen(o), shake = warn ? Math.sin(G.time * 70) * 0.8 : 0;
+  c.save(); c.translate(it.x, it.y); if (it.vert) c.rotate(Math.PI / 2);
+  // flechas en el piso, a los dos lados de la compuerta, a lo largo del pasillo (en el marrón de los textos del piso)
+  c.strokeStyle = 'rgba(35,24,14,0.55)'; c.lineWidth = 1.8; c.lineCap = 'round'; c.lineJoin = 'round';
+  for (const sx of [-1, 1]) {
+    c.beginPath(); c.moveTo(sx * 9, 0); c.lineTo(sx * 22, 0); c.stroke();
+    c.beginPath(); c.moveTo(sx * 18, -4); c.lineTo(sx * 22, 0); c.lineTo(sx * 18, 4); c.stroke();
+  }
+  // las dos hojas: desde cada pared hacia el medio (en coordenadas locales el pasillo va de izquierda a derecha y la compuerta lo cruza en vertical)
+  for (const sy of [-1, 1]) {
+    c.save(); c.translate(shake * sy, sy * GATE_HALF);
+    if (len > 0.5) {
+      c.fillStyle = 'rgba(0,0,0,0.28)'; c.fillRect(-GATE_T / 2 + 2, sy > 0 ? -len : 0, GATE_T, len);   // sombra
+      const y0 = sy > 0 ? -len : 0;
+      c.save(); c.beginPath(); c.rect(-GATE_T / 2, y0, GATE_T, len); c.clip();
+      c.fillStyle = '#efc12a'; c.fillRect(-GATE_T / 2, y0, GATE_T, len);
+      c.fillStyle = '#1c1b18';
+      for (let k = -2; k < len / 4 + 2; k++) { const yy = y0 + k * 5; c.beginPath(); c.moveTo(-GATE_T / 2, yy); c.lineTo(GATE_T / 2, yy - GATE_T); c.lineTo(GATE_T / 2, yy - GATE_T + 2.4); c.lineTo(-GATE_T / 2, yy + 2.4); c.closePath(); c.fill(); }
+      c.fillStyle = `rgba(30,18,8,${0.35 * o})`; c.fillRect(-GATE_T / 2, y0, GATE_T, len);   // más oscura mientras se levanta
+      c.restore();
+      c.strokeStyle = 'rgba(40,24,8,0.7)'; c.lineWidth = 0.6; c.strokeRect(-GATE_T / 2, y0, GATE_T, len);
+    }
+    // bisagra de madera con su eje, contra la pared
+    c.fillStyle = '#a77b45'; c.fillRect(-6, sy > 0 ? -4 : 0, 12, 4);
+    c.fillStyle = '#6f4d27'; c.fillRect(-6, sy > 0 ? -1 : 0, 12, 1);
+    c.fillStyle = '#b9bec4'; c.beginPath(); c.arc(0, sy * -2, 1.4, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+  c.restore();
+}
 function drawBattery(c, it) {
   const L = 26, Wd = 12, p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph);
   c.save(); c.translate(it.x, it.y); c.rotate(-0.5 + it.ph % 1); c.scale(p, p);
@@ -4342,6 +4429,7 @@ function drawFloorItems(c, v) {
     else if (it.type === 'cheese' && !it.got) drawCheese(c, it);
     else if (it.type === 'battery' && !it.got) drawBattery(c, it);
     else if (it.type === 'spinner') drawSpinner(c, it);
+    else if (it.type === 'gate') drawGate(c, it);
     else if (it.type === 'door') drawDoorShadow(c, it);
     else if (it.type === 'coin' && !it.got) drawCoin(c, it);
   }
@@ -4780,6 +4868,7 @@ function renderGallery() {
     ['Queso', p => drawCheese(ctx, { x: p[0], y: p[1], rot: -0.3 })],
     ['Queso (otro ángulo)', p => drawCheese(ctx, { x: p[0], y: p[1], rot: 2.2 })],
     ['Molinete', p => drawSpinner(ctx, { x: p[0], y: p[1], a0: 0, dir: 1 })],
+    ['Compuerta', p => drawGate(ctx, { x: p[0], y: p[1], vert: false, ph: 0 })],
     ['Moneda (girando)', p => drawCoin(ctx, { x: p[0], y: p[1], ph: 0 })],
     ['Moneda (de frente)', p => drawCoin(ctx, { x: p[0], y: p[1], ph: -G.time * 3 })],
     ['Ratón (escala)', p => { const keep = { x: M.x, y: M.y, a: M.a, tail: M.tail, feet: M.feet }; Object.assign(M, { x: p[0] + 6, y: p[1], a: Math.PI, tail: null, feet: null }); updateTail(0); drawMouse(ctx, 1); Object.assign(M, keep); }],
