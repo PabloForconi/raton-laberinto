@@ -82,27 +82,97 @@
   #card .small { font-size: 13px; opacity: .8; }
   /* resultados de Historia: en el estilo del juego (cartón, cinta, marcador), no como un formulario */
   #card .lvlname { margin: -4px 0 4px; font-size: 14px; letter-spacing: .5px; opacity: .7; }
-  #card .rstars { display: flex; justify-content: center; gap: 4px; margin: 2px 0 -10px; }   /* la estrella tiene aire abajo: así los tiempos quedan bien pegados */
-  #card .rstars i { font-style: normal; font-size: 50px; line-height: 1; color: rgba(60,40,20,.22); }
-  #card .rstars i.on { color: #f2b51e; text-shadow: 0 3px 0 #6b4c2c, 0 0 14px rgba(255,210,90,.55);
-    animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
-  #card .rstars i:nth-child(2) { transform: translateY(-6px); font-size: 58px; }
-  #card .rstars i.on:nth-child(2) { animation-name: starDropMid; }
   @keyframes starDrop { from { transform: scale(2.4) rotate(-40deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
-  @keyframes starDropMid { from { transform: translateY(-6px) scale(2.4) rotate(-40deg); opacity: 0; } to { transform: translateY(-6px) scale(1) rotate(0); opacity: 1; } }
-  #card .times { position: relative; display: flex; justify-content: center; gap: 14px; margin: 4px 0 14px; }
-  #card .tcell { position: relative; flex: 1; max-width: 190px; background: #e2d6b8; padding: 6px 8px 4px; box-shadow: 0 3px 0 #6b4c2c; transform: rotate(-1.5deg); }
-  #card .tcell.best { transform: rotate(1.2deg); background: #d4c6a2; }
-  #card .tcell small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
-  #card .tcell b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 30px; line-height: 1.15; }
-  /* "¡Nuevo récord!": un sello rojo debajo de las estrellas */
-  /* "¡Nuevo récord!": un sello rojo justo arriba de tu tiempo (si no hay récord no queda hueco) */
-  #card .times.rec { margin-top: 22px; }
+  /* cartel de fin de nivel, con la composición y los colores del boceto del usuario: cartón claro, el título en un cartel
+     de papel que asoma arriba, las estrellas en un recuadro de cartón oscuro encintado, cajas de papel (quesos, tiempo,
+     recompensa), el botón amarillo de la máquina y Repetir / Siguiente (verde) */
+  #card:has(.win) { width: min(430px, calc(100vw - 24px)); margin-top: 14px; padding: 0 14px 16px; border: 3px solid #5b3a1b; border-radius: 16px;
+    background-color: #c4915a; }
+  #card .win { margin-top: -30px; color: #2b1a0b; }
+  #card .wtitle { position: relative; z-index: 2; display: inline-block; margin: 0 auto; padding: 9px 28px 7px; background: #efdfbd;
+    font-family: 'Permanent Marker', cursive; line-height: 1; transform: rotate(-2deg);
+    background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.4), transparent 70%); box-shadow: 0 3px 0 #a07345, 0 6px 14px rgba(0,0,0,.35); }
+  #card .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; }
+  #card .wtitle span { display: inline-block; margin-top: 3px; font-size: 25px; border-bottom: 3px solid #2b1a0b; }
+  #card .wstars { position: relative; display: flex; justify-content: center; align-items: center; margin: -24px 4px 12px; padding: 34px 8px 12px;
+    background: #9a6838 repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 3px, transparent 3px 7px);
+    border: 6px solid #ead6ae; box-shadow: 0 3px 0 #8a6236, inset 0 0 18px rgba(40,20,5,.55); }
+  #card .tp { position: absolute; width: 46px; height: 16px; background: rgba(240,236,225,.55); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  #card .tp:nth-of-type(1) { left: -18px; top: 2px; transform: rotate(-42deg); }
+  #card .tp:nth-of-type(2) { right: -18px; top: 2px; transform: rotate(42deg); }
+  #card .tp:nth-of-type(3) { left: -18px; bottom: 2px; transform: rotate(42deg); }
+  #card .tp:nth-of-type(4) { right: -18px; bottom: 2px; transform: rotate(-42deg); }
+  #card .wstar { width: 31%; max-width: 104px; margin: 0 -4px; filter: drop-shadow(0 4px 2px rgba(60,30,5,.45)); }
+  #card .wstar.on { animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
+  #card .wstar:nth-of-type(2) { position: relative; top: -6px; }
+  #card .wray { position: absolute; width: 34px; height: 34px; top: 18px; }
+  #card .wray svg { display: block; width: 100%; height: 100%; }
+  #card .wray.l { left: 6px; } #card .wray.r { right: 6px; transform: scaleX(-1); }
+  #card .wrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
+  #card .wrow.solo { grid-template-columns: 1fr; }
+  #card .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
+    background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.35), transparent 70%); box-shadow: 0 3px 0 #9b7244, 0 4px 8px rgba(0,0,0,.25); }
+  #card .wbox h3 { margin: 0; font: 17px/1.2 'Permanent Marker', cursive; letter-spacing: .5px; text-transform: uppercase; }
+  #card .wbox .num { font: 44px/1 'Permanent Marker', cursive; }
+  /* quesos y tiempo: dos cajas iguales, el ícono grande a la izquierda y a su lado el título y el número */
+  #card .wstat { display: flex; align-items: center; justify-content: center; gap: 8px; height: 84px; padding: 6px 8px; }
+  #card .wstat > svg { flex: none; width: 58px; height: 58px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
+  #card .wstat.q > svg { transform: scale(1.25); margin: 0 6px 0 4px; }   /* el queso del HUD ocupa poco de su cuadro: así queda parejo con el reloj */
+  #card .wstat > div { text-align: left; }
+  #card .wstat h3 { font-size: 15px; }
+  #card .wstat .num { display: block; font-size: 34px; white-space: nowrap; }
+  /* el sello del récord va abajo de la caja del tiempo, así no tapa nada */
+  #card .wbox .stamp { top: auto; bottom: -19px; z-index: 1; font-size: 18px; padding: 0 9px; transform: translateX(-50%) rotate(-4deg); animation-name: stampLow; }
+  @keyframes stampLow { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-4deg) scale(1); opacity: 1; } }
+  /* cartel de inicio con el mismo formato: el título y una caja "Objetivo" con los quesos y el tiempo de las tres
+     estrellas, separados por una rayita, y el botón verde para jugar */
+  #card .wgoal { margin: 16px 2px 18px; padding: 10px 12px 14px; text-align: left; }
+  #card .whead { display: inline-block; margin: 0 0 10px 4px; padding-bottom: 2px; font: 24px/1 'Permanent Marker', cursive; text-transform: uppercase;
+    border-bottom: 3px solid #2b1a0b; transform: rotate(-2deg); }
+  #card .wgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px 4px; background: rgba(255,255,255,.35); border: 1px solid rgba(120,85,45,.25); border-radius: 4px; }
+  #card .wgrid.solo { grid-template-columns: 1fr; }
+  #card .wg { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #card .wg + .wg { border-left: 2px solid rgba(90,60,30,.3); }
+  #card .wg > svg { flex: none; width: 56px; height: 56px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
+  #card .wg.q > svg { transform: scale(1.25); margin: 0 6px 0 4px; }
+  #card .wg .num { display: block; font: 36px/1 'Permanent Marker', cursive; white-space: nowrap; }
+  #card .wg small { display: block; margin-top: 3px; font: 13px/1.1 'Permanent Marker', cursive; text-transform: uppercase; }
+  @media (max-width: 480px) { #card .wg { gap: 6px; } #card .wg > svg { width: 44px; height: 44px; } #card .wg .num { font-size: 30px; } #card .wg small { font-size: 11.5px; } }
+  #card .wplay { width: 100%; height: 72px; gap: 14px; font-size: 32px; }
+  #card .wplay svg { width: 38px; height: 38px; }
+  #card .wreward { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 14px; padding: 18px 10px 6px; }
+  #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f3e4c4; font: 17px/1.2 'Permanent Marker', cursive;
+    text-transform: uppercase; transform: rotate(-4deg); box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  #card .wcoins { position: relative; width: 82px; height: 58px; }
+  #card .wcoins .ci { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
+  #card .wcoins .ci:first-child { left: 0; top: 8px; } #card .wcoins .ci:last-child { left: 30px; top: 0; }
+  #card .wreward .num { font-size: 56px; }
+  #card .wreward .wray { position: static; width: 26px; height: 26px; }
+  #card .wmach { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 72px; margin: 0 0 14px; padding: 8px 12px 8px 90px;
+    background: linear-gradient(#ffdc45, #f4b00e); border: 3px solid #b77d06; border-radius: 14px; box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.3);
+    font: 22px/1.05 'Permanent Marker', cursive; color: #2b1a0b; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #card .wmach img { position: absolute; left: 8px; bottom: 4px; width: 74px; height: 74px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
+  #card .wmach .pill { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px 1px 5px; background: #7a4c22; color: #fff3d6;
+    border-radius: 20px; font-size: 22px; white-space: nowrap; }
+  #card .wmach .pill .ci { width: 28px; height: 28px; }
+  #card .wmach .chev { font-style: normal; font-size: 34px; line-height: 1; color: #7a4c22; }
+  #card .wmach.short { filter: saturate(.3) brightness(.95); }
+  #card .wmach > span:first-of-type { white-space: nowrap; }
+  #card .wmach.short > span:first-of-type { font-size: 18px; }
+  #card .wbtns { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; }
+  #card .wbtns.one { grid-template-columns: 1fr; }
+  #card .wbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 62px; border-radius: 14px; font: 25px 'Permanent Marker', cursive;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #card .wbtn svg { width: 30px; height: 30px; }
+  #card .wbtn.re { background: #ecd7ae; color: #2b1a0b; border: 3px solid #9b7041; box-shadow: 0 4px 0 #75522c; }
+  #card .wbtn.go { background: linear-gradient(#5fce50, #2f9b33); color: #fff; border: 3px solid #1f6f24; box-shadow: 0 4px 0 #185a1c; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  #card .wbtn:active, #card .wmach:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
+  #card .wbtn:hover, #card .wmach:hover { filter: brightness(1.05); }
   #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Permanent Marker', cursive; font-size: 20px; line-height: 1.15;
     color: #b3140f; border: 3px solid #b3140f; border-radius: 7px; padding: 1px 10px 0; background: rgba(255,235,220,.6);
     transform: translateX(-50%) rotate(-3deg); animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
   @keyframes stamp { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-3deg) scale(1); opacity: 1; } }
-  @media (max-width: 480px) { #card .note b { font-size: 18px; } #card .tcell b { font-size: 26px; } }
+  @media (max-width: 480px) { #card .note b { font-size: 18px; } }
   /* cartel de inicio de nivel: etiqueta, nombre grande, la frase, tres tarjetitas (límite, ★★, ★★★) y lo que hay adentro */
   #card .lvtag { display: inline-block; margin: 0 0 6px; padding: 3px 12px 2px; background: #1e1208; color: #e2d6b8; font-size: 12px;
     letter-spacing: 2px; text-transform: uppercase; transform: rotate(-2deg); }
@@ -380,24 +450,24 @@ function timeFor(n, pathCells) {
 // traps / sticky / cheese / doors (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional: pisa el tiempo calculado).
 const LEVELS = [
   // --- quesos ---
-  { name: 'Primer bocado', seed: 1101, size: [10, 6], loops: 0.04, cheese: 3,
-    intro: 'Hay quesos escondidos en el laberinto. Juntalos todos antes de salir y te llevás una estrella más.' },
-  { name: 'Olor a queso', seed: 1207, size: [11, 6], loops: 0.04, cheese: 4, cheeseGoal: 3,
-    intro: 'Hay 4 quesos, pero con 3 alcanza. Seguí tu nariz.' },
-  { name: 'Gruyère', seed: 1313, size: [12, 7], loops: 0.03, cheese: 5, cheeseGoal: 4,
+  { name: 'Primeros pasos', seed: 1101, size: [10, 6], loops: 0.04,
+    intro: 'Encontrá la salida antes del tiempo objetivo.' },
+  { name: 'Olor a queso', seed: 1207, size: [11, 6], loops: 0.04, cheese: 1,
+    intro: 'Hay un queso escondido. Agarralo y escapá a tiempo.' },
+  { name: 'Gruyère', seed: 1313, size: [12, 7], loops: 0.03, cheese: 3, cheeseGoal: 2,
     intro: 'Más agujeros que queso... y más quesos que antes.' },
-  { name: 'Picada', seed: 1429, size: [12, 7], loops: 0.06, cheese: 5,
-    intro: 'Cinco quesos y algunos pasillos que se cruzan: buscá el mejor recorrido.' },
-  { name: 'Tabla de quesos', seed: 1531, size: [14, 8], loops: 0.03, cheese: 7, cheeseGoal: 5,
+  { name: 'Picada', seed: 1429, size: [12, 7], loops: 0.06, cheese: 4, cheeseGoal: 3,
+    intro: 'Algunos quesos y pasillos que se cruzan: buscá el mejor recorrido.' },
+  { name: 'Tabla de quesos', seed: 1531, size: [14, 8], loops: 0.03, cheese: 5, cheeseGoal: 4,
     intro: 'Un laberinto más grande y una tabla entera para picar.' },
-  { name: 'Queso rallado', seed: 1637, size: [14, 8], loops: 0.04, cheese: 7, cheeseGoal: 6,
-    intro: 'Seis quesos repartidos por todos lados. No te olvides de ninguno.' },
+  { name: 'Queso rallado', seed: 1637, size: [14, 8], loops: 0.04, cheese: 6, cheeseGoal: 5,
+    intro: 'Quesos repartidos por todos lados. No te olvides de ninguno.' },
   // --- pegote ---
-  { name: 'Pegote', seed: 2203, size: [12, 7], loops: 0.02, sticky: 3,
+  { name: 'Pegote', seed: 2203, size: [12, 7], loops: 0.02, cheese: 1, sticky: 3,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un ratito. Si podés, rodealas.' },
   { name: 'Patas pegajosas', seed: 2311, size: [13, 7], loops: 0.03, sticky: 4, cheese: 3, cheeseGoal: 2,
     intro: 'Pegamento y unos quesitos. A veces el queso está del otro lado del pegote.' },
-  { name: 'Engrudo', seed: 2417, size: [14, 8], loops: 0.02, sticky: 5,
+  { name: 'Engrudo', seed: 2417, size: [14, 8], loops: 0.02, cheese: 1, sticky: 5,
     intro: 'Cinco bandejas en el camino. Cada segundo cuenta.' },
   { name: 'Plasticola', seed: 2521, size: [14, 8], loops: 0.04, sticky: 5, cheese: 5, cheeseGoal: 4,
     intro: 'Quesos para juntar y pegamento para esquivar.' },
@@ -406,36 +476,36 @@ const LEVELS = [
   { name: 'Pantano', seed: 2741, size: [16, 9], loops: 0.03, sticky: 8, cheese: 5, cheeseGoal: 4,
     intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
   // --- trampas ---
-  { name: 'La trampera', seed: 3307, size: [12, 7], loops: 0, traps: 4,
+  { name: 'La trampera', seed: 3307, size: [12, 7], loops: 0, cheese: 1, traps: 4,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
-  { name: 'Callejones', seed: 3413, size: [14, 8], loops: 0, traps: 6,
+  { name: 'Callejones', seed: 3413, size: [14, 8], loops: 0, cheese: 1, traps: 6,
     intro: 'Muchos callejones sin salida, y en el fondo de varios hay una trampa.' },
   { name: 'Cebo', seed: 3527, size: [14, 8], loops: 0.02, traps: 6, cheese: 5, cheeseGoal: 4,
     intro: 'Hay quesos de verdad... y quesos de cebo en las trampas. No te confundas.' },
-  { name: 'Clic', seed: 3631, size: [15, 8], loops: 0, traps: 8,
+  { name: 'Clic', seed: 3631, size: [15, 8], loops: 0, cheese: 1, traps: 8,
     intro: 'Ocho trampas. Mirá bien antes de meterte en un pasillo.' },
-  { name: 'Peligro dulce', seed: 3739, size: [15, 9], loops: 0.02, traps: 6, sticky: 4,
+  { name: 'Peligro dulce', seed: 3739, size: [15, 9], loops: 0.02, cheese: 1, traps: 6, sticky: 4,
     intro: 'Trampas en los callejones y pegamento en los pasillos.' },
-  { name: 'Campo minado', seed: 3847, size: [16, 9], loops: 0, traps: 10,
+  { name: 'Campo minado', seed: 3847, size: [16, 9], loops: 0, cheese: 1, traps: 10,
     intro: 'Diez trampas. Paso a paso.' },
   { name: 'Trampa y pegote', seed: 3953, size: [16, 9], loops: 0.02, traps: 8, sticky: 5, cheese: 4, cheeseGoal: 3,
     intro: 'Todo lo que aprendiste hasta ahora, en un mismo laberinto.' },
   { name: 'Ratonera', seed: 4057, size: [17, 9], loops: 0.01, traps: 12, cheese: 5, cheeseGoal: 4,
     intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
   // --- puertas ---
-  { name: 'Puertas', seed: 4409, size: [14, 8], loops: 0, doors: 2,
+  { name: 'Puertas', seed: 4409, size: [14, 8], loops: 0, cheese: 1, doors: 2,
     intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado, por más que empujes, no se abren.' },
-  { name: 'Atajos', seed: 4517, size: [15, 8], loops: 0, doors: 3,
+  { name: 'Atajos', seed: 4517, size: [15, 8], loops: 0, cheese: 1, doors: 3,
     intro: 'Las puertas son atajos hacia la salida. Encontralas.' },
   { name: 'Ida sin vuelta', seed: 4621, size: [16, 9], loops: 0.01, doors: 3, cheese: 5, cheeseGoal: 4,
     intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
-  { name: 'Cortinas', seed: 4733, size: [16, 9], loops: 0.02, doors: 4, sticky: 4,
+  { name: 'Cortinas', seed: 4733, size: [16, 9], loops: 0.02, cheese: 1, doors: 4, sticky: 4,
     intro: 'Puertas y pegamento. El atajo puede estar pegajoso.' },
-  { name: 'Pasadizo', seed: 4841, size: [17, 9], loops: 0, doors: 4, traps: 6,
+  { name: 'Pasadizo', seed: 4841, size: [17, 9], loops: 0, cheese: 1, doors: 4, traps: 6,
     intro: 'Pasadizos secretos y trampas en los callejones.' },
   { name: 'Laberinto de puertas', seed: 4951, size: [18, 10], loops: 0.01, doors: 5, cheese: 6, cheeseGoal: 5,
     intro: 'Cinco puertas. Planeá el recorrido para no dejar quesos atrás.' },
-  { name: 'Puerta trampa', seed: 5059, size: [18, 10], loops: 0.01, doors: 4, traps: 8, sticky: 3,
+  { name: 'Puerta trampa', seed: 5059, size: [18, 10], loops: 0.01, cheese: 1, doors: 4, traps: 8, sticky: 3,
     intro: 'Detrás de alguna puerta puede haber problemas.' },
   { name: 'Contramano', seed: 5167, size: [18, 10], loops: 0.02, doors: 5, traps: 6, cheese: 6, cheeseGoal: 5,
     intro: 'Puertas de un solo sentido, trampas y quesos. Ojo con el orden.' },
@@ -1482,6 +1552,7 @@ function showCard(html) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in'); void $card.offsetWidth; $card.classList.add('in');
   $card.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // jaulas de las ratitas
+  fitWin();
   Snd.cardIn();
 }
 function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
@@ -2881,25 +2952,20 @@ function drawMachine(g) {
 function showIntro() {
   G.state = 'intro'; $hud.classList.remove('hidden');
   const m = G.maze, L = G.mode === 'story' ? LEVELS[G.story] : null;
-  // Cartel de inicio: etiqueta con el nivel, el nombre grande, la frase, tres tarjetitas para leer de un vistazo (el
-  // tiempo límite y lo que pide cada estrella) y unas fichitas con lo que hay adentro del laberinto
+  // Cartel de inicio, con el formato del de fin de nivel (boceto del usuario): el título con el nivel y su nombre, la caja
+  // "Objetivo" con lo que pide la tercera estrella (los quesos y el tiempo) y el botón para jugar
   const cheeseIcon = document.querySelector('#cheese svg').outerHTML;
-  const goals = `<div class="goals">
-      <div class="goal lim"><small>Tiempo límite</small><b>${fmt(G.timeLimit)}</b><span>se apaga la linterna</span></div>
-      <div class="goal"><span class="gst">★★</span><b>${G.star2} seg.</b><span>o menos</span></div>
-      <div class="goal"><span class="gst">★★★</span><b>${G.star3} seg.</b><span>${G.cheeseTotal ? cheeseIcon + ' con todos los quesos' : 'o menos'}</span></div>
-    </div>`;
-  const inside = L ? [
-    L.cheese && `<span class="chip">${cheeseIcon} juntá ${G.cheeseTotal} queso${G.cheeseTotal > 1 ? 's' : ''}</span>`,
-    L.sticky && `<span class="chip">pegote ×${L.sticky}</span>`,
-    L.traps && `<span class="chip">trampas ×${L.traps}</span>`,
-    L.doors && `<span class="chip">puertas ×${L.doors}</span>`].filter(Boolean).join('') : '';
-  card(`<div class="lvtag">${L ? 'Nivel ' + G.level : 'Desafío · nivel ' + G.level}</div>
-     <h1 class="lvname">${L ? L.name : `Laberinto ${m.W} × ${m.H}`}</h1>
-     ${L ? `<p class="ilead">${L.intro}</p>` : '<p class="ilead">Laberintos al azar, cada vez más grandes.</p>'}
-     ${goals}
-     ${inside ? `<div class="inside">${inside}</div>` : ''}
-     <div class="menu"><button class="cbtn" data-act="start">Encender la linterna</button></div>`);
+  card(`<div class="win">
+      <div class="wtitle"><b>${L ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${L ? L.name : `Laberinto ${m.W} × ${m.H}`}</span></div>
+      <div class="wbox wgoal"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
+        <h3 class="whead">Objetivo</h3>
+        <div class="wgrid${G.cheeseTotal ? '' : ' solo'}">
+          ${G.cheeseTotal ? `<div class="wg q">${cheeseIcon}<div><span class="num">${G.cheeseTotal}</span><small>Queso${G.cheeseTotal > 1 ? 's' : ''}</small></div></div>` : ''}
+          <div class="wg">${WATCH_SVG}<div><span class="num">${fmtMS(G.star3)}</span><small>Tiempo</small></div></div>
+        </div>
+      </div>
+      <button class="wbtn go wplay" data-act="start">${PLAY_SVG}Jugar</button>
+    </div>`);
   G.iris = 0; G.irisTarget = 0;
   pop($level); pop($timer);
   updateButtons();
@@ -2914,19 +2980,15 @@ function win() {
   G.irisTarget = 0; G.winCard = false;   // se cierra en un círculo negro; el cartel aparece al terminar
   updateButtons();
 }
-// Estrellas: 1 por escapar + 1 por los quesos (sin quesos: más de 1/3 del tiempo) + 1 por el tiempo (más de 1/3; sin quesos, más de 1/2)
-// Estrellas de Historia: ★ por escapar, ★★ por tardar menos de star2 y ★★★ por menos de star3 con todos los quesos
+// Estrellas de Historia: cada meta suma una por separado: ★ por escapar, +1 por juntar los quesos del objetivo y +1 por
+// escapar en el tiempo objetivo (star3) o antes (el nivel 1 no tiene quesos: esa estrella viene sola).
+// Desafío sigue con la regla vieja hasta revisarlo: ★★ por debajo de star2 y ★★★ por debajo de star3 con todos los quesos
 function starsFor(time) {
   const cheeseOk = !G.cheeseTotal || G.cheese >= G.cheeseTotal;
+  if (G.mode === 'story') return 1 + (cheeseOk ? 1 : 0) + (time <= G.star3 ? 1 : 0);
   return 1 + (time <= G.star2 ? 1 : 0) + (time <= G.star3 && cheeseOk ? 1 : 0);
 }
-const fmtS = s => Math.floor(s) + ' seg.';   // segundos enteros, sin decimales (12,55 → 12 seg.); "seg." y no "s", que con la letra de marcador parecía un 5
-// Tu próximo objetivo, según las estrellas de ESTA partida (así coincide con lo que se ve arriba)
-function nextGoal(stars, best) {
-  if (stars <= 1) return [`Menos de ${G.star2} segundos`, 'para la segunda estrella'];
-  if (stars === 2) return [G.cheeseTotal ? `${G.cheeseTotal} quesos y menos de ${G.star3} seg.` : `Menos de ${G.star3} segundos`, 'para la tercera estrella'];
-  return [`Bajá tu récord de ${fmtS(best)}`, '¡Tenés las tres estrellas!'];
-}
+const fmtMS = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };   // 32 → 00:32
 // Aviso de premio en el cartel de fin de nivel (como el "Get a prize!" del Crossy Road): si te alcanzan las monedas,
 // un botón directo a la Máquina; si no, una barrita con cuánto te falta. Se actualiza al volver de la Máquina.
 function prizeBlock() {
@@ -2935,35 +2997,87 @@ function prizeBlock() {
   return `<div class="prizebar"><i style="width:${Wallet.coins / COIN_SPIN * 100}%"></i>
     <span>${COIN_ICON} ${Wallet.coins} / ${COIN_SPIN} · te faltan ${COIN_SPIN - Wallet.coins} para activar la máquina</span></div>`;
 }
-function refreshPrize() { const el = document.getElementById('prizeSlot'); if (el) el.innerHTML = prizeBlock(); }
+function refreshPrize() {
+  const el = document.getElementById('prizeSlot'); if (el) el.innerHTML = prizeBlock();
+  const mb = document.getElementById('machSlot'); if (mb) mb.innerHTML = machButton();
+}
+// Íconos del cartel de fin de nivel (en SVG, como los del HUD)
+// estrella con facetas (cada punta, una mitad clara y una oscura), como las del boceto; apagada es una sombra en el cartón
+const STAR_PTS = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 21 : 46; return [+(50 + r * Math.cos(a)).toFixed(1), +(53 + r * Math.sin(a)).toFixed(1)]; });
+function starSvg(on, d) {
+  const pts = STAR_PTS.map(p => p.join(',')).join(' ');
+  if (!on) return `<svg class="wstar" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="rgba(45,25,8,.35)" stroke="rgba(45,25,8,.35)" stroke-width="7" stroke-linejoin="round"/></svg>`;
+  let fac = '';
+  for (let i = 0; i < 10; i += 2) {
+    const o = STAR_PTS[i], a = STAR_PTS[(i + 9) % 10], b = STAR_PTS[i + 1], c = '50,53';
+    fac += `<polygon points="${c} ${a.join(',')} ${o.join(',')}" fill="${i < 6 ? '#ffe96a' : '#ffd23a'}"/><polygon points="${c} ${o.join(',')} ${b.join(',')}" fill="${i < 4 ? '#ffd02c' : '#f2a60e'}"/>`;
+  }
+  return `<svg class="wstar on" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg>`;
+}
+const RAYS_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M30 30 L14 16 M33 24 L28 5 M24 34 L5 30"/></svg>`;
+const WATCH_SVG = `<svg viewBox="0 0 64 64"><rect x="26" y="3" width="12" height="7" rx="2" fill="#3b3b40"/><rect x="29.5" y="9" width="5" height="6" fill="#3b3b40"/>
+  <rect x="45" y="10" width="9" height="6" rx="2" fill="#3b3b40" transform="rotate(42 49.5 13)"/><rect x="10" y="10" width="9" height="6" rx="2" fill="#3b3b40" transform="rotate(-42 14.5 13)"/>
+  <circle cx="32" cy="37" r="24" fill="#3b3b40"/><circle cx="32" cy="37" r="19" fill="#f6f1e6"/>
+  <path d="M32 20v4M32 50v4M15 37h4M45 37h4" stroke="#3b3b40" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M32 37V23" stroke="#3b3b40" stroke-width="3" stroke-linecap="round"/><path d="M32 37l9-7" stroke="#d23a20" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="32" cy="37" r="2.6" fill="#3b3b40"/><path d="M16 30a17 17 0 0 1 12-11" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`;
+const RETRY_SVG = `<svg viewBox="0 0 32 32"><path d="M25.5 17a9.5 9.5 0 1 1-3.6-7.6" fill="none" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/><path d="M17.5 4.5 L27.5 6 L24 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+const PLAY_SVG = `<svg viewBox="0 0 32 32"><path d="M9 5 L27 16 L9 27 Z" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linejoin="round"/></svg>`;
+// la bolita del botón de la máquina: una cápsula como las de la pecera, dibujada una vez
+let capImg = null;
+function capsuleImg() {
+  if (!capImg) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 160; const g = cv.getContext('2d');
+    g.scale(2, 2); capsule(g, 40, 41, 35, CAP_COLORS[0], -0.3, 0); capImg = cv.toDataURL();
+  }
+  return capImg;
+}
+// botón de la máquina del cartel de fin de nivel: si te alcanzan las monedas, "¡Activá la máquina!" con el precio;
+// si no, apagado, con cuánto te falta (igual te lleva a verla)
+function machButton() {
+  const ok = Wallet.coins >= COIN_SPIN;
+  return `<button class="wmach${ok ? '' : ' short'}" data-act="machine"><img src="${capsuleImg()}" alt="">
+    <span>${ok ? '¡Activá<br>la máquina!' : `Te faltan ${COIN_SPIN - Wallet.coins}<br>para la máquina`}</span>
+    <span class="pill">${COIN_ICON}${ok ? COIN_SPIN : `${Wallet.coins}/${COIN_SPIN}`}</span><i class="chev">›</i></button>`;
+}
+// en pantallas bajas (celular, PC apaisada) el cartel entero se achica para entrar sin tapar los botones de arriba
+function fitWin() {
+  const w = $card.querySelector('.win'); if (!w) return;
+  w.style.zoom = 1;
+  const h = $card.offsetHeight + 30, side = innerWidth - $card.offsetWidth < 150;   // +30: el título asoma arriba
+  const avail = innerHeight - (side ? 130 : 30);
+  if (h > avail) w.style.zoom = Math.max(0.5, (avail - 20) / (h - 20));
+}
+addEventListener('resize', fitWin);
 function showWinCard() {
   G.winCard = true;
   {
-    // resultados (Historia y Desafío): estrellas, el tiempo anterior y el tuyo, el próximo objetivo, la máquina y
-    // Repetir / Siguiente. En Historia el récord y las estrellas se guardan por nivel; en Desafío (laberintos al azar)
-    // valen mientras repetís ese mismo laberinto
+    // resultados (Historia y Desafío), como el boceto del usuario: "Nivel N ¡Completado!", las estrellas, los quesos y el
+    // tiempo, la recompensa (monedas juntadas en el nivel) y Repetir / Siguiente. En Historia el récord y las estrellas se
+    // guardan por nivel; en Desafío (laberintos al azar) valen mientras repetís ese mismo laberinto
     const story = G.mode === 'story', time = Math.floor(G.timeLimit - G.timeLeft), st = starsFor(time);   // tiempo en segundos enteros
     const last = story && G.story >= LEVELS.length - 1;
-    let prev, best;
-    if (story) { prev = Story.finish(G.story, st, time); best = Story.data.best[G.story]; }
-    else { prev = { stars: G.chStars, best: G.chBest }; G.chStars = Math.max(G.chStars, st); best = G.chBest = G.chBest == null ? time : Math.min(G.chBest, time); }
+    let prev;
+    if (story) prev = Story.finish(G.story, st, time);
+    else { prev = { stars: G.chStars, best: G.chBest }; G.chStars = Math.max(G.chStars, st); G.chBest = G.chBest == null ? time : Math.min(G.chBest, time); }
     const record = prev.best != null && time < Math.floor(prev.best);
-    const [goal, goalSub] = nextGoal(st, best);   // (las monedas no se muestran acá: se ven en el contador de arriba)
     const cheeseIco = document.querySelector('#cheese svg').outerHTML;
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
-    const stars = [0, 1, 2].map(k => `<i class="${k < st ? 'on' : ''}" style="--d:${0.25 + k * 0.22}s">★</i>`).join('');
-    card(`<h1>¡ESCAPASTE!</h1>
-      <p class="lvlname">Nivel ${G.level} · ${story ? LEVELS[G.story].name : `Desafío ${G.maze.W} × ${G.maze.H}`}</p>
-      <div class="rstars">${stars}</div>
-      <div class="times${record ? ' rec' : ''}">
-        ${prev.best != null ? `<div class="tcell best"><small>Tiempo anterior</small><b>${fmtS(prev.best)}</b></div>` : ''}
-        <div class="tcell"><small>Tu tiempo</small><b>${fmtS(time)}</b>${record ? '<span class="stamp">¡Nuevo récord!</span>' : ''}</div>
+    const stars = [0, 1, 2].map(k => starSvg(k < st, 0.25 + k * 0.22)).join('');
+    card(`<div class="win">
+      <div class="wtitle"><b>${story ? 'Nivel' : 'Desafío'} ${G.level}</b><span>¡Completado!</span></div>
+      <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
+        <i class="wray l">${RAYS_SVG}</i><i class="wray r">${RAYS_SVG}</i>${stars}</div>
+      <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
+        ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>Quesos</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
+        <div class="wbox wstat">${WATCH_SVG}<div><h3>Tiempo</h3><span class="num">${fmtMS(time)}</span></div>${record ? '<span class="stamp">¡Nuevo récord!</span>' : ''}</div>
       </div>
-      ${G.cheeseTotal ? `<div class="chips"><span class="chip">${cheeseIco} <b>${G.cheese}/${G.cheeseTotal}</b></span></div>` : ''}
-      <div class="note"><small>Próximo objetivo</small><b>${goal}</b><span>${goalSub}</span></div>
-      <div id="prizeSlot">${prizeBlock()}</div>
+      <div class="wbox wreward"><span class="wtag">Recompensa</span><i class="wray">${RAYS_SVG}</i>
+        <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SVG}</i></div>
+      <div id="machSlot">${machButton()}</div>
       ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
-      <div class="menu res"><button class="cbtn alt" data-act="retry">Repetir</button>${last ? '' : '<button class="cbtn" data-act="next">Siguiente</button>'}</div>`);   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
+      <div class="wbtns${last ? ' one' : ''}"><button class="wbtn re" data-act="retry">${RETRY_SVG}Repetir</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}Siguiente</button>`}</div>
+    </div>`);   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
     updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
   }
 }
@@ -3111,6 +3225,9 @@ function updateButtons() {
   // al terminar el nivel (ganado o perdido) el contador de monedas no se muestra: tapaba el cartel en el celular
   // (ni en el selector de niveles: ahí no se usan y en el celular tapaban el cartel)
   $coins.style.visibility = !G.screen && ['won', 'lost', 'select'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
+  // con el cartel de fin de nivel, el nivel y el reloj de arriba se esconden: el cartel ya los muestra y en el celular
+  // su título se montaba sobre el reloj
+  $level.style.visibility = $timer.style.visibility = G.state === 'won' && G.winCard && !G.screen ? 'hidden' : '';
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));

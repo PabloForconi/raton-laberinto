@@ -11,8 +11,8 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
 
 ## Modos
 
-- **Historia:** 40 niveles diseñados (siempre iguales). Se guardan los niveles desbloqueados, las estrellas (1 a 3) y tu mejor tiempo de cada nivel. Una estrella por escapar, dos por bajar de un tiempo y tres por bajar de un tiempo más exigente (con todos los quesos, si el nivel tiene). Al terminar ves tu tiempo, tu récord y tu próximo objetivo. Hay pocas monedas por nivel (unas 6 a 9): un par sueltas en el camino directo y un tesorito de 3 a 5 en algún desvío o callejón, que rinde pero cuesta tiempo. Las mecánicas aparecen de a una y después se combinan, con laberintos cada vez más grandes:
-  - **1–6, quesos:** juntalos antes de salir (los pide la tercera estrella); a veces hay más de los que hacen falta.
+- **Historia:** 40 niveles diseñados (siempre iguales). Se guardan los niveles desbloqueados, las estrellas (1 a 3) y tu mejor tiempo de cada nivel. Cada meta suma una estrella: una por escapar, una por juntar los quesos del objetivo y una por escapar en el tiempo objetivo o antes. El cartel de inicio te muestra el objetivo (quesos y tiempo) y al terminar ves tus estrellas, tu tiempo, si fue récord y las monedas que juntaste. Hay pocas monedas por nivel (unas 6 a 9): un par sueltas en el camino directo y un tesorito de 3 a 5 en algún desvío o callejón, que rinde pero cuesta tiempo. Las mecánicas aparecen de a una y después se combinan, con laberintos cada vez más grandes:
+  - **1–6, quesos:** el nivel 1 no tiene (ahí aprendés a escapar a tiempo), el 2 pide uno y después van subiendo; a veces hay uno de más. Desde el nivel 2 todos los niveles tienen al menos un queso.
   - **7–12, pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
   - **13–20, trampas:** al fondo de los callejones sin salida; si tocás una, perdés.
   - **21–28, puertas:** puertitas de un solo sentido. Del lado de la cinta empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
