@@ -4158,7 +4158,7 @@ const CHEESE_SCALE = 1.25;   // tamaño del queso
 // Molinete (niveles 29–40): cuatro aspas de cartón con puntas de cinta de peligro que giran sobre un eje de metal en un
 // cruce, con flechas de tiza en el piso que marcan el sentido (como la referencia del usuario). Son bajas: no tapan la luz
 // ni hacen sombra en las paredes. No atrapan: empujan a la rata (spinPush), hay que pasar en el hueco.
-const SPIN_ARM = 19, SPIN_HW = 3.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
+const SPIN_ARM = 26, SPIN_HW = 3.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
 const spinAng = it => it.a0 + it.dir * SPIN_SPEED * G.time;
 const SPIN_PUSH_MAX = 2.5;   // empujón máximo de un aspa por pasada (de a poco, nunca un salto)
 // cuánto hay que correr un círculo de la rata (centro cx, cy, radio r) para sacarlo de las aspas y el eje
