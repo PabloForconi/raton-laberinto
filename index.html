@@ -21,7 +21,7 @@
   #timer { top: 36px; left: 50%; font-size: 34px; transform: translateX(-50%) rotate(1.5deg); min-width: 92px; text-align: center; }
   #timer.warn { color: #b3140f; animation: pulse .5s ease-in-out infinite alternate; }
 
-  @keyframes pulse { to { transform: translateX(-50%) rotate(1.5deg) scale(1.08); } }
+  @keyframes pulse { to { transform: translateX(-50%) scale(1.08); } }
   #hint { position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; }
   #hud.hidden, .hidden { display: none !important; }
   #card { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-1deg);
@@ -39,13 +39,13 @@
   @keyframes cardOut { to { transform: translate(-50%, -50%) rotate(3deg) scale(.6); opacity: 0; } }
   #level.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   #timer.pop:not(.warn) { animation: timerPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
-  @keyframes levelPop { from { transform: rotate(-8deg) scale(.5); opacity: 0; } to { transform: rotate(-2deg) scale(1); opacity: 1; } }
+  @keyframes levelPop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   #level.pop { animation: lvlPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
-  @keyframes lvlPop { from { transform: translateX(-50%) rotate(-8deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(-2deg) scale(1); opacity: 1; } }
+  @keyframes lvlPop { from { transform: translateX(-50%) scale(.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
   /* botón casita (volver al menú), arriba a la izquierda; en los resultados de Historia, ahí mismo va la flechita a los niveles */
   #btnBack { position: fixed; top: 12px; left: 14px; z-index: 5; transform: rotate(-2deg); }
   #btnBack { z-index: 9; }   /* por encima de las pantallas negras (Ratitas) */
-  @keyframes timerPop { from { transform: translateX(-50%) rotate(6deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(1.5deg) scale(1); opacity: 1; } }
+  @keyframes timerPop { from { transform: translateX(-50%) scale(.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
   .btn.tape { transition: transform .12s; }
   .btn.tape:active { transform: scale(.85) !important; }
   #card h1 { font-family: 'Kalam', cursive; font-weight: normal; font-size: 40px; margin: 0 0 8px; color: #1e1208; line-height: 1.05; }
@@ -294,7 +294,7 @@
   #coins .ci { width: 25px; height: 25px; }
   #coins.below { top: 64px; }   /* en las pantallas con flechita de volver, debajo de ella */
   #coins.pop { animation: coinPop .25s cubic-bezier(.2, .9, .3, 1.4) both; }
-  @keyframes coinPop { from { transform: rotate(-1.5deg) scale(1.3); } to { transform: rotate(-1.5deg) scale(1); } }
+  @keyframes coinPop { from { transform: scale(1.3); } to { transform: scale(1); } }
   .ci { width: 1em; height: 1em; vertical-align: -0.14em; }
   #card .menu.sub { margin-top: 10px; }
   /* pantallas a pantalla completa (Ratitas, Máquina): fondo negro que entra y sale con un círculo desde el botón */
@@ -460,6 +460,26 @@
     #card .ctl br { display: none; }
     #card .modes p { font-size: 11.5px; }
   }
+  /* ---- HUD y botones sueltos con el formato de los carteles nuevos ----
+     fichas de papel derechas (sin cinta ni inclinación), con esquinas redondeadas, borde marrón y sombra de botón */
+  .tape { background: #efdcb6; background-image: radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.4), transparent 70%);
+    border: 2.5px solid #9b7041; border-radius: 11px; box-shadow: 0 3px 0 #75522c, 0 5px 10px rgba(0,0,0,.45); color: #2b1a0b; }
+  #coins, #cheese, #lamp, .btn.tape:nth-child(odd), .btn.tape:nth-child(even) { transform: none; }
+  #level, #timer { transform: translateX(-50%); }
+  /* monedas, queso y batería, con el mismo aire entre las fichas (8 px) */
+  #cheese, #lamp.up { top: 69px; } #lamp { top: 123px; }
+  @media (max-width: 560px) { #lamp { top: 118px; } }
+  /* el nivel, una etiqueta oscura montada sobre el borde de arriba del reloj */
+  #level { z-index: 2; top: 6px; padding: 1px 10px 0; background: #2b1a0b; color: #f3e4c4; border-color: #2b1a0b; border-radius: 7px; box-shadow: 0 2px 4px rgba(0,0,0,.5); letter-spacing: .5px; }
+  #timer { top: 24px; padding: 8px 16px 2px; }
+  @media (max-width: 560px) { #timer { top: 22px; } }
+  /* Bioterio y Máquina: los botones de abajo y Activar, como los botones de los carteles */
+  #screen .sbtns .cbtn { transform: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 4px 24px 0;
+    font-size: 23px; border-radius: 14px; background: #ecd7ae; color: #2b1a0b; border: 3px solid #9b7041; box-shadow: 0 4px 0 #75522c, 0 6px 12px rgba(0,0,0,.35); }
+  #screen .sbtns .cbtn.home { padding: 0 14px; }
+  #screen #gachaBtns .cbtn { background: linear-gradient(#ffdc45, #f4b00e); border-color: #b77d06; box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.35); }
+  #screen .sbtns .cbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
+  #screen #gachaBtns .cbtn:active { box-shadow: 0 1px 0 #8f5f05; }
 </style>
 </head>
 <body>
