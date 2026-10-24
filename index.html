@@ -6,7 +6,7 @@
 <title>Maze Mouse</title>
 <link rel="preload" as="image" href="img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   body { font-family: 'Special Elite', 'Courier New', monospace; color: #2a1a0c; user-select: none; }
@@ -14,7 +14,7 @@
   #vignette { position: fixed; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.65) 100%); }
   .tape { position: absolute; background: #d9cfb2; padding: 4px 16px 2px;
-    box-shadow: 0 2px 6px rgba(0,0,0,.6); font-family: 'Permanent Marker', cursive;
+    box-shadow: 0 2px 6px rgba(0,0,0,.6); font-family: 'Kalam', cursive;
     background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.03) 0 2px, transparent 2px 5px); }
   /* nivel chiquito arriba del reloj, centrados */
   #level { top: 8px; left: 50%; font-size: 15px; padding: 2px 12px 0; transform: translateX(-50%) rotate(-2deg); white-space: nowrap; z-index: 1; }
@@ -48,17 +48,17 @@
   @keyframes timerPop { from { transform: translateX(-50%) rotate(6deg) scale(.5); opacity: 0; } to { transform: translateX(-50%) rotate(1.5deg) scale(1); opacity: 1; } }
   .btn.tape { transition: transform .12s; }
   .btn.tape:active { transform: scale(.85) !important; }
-  #card h1 { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 40px; margin: 0 0 8px; color: #1e1208; line-height: 1.05; }
+  #card h1 { font-family: 'Kalam', cursive; font-weight: normal; font-size: 40px; margin: 0 0 8px; color: #1e1208; line-height: 1.05; }
   #card h1.red { color: #8e1410; }
   #card p { margin: 8px 0; font-size: 16px; line-height: 1.4; }
-  #card .big { font-family: 'Permanent Marker', cursive; font-size: 22px; }
+  #card .big { font-family: 'Kalam', cursive; font-size: 22px; }
 
   kbd { display: inline-block; background: #e8dcc0; border: 1px solid #5a3e22; border-bottom-width: 3px; border-radius: 4px;
     padding: 0 6px; font-family: inherit; font-size: 13px; margin: 0 1px; }
   #card { z-index: 6; }   /* por encima del joystick, así los botones de la pausa se pueden tocar */
   #card .logo { display: block; width: min(100%, 400px); margin: -6px auto 6px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
   #card .menu { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-  .cbtn { font-family: 'Permanent Marker', cursive; font-size: 22px; color: #1e1208; background: #e2d6b8; border: 0;
+  .cbtn { font-family: 'Kalam', cursive; font-size: 22px; color: #1e1208; background: #e2d6b8; border: 0;
     padding: 8px 22px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c, 0 4px 10px rgba(0,0,0,.35); transform: rotate(-1.5deg);
     -webkit-tap-highlight-color: transparent; }
   .cbtn:nth-child(even) { transform: rotate(1.5deg); }
@@ -72,11 +72,11 @@
     display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; color: #1e1208;
     -webkit-tap-highlight-color: transparent; }
   #card .lvl:nth-child(odd) { transform: rotate(-1deg); } #card .lvl:nth-child(even) { transform: rotate(1deg); }
-  #card .lvl b { font-family: 'Permanent Marker', cursive; font-size: 26px; line-height: 1; }
+  #card .lvl b { font-family: 'Kalam', cursive; font-size: 26px; line-height: 1; }
   #card .lvl small { font-size: 11px; }
   #card .lvl:disabled { opacity: .45; cursor: default; }
   #card .lvl:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #6b4c2c; }
-  #card .st { color: #c98a12; font-size: 15px; letter-spacing: 1px; } #card .st i { color: rgba(60,40,20,.3); font-style: normal; }
+  #card .st { color: #c98a12; font-size: 21px; line-height: 1.05; letter-spacing: 0; }   /* estrellitas de las fichas de niveles, grandes para leerlas de un vistazo */ #card .st i { color: rgba(60,40,20,.3); font-style: normal; }
   #card .stars { font-size: 46px; color: #e0a21a; text-shadow: 0 2px 0 #6b4c2c; letter-spacing: 6px; line-height: 1.1; }
   #card .stars span { color: rgba(60,40,20,.25); text-shadow: none; }
   #card .small { font-size: 13px; opacity: .8; }
@@ -90,7 +90,7 @@
     background-color: #c4915a; }
   #card .win { margin-top: -30px; color: #2b1a0b; }
   :is(#card, #opts) .wtitle { position: relative; z-index: 2; display: inline-block; margin: 0 auto; padding: 9px 28px 7px; background: #efdfbd;
-    font-family: 'Permanent Marker', cursive; line-height: 1; transform: rotate(-2deg);
+    font-family: 'Kalam', cursive; line-height: 1; transform: rotate(-2deg);
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.4), transparent 70%); box-shadow: 0 3px 0 #a07345, 0 6px 14px rgba(0,0,0,.35); }
   :is(#card, #opts) .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; }
   :is(#card, #opts) .wtitle span { display: inline-block; margin-top: 3px; font-size: 25px; border-bottom: 3px solid #2b1a0b; }
@@ -114,8 +114,8 @@
   #card .wrow.solo { grid-template-columns: 1fr; }
   :is(#card, #opts) .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.35), transparent 70%); box-shadow: 0 3px 0 #9b7244, 0 4px 8px rgba(0,0,0,.25); }
-  :is(#card, #opts) .wbox h3 { margin: 0; font: 17px/1.2 'Permanent Marker', cursive; letter-spacing: .5px; text-transform: uppercase; }
-  :is(#card, #opts) .wbox .num { font: 44px/1 'Permanent Marker', cursive; }
+  :is(#card, #opts) .wbox h3 { margin: 0; font: 17px/1.2 'Kalam', cursive; letter-spacing: .5px; text-transform: uppercase; }
+  :is(#card, #opts) .wbox .num { font: 44px/1 'Kalam', cursive; }
   /* quesos y tiempo: dos cajas iguales, el ícono grande a la izquierda y a su lado el título y el número */
   #card .wstat { display: flex; align-items: center; justify-content: center; gap: 8px; height: 84px; padding: 6px 8px; }
   #card .wstat > svg { flex: none; width: 58px; height: 58px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
@@ -129,7 +129,7 @@
   /* cartel de inicio con el mismo formato: el título y una caja "Objetivo" con los quesos y el tiempo de las tres
      estrellas, separados por una rayita, y el botón verde para jugar */
   #card .wgoal { margin: 16px 2px 18px; padding: 10px 12px 14px; text-align: left; }
-  #card .whead { display: inline-block; margin: 0 0 10px 4px; padding-bottom: 2px; font: 24px/1 'Permanent Marker', cursive; text-transform: uppercase;
+  #card .whead { display: inline-block; margin: 0 0 10px 4px; padding-bottom: 2px; font: 24px/1 'Kalam', cursive; text-transform: uppercase;
     border-bottom: 3px solid #2b1a0b; transform: rotate(-2deg); }
   #card .wgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px 4px; background: rgba(255,255,255,.35); border: 1px solid rgba(120,85,45,.25); border-radius: 4px; }
   #card .wgrid.solo { grid-template-columns: 1fr; }
@@ -137,12 +137,46 @@
   #card .wg + .wg { border-left: 2px solid rgba(90,60,30,.3); }
   #card .wg > svg { flex: none; width: 56px; height: 56px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
   #card .wg.q > svg { transform: scale(1.25); margin: 0 6px 0 4px; }
-  #card .wg .num { display: block; font: 36px/1 'Permanent Marker', cursive; white-space: nowrap; }
-  #card .wg small { display: block; margin-top: 3px; font: 13px/1.1 'Permanent Marker', cursive; text-transform: uppercase; }
+  #card .wg .num { display: block; font: 36px/1 'Kalam', cursive; white-space: nowrap; }
+  #card .wg small { display: block; margin-top: 3px; font: 13px/1.1 'Kalam', cursive; text-transform: uppercase; }
   @media (max-width: 480px) { #card .wg { gap: 6px; } #card .wg > svg { width: 44px; height: 44px; } #card .wg .num { font-size: 30px; } #card .wg small { font-size: 11.5px; } }
+  /* entrada animada de los carteles (animIn): cada parte entra a su turno (--ad); se usan translate / scale / rotate
+     sueltos, así no pisan los transform (las inclinaciones) que ya tienen las piezas */
+  .anim [data-a] { animation-duration: .38s; animation-timing-function: cubic-bezier(.2, .9, .3, 1.3); animation-fill-mode: both; animation-delay: var(--ad, 0s); }
+  .anim [data-a="up"] { animation-name: aUp; }
+  .anim [data-a="drop"] { animation-name: aDrop; }
+  .anim [data-a="pop"] { animation-name: aPop; }
+  @keyframes aUp { from { opacity: 0; translate: 0 28px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes aDrop { from { opacity: 0; translate: 0 -34px; scale: 1.15; } to { opacity: 1; translate: 0 0; scale: 1; } }
+  @keyframes aPop { from { opacity: 0; scale: .4; } to { opacity: 1; scale: 1; } }
+  @keyframes aBreath { from { scale: 1; } to { scale: 1.045; } }
+  .anim .lvl:disabled[data-a] { animation-name: aPopDim; }   /* los bloqueados terminan apagados */
+  @keyframes aPopDim { from { opacity: 0; scale: .4; } to { opacity: .45; scale: 1; } }
+  /* el botón principal (Siguiente, Jugar, Reintentar) queda latiendo suave después de aparecer */
+  .anim .wbtn.go[data-a] { animation-name: aPop, aBreath; animation-duration: .38s, 1.1s; animation-delay: var(--ad), calc(var(--ad) + .6s);
+    animation-iteration-count: 1, infinite; animation-direction: normal, alternate; animation-fill-mode: both, none; animation-timing-function: cubic-bezier(.2, .9, .3, 1.3), ease-in-out; }
+  /* el botón de la máquina "respira" para invitar a tocarlo */
+  #card .wmach { animation: aBreath 1.3s ease-in-out 2.4s infinite alternate; }
+  /* chispitas cuando cae cada estrella */
+  #card .wstar .spk { position: absolute; left: 50%; top: 52%; width: 8px; height: 8px; margin: -4px; background: #fff4a8; border-radius: 1px; opacity: 0; pointer-events: none;
+    animation: aSpark .55s ease-out calc(var(--d) + .3s) both; }
+  @keyframes aSpark { 0% { opacity: 0; transform: rotate(var(--ang)) translateX(12px) rotate(45deg) scale(1); } 12% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(var(--ang)) translateX(54px) rotate(45deg) scale(.3); } }
+  /* el sello del récord: golpe y un temblorcito del cartel */
+  .win.shake { animation: aShake .32s ease-out; }
+  @keyframes aShake { 0%, 100% { translate: 0 0; } 20% { translate: -5px 2px; } 40% { translate: 4px -2px; } 60% { translate: -3px 1px; } 80% { translate: 2px 0; } }
+  /* perder: la trampa se sacude al cerrarse; la linterna parpadea y se apaga */
+  .anim .wlose > svg { animation: aSnap .5s ease-out .55s both; }
+  .anim .wlose.lamp > svg { animation: aFlicker .9s linear .5s both; }
+  @keyframes aSnap { 0% { rotate: 0deg; scale: 1; } 15% { rotate: -9deg; scale: 1.12; } 35% { rotate: 7deg; } 55% { rotate: -4deg; } 75% { rotate: 2deg; } 100% { rotate: 0deg; scale: 1; } }
+  @keyframes aFlicker { 0%, 12%, 30%, 50% { opacity: 1; } 6%, 22%, 40% { opacity: .35; } 100% { opacity: .75; } }
+  /* tocar el cartel mientras se arma: todo aparece de una */
+  .anim.skip [data-a], .anim.skip .wgold, .anim.skip .stamp { animation-delay: 0s !important; animation-duration: .01s !important; }
+  .anim.skip .wbtn.go[data-a] { animation-delay: 0s, .4s !important; animation-duration: .01s, 1.1s !important; }
+  .anim.skip .spk { display: none; }
   /* portada con el formato nuevo: sin cartel de título (el logo es el título) */
-  #card .wmenu { margin-top: 0; padding-top: 12px; }
-  #card .wmenu .logo { margin: -14px auto 26px; }   /* arriba, con el doble de aire hasta los controles que de los controles a Historia */
+  #card .wmenu { margin-top: 0; padding-top: 22px; }   /* aire de cartón arriba del logo, que no quede pegado al borde */
+  #card .wmenu .logo { margin: 0 auto 26px; }   /* arriba, con el doble de aire hasta los controles que de los controles a Historia */
   #card .wctl { margin: 4px 2px 16px; padding: 4px 12px; }
   #card .wctl .ctl { margin: 0 auto; border: 0; }
   #card .wmenu .wbtns { grid-template-columns: 1fr 1fr; margin-top: 12px; }
@@ -161,12 +195,12 @@
   :is(#card, #opts) .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
   #card .wlose { display: flex; align-items: center; gap: 14px; margin: 16px 2px 18px; padding: 16px 16px 14px; text-align: left; }
   #card .wlose > svg { flex: none; width: 76px; height: 76px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
-  #card .wlose b { display: block; font: 23px/1.1 'Permanent Marker', cursive; font-weight: normal; }
+  #card .wlose b { display: block; font: 23px/1.1 'Kalam', cursive; font-weight: normal; }
   #card .wlose span { display: block; margin-top: 4px; font-size: 15px; line-height: 1.3; }
   #card .wplay { width: 100%; height: 72px; gap: 14px; font-size: 32px; }
   #card .wplay svg { width: 38px; height: 38px; }
   #card .wreward { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 14px; padding: 18px 10px 6px; }
-  #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f3e4c4; font: 17px/1.2 'Permanent Marker', cursive;
+  #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f3e4c4; font: 17px/1.2 'Kalam', cursive;
     text-transform: uppercase; transform: rotate(-4deg); box-shadow: 0 2px 4px rgba(0,0,0,.3); }
   #card .wcoins { position: relative; width: 82px; height: 58px; }
   #card .wcoins .ci { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
@@ -175,7 +209,7 @@
   #card .wreward .wray { position: static; width: 26px; height: 26px; }
   #card .wmach { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 72px; margin: 0 0 14px; padding: 8px 12px 8px 90px;
     background: linear-gradient(#ffdc45, #f4b00e); border: 3px solid #b77d06; border-radius: 14px; box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.3);
-    font: 22px/1.05 'Permanent Marker', cursive; color: #2b1a0b; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    font: 22px/1.05 'Kalam', cursive; color: #2b1a0b; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   #card .wmach img { position: absolute; left: 8px; bottom: 4px; width: 74px; height: 74px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
   #card .wmach .pill { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px 1px 5px; background: #7a4c22; color: #fff3d6;
     border-radius: 20px; font-size: 22px; white-space: nowrap; }
@@ -186,7 +220,7 @@
   #card .wmach.short > span:first-of-type { font-size: 18px; }
   :is(#card, #opts) .wbtns { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; }
   :is(#card, #opts) .wbtns.one { grid-template-columns: 1fr; }
-  :is(#card, #opts) .wbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 62px; border-radius: 14px; font: 25px 'Permanent Marker', cursive;
+  :is(#card, #opts) .wbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 62px; border-radius: 14px; font: 25px 'Kalam', cursive;
     cursor: pointer; -webkit-tap-highlight-color: transparent; }
   :is(#card, #opts) .wbtn svg { width: 30px; height: 30px; }
   @media (max-width: 480px) { #card .wbtns.three .wbtn { font-size: 21px; gap: 6px; } #card .wbtns.three .wbtn:not(.sq) svg { width: 24px; height: 24px; } }
@@ -194,7 +228,7 @@
   :is(#card, #opts) .wbtn.go { background: linear-gradient(#5fce50, #2f9b33); color: #fff; border: 3px solid #1f6f24; box-shadow: 0 4px 0 #185a1c; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
   :is(#card, #opts) .wbtn:active, #card .wmach:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
   :is(#card, #opts) .wbtn:hover, #card .wmach:hover { filter: brightness(1.05); }
-  #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Permanent Marker', cursive; font-size: 20px; line-height: 1.15;
+  #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Kalam', cursive; font-size: 20px; line-height: 1.15;
     color: #b3140f; border: 3px solid #b3140f; border-radius: 7px; padding: 1px 10px 0; background: rgba(255,235,220,.6);
     transform: translateX(-50%) rotate(-3deg); animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
   @keyframes stamp { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-3deg) scale(1); opacity: 1; } }
@@ -210,7 +244,7 @@
   #card .goal.lim { background: #d4c6a2; }
   #card .goal small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
   #card .goal .gst { display: block; color: #b9790c; font-size: 17px; letter-spacing: 2px; line-height: 1.1; }
-  #card .goal b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 27px; line-height: 1.15; }
+  #card .goal b { display: block; font-family: 'Kalam', cursive; font-weight: normal; font-size: 27px; line-height: 1.15; }
   #card .goal span { display: inline-flex; align-items: center; justify-content: center; gap: 3px; font-size: 11px; opacity: .8; }
   #card .goal span svg { width: 14px; height: 14px; }
   #card .inside { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
@@ -219,7 +253,7 @@
   @media (max-width: 480px) { #card h1.lvname { font-size: 32px; } #card .goals { gap: 7px; } #card .goal b { font-size: 21px; } #card .goal small { font-size: 9.5px; letter-spacing: .5px; } }
   #card .chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
   #card .chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(30,18,8,.18); border-radius: 20px; padding: 3px 12px; font-size: 15px; }
-  #card .chip b { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 18px; }
+  #card .chip b { font-family: 'Kalam', cursive; font-weight: normal; font-size: 18px; }
   #card .chip small { font-size: 12px; opacity: .8; }
   #card .chip svg { width: 18px; height: 18px; }
   #card .note { position: relative; margin: 30px auto 18px; max-width: 360px; background: #f3d66e; color: #2a1c08; padding: 24px 16px 16px;
@@ -227,7 +261,7 @@
   #card .note::before { content: ''; position: absolute; left: 50%; top: -10px; width: 86px; height: 18px; transform: translateX(-50%) rotate(2deg);
     background: rgba(255,255,255,.45); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
   #card .note small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: .65; }
-  #card .note b { display: block; font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 21px; line-height: 1.2; margin: 2px 0; }
+  #card .note b { display: block; font-family: 'Kalam', cursive; font-weight: normal; font-size: 21px; line-height: 1.2; margin: 2px 0; }
   #card .note span { font-size: 13px; opacity: .8; }
 
   #card .menu.res { margin-top: 24px; }
@@ -268,7 +302,7 @@
   #screen .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
     padding: 64px 12px calc(14px + env(safe-area-inset-bottom)); gap: 8px; opacity: 0; transition: opacity .25s; text-align: center; color: #e9dcc0; }
   #screen.open .inner.show { opacity: 1; }
-  #screen .stitle { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+  #screen .stitle { font-family: 'Kalam', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
   #screen .ssub { margin: 0; font-size: 15px; color: #bfae8c; }
   /* Bioterio y Máquina: el título sube a la altura de la flechita y el engranaje; los estantes arrancan debajo de las monedas */
   #screen .stitle.up { margin-top: -52px; }
@@ -317,7 +351,7 @@
   #screen .inner > :not(#gachaFx):not(#gachaFx2) { position: relative; z-index: 1; }
   #screen .inner > .stitle, #gachaRes, #gachaBtns, #gachaNav { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
   #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; text-shadow: 0 0 6px #000, 0 2px 4px #000, 0 0 14px rgba(0,0,0,0.8); }
-  .gname { font-family: 'Permanent Marker', cursive; font-size: 30px; color: #f6e7bf; }
+  .gname { font-family: 'Kalam', cursive; font-size: 30px; color: #f6e7bf; }
   .cbtn:disabled { opacity: .5; cursor: default; }
   /* portada */
   #card .lead { margin: 4px 0 12px; }
@@ -330,7 +364,7 @@
   #card .finger { font-size: 30px; line-height: 1; }
   #card .modes { margin-top: 12px; }
   #card .modes p { margin: 2px 0; font-size: 13.5px; line-height: 1.35; opacity: .85; text-wrap: balance; }
-  #card .modes b { font-family: 'Permanent Marker', cursive; font-weight: normal; }
+  #card .modes b { font-family: 'Kalam', cursive; font-weight: normal; }
   #card table { margin: 10px auto 0; border-collapse: collapse; font-size: 14px; text-align: left; }
   #card td { padding: 2px 8px; }
 
@@ -362,7 +396,7 @@
   @keyframes optsBgOut { to { background: rgba(0,0,0,0); } }
   #opts .box > .wtitle { margin-top: -30px; padding: 12px 34px 10px; }
   #opts .orows { margin: 18px 2px 18px; padding: 6px 16px; text-align: left; }
-  #opts .opt { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; font: 23px/1.1 'Permanent Marker', cursive; }
+  #opts .opt { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; font: 23px/1.1 'Kalam', cursive; }
   #opts .opt + .opt { border-top: 2px dashed rgba(90,60,30,.3); }
   #opts .opt span { display: flex; align-items: center; gap: 12px; }
   #opts .opt svg { width: 28px; height: 28px; }
@@ -402,7 +436,7 @@
   /* botón provisorio para probar: luz general en el laberinto (abajo a la derecha) */
   #btnLight { position: fixed; bottom: 14px; right: 14px; z-index: 8; width: 58px; height: 58px; padding: 0; gap: 1px; display: flex;
     flex-direction: column; align-items: center; justify-content: center; line-height: 1;   /* cuadrado: la lamparita arriba del texto */
-    font-family: 'Permanent Marker', cursive; font-size: 12px; transform: rotate(1.5deg); }
+    font-family: 'Kalam', cursive; font-size: 12px; transform: rotate(1.5deg); }
   #btnLight svg { width: 22px; height: 22px; }
   #btnLight.on { background: #ffe17a; }
   @media (max-width: 560px) {
@@ -413,6 +447,7 @@
     #card .levels { grid-template-columns: repeat(4, 1fr); gap: 7px; }
     #card .lvl b { font-size: 21px; }
     #card .lvl small { font-size: 9px; }
+    #card .st { font-size: 18px; }
     #screen .stitle { font-size: 36px; }
     .cbtn { font-size: 19px; padding: 7px 16px 5px; }
     #card { padding: 22px 16px 18px; }
@@ -833,6 +868,7 @@ const Snd = {
   // pisar pegamento: "splosh" pegajoso
   squish() { this.sweep(900, 220, 0.25, 0.3, 2.5); this.tone(110, 70, 0.15, 'sine', 0.12); },
   // agarrar un queso: dos notitas para arriba
+  star(k = 0) { const f = [784, 988, 1175][k] || 1175; this.tone(f, f * 1.5, 0.12, 'triangle', 0.16); this.tone(f * 2, f * 2, 0.18, 'sine', 0.06, 0.06); },
   cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
   battery() { this.tone(330, 660, 0.12, 'square', 0.06); this.tone(660, 1320, 0.16, 'square', 0.05, 0.1); this.tone(1320, 1320, 0.1, 'triangle', 0.12, 0.24); },
   flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
@@ -1614,25 +1650,26 @@ let cardTimer = 0;
 // Durante un fundido a negro el viejo desaparece de una (no se ve) y el nuevo entra cuando la pantalla se aclara
 const CARD_OUT_MS = 100, CARD_GAP_MS = 40;
 let fading = false;   // hay un fundido a negro en curso (fadeTo)
-function card(html) {
-  clearTimeout(cardTimer);
+function card(html, anim = null) {
+  clearTimeout(cardTimer); cardAnimStop();
   const leaving = $card.classList.contains('out'), shown = !$card.classList.contains('hidden') && !leaving;
   if (fading) {
     $card.classList.remove('in', 'out'); $card.classList.add('hidden');
-    cardTimer = setTimeout(() => showCard(html), 80);
+    cardTimer = setTimeout(() => showCard(html, anim), 80);
   } else if (shown) {
     Snd.cardOut();
     $card.classList.remove('in'); $card.classList.add('out');
-    cardTimer = setTimeout(() => { $card.classList.remove('out'); $card.classList.add('hidden'); cardTimer = setTimeout(() => showCard(html), CARD_GAP_MS); }, CARD_OUT_MS);
+    cardTimer = setTimeout(() => { $card.classList.remove('out'); $card.classList.add('hidden'); cardTimer = setTimeout(() => showCard(html, anim), CARD_GAP_MS); }, CARD_OUT_MS);
   } else if (leaving) {   // todavía se está yendo el anterior: espera a que termine
-    cardTimer = setTimeout(() => { $card.classList.remove('out'); $card.classList.add('hidden'); showCard(html); }, CARD_OUT_MS + CARD_GAP_MS);
-  } else showCard(html);
+    cardTimer = setTimeout(() => { $card.classList.remove('out'); $card.classList.add('hidden'); showCard(html, anim); }, CARD_OUT_MS + CARD_GAP_MS);
+  } else showCard(html, anim);
 }
-function showCard(html) {
+function showCard(html, anim = null) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in'); void $card.offsetWidth; $card.classList.add('in');
   $card.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // jaulas de las ratitas
   fitWin();
+  animIn($card.querySelector('.win'), anim);
   Snd.cardIn();
 }
 function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
@@ -1663,7 +1700,7 @@ function showTitle() {
     <div class="wbox wctl"><div class="ctl">${keys}<span>${how}</span></div></div>
     <div class="wbtns"><button class="wbtn go" data-act="story">${PLAY_SVG}Historia</button><button class="wbtn yl" data-act="challenge">Desafío</button></div>
     <div class="wbtns"><button class="wbtn re" data-act="ratitas">Bioterio</button><button class="wbtn re" data-act="machine">Máquina <span class="wprice">${COIN_SPIN} ${COIN_ICON}</span></button></div>
-    </div>`);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
+    </div>`, { kind: 'title' });   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
 // Selector de niveles de Historia: los bloqueados aparecen apagados; se ven las mejores estrellas de cada uno
@@ -1678,7 +1715,7 @@ function showSelect() {
   }).join('');
   card(`<div class="win"><div class="wtitle"><b>Niveles</b></div>
     <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div>
-    <div class="wbtns home"><button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button><button class="wbtn re" data-act="ratitas">Bioterio</button></div></div>`);   // adentro del cartel (como en los demás): la casita a la portada y el Bioterio para elegir la ratita antes de jugar (ESPACIO sigue jugando el último desbloqueado)
+    <div class="wbtns home"><button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button><button class="wbtn re" data-act="ratitas">Bioterio</button></div></div>`, { kind: 'select' });   // adentro del cartel (como en los demás): la casita a la portada y el Bioterio para elegir la ratita antes de jugar (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
 }
 
@@ -2641,12 +2678,12 @@ function drawGacha(g, n) {
         fn(); g.restore();
       };
       txt(NAME_Y, () => {
-        g.font = "26px 'Permanent Marker', cursive";
+        g.font = "26px 'Kalam', cursive";
         g.lineWidth = 6; g.strokeText(name, 0, 0);
         g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
       });
       const rar = RARITY[RAT_RARITY[P.pick]];   // la rareza entre paréntesis y de su color
-      if (rar) txt(RAR_Y, () => { const rt = `(${rar.name.toUpperCase()})`; g.font = "12px 'Permanent Marker', cursive"; g.lineWidth = 4; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
+      if (rar) txt(RAR_Y, () => { const rt = `(${rar.name.toUpperCase()})`; g.font = "12px 'Kalam', cursive"; g.lineWidth = 4; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
       txt(SUB_Y, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
         g.font = "11px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.textBaseline = 'middle';
         const one = sub.join(' '), room = (innerWidth - 32) / ((P.geo ? P.geo.r.width : g.canvas.clientWidth) / 300) / TXT;   // ancho de pantalla, en las unidades del texto
@@ -3049,7 +3086,7 @@ function showIntro() {
         </div>
       </div>
       <button class="wbtn go wplay" data-act="start">${PLAY_SVG}Jugar</button>
-    </div>`);
+    </div>`, { kind: 'intro' });
   G.iris = 0; G.irisTarget = 0;
   pop($level); pop($timer);
   updateButtons();
@@ -3088,7 +3125,8 @@ function starSvg(on, d) {
     const o = STAR_PTS[i], a = STAR_PTS[(i + 9) % 10], b = STAR_PTS[i + 1], c = '50,53';
     fac += `<polygon points="${c} ${a.join(',')} ${o.join(',')}" fill="${i < 6 ? '#ffe96a' : '#ffd23a'}"/><polygon points="${c} ${o.join(',')} ${b.join(',')}" fill="${i < 4 ? '#ffd02c' : '#f2a60e'}"/>`;
   }
-  return `<span class="wstar">${sh}<svg class="wgold" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg></span>`;
+  const spk = [0, 1, 2, 3, 4, 5].map(k => `<i class="spk" style="--ang:${k * 60 + 15}deg"></i>`).join('');
+  return `<span class="wstar" style="--d:${d}s">${sh}<svg class="wgold" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg>${spk}</span>`;
 }
 const RAYS_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M30 30 L14 16 M33 24 L28 5 M24 34 L5 30"/></svg>`;
 const WATCH_SVG = `<svg viewBox="0 0 64 64"><rect x="26" y="3" width="12" height="7" rx="2" fill="#3b3b40"/><rect x="29.5" y="9" width="5" height="6" fill="#3b3b40"/>
@@ -3143,6 +3181,59 @@ function fitWin() {
   if (h > avail) w.style.zoom = Math.max(0.5, (avail - 20) / (h - 20));
 }
 addEventListener('resize', fitWin);
+// ---- Entrada animada de los carteles ----
+// Cada cartel tiene su secuencia (CARD_SEQ: [selector, cómo entra, cuándo, paso entre varios, tope]): "drop" cae y se
+// asienta, "up" sube desde abajo, "pop" aparece chico y crece con rebote. En el de resultados además los números
+// cuentan (counters) y hay sonidos y efectos en su momento (cues). Tocar el cartel mientras se arma lo completa de una.
+const STAR_AT = [0.35, 0.55, 0.75];   // cuándo cae cada estrella
+const CARD_SEQ = {
+  win: [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.12], ['.wstars .wray', 'pop', 0.95, 0.05], ['.wstat.q', 'up', 0.9],
+    ['.wstat:not(.q)', 'up', 1.05], ['.wreward', 'up', 1.35], ['.win > p', 'up', 1.7], ['#machSlot', 'up', 1.85], ['.wbtns > *', 'pop', 2.05, 0.07]],
+  lose: [['.wtitle', 'drop', 0.08], ['.wlose', 'up', 0.2], ['#machSlot', 'up', 0.42], ['.wbtns > *', 'pop', 0.56, 0.07]],
+  intro: [['.wtitle', 'drop', 0.08], ['.wgoal', 'up', 0.2], ['.wg', 'pop', 0.36, 0.1], ['.wplay', 'pop', 0.6]],
+  select: [['.wtitle', 'drop', 0.06], ['.wlevels', 'up', 0.14], ['.lvl', 'pop', 0.22, 0.018, 0.9], ['.wbtns > *', 'pop', 0.45, 0.07]],
+  title: [['.logo', 'drop', 0.04], ['.wctl', 'up', 0.18], ['.wbtns > *', 'pop', 0.28, 0.07]],
+  opts: [['.wtitle', 'drop', 0.05], ['.orows', 'up', 0.12], ['.wbtns > *', 'pop', 0.22, 0.07]],
+};
+const CardAnim = { timers: [], counters: [], until: 0, root: null, gen: 0 };
+const fmtCount = (c, v) => c.fmt === 'time' ? fmtMS(v) : c.fmt === 'frac' ? `${v}/${c.of}` : `+${v}`;
+function cardAnimStop() { CardAnim.timers.forEach(clearTimeout); CardAnim.timers = []; CardAnim.counters = []; CardAnim.gen++; CardAnim.until = 0; }
+function animIn(root, a, track = true) {
+  if (!root || !a || !CARD_SEQ[a.kind]) return;
+  if (track) cardAnimStop();
+  let end = 0;
+  for (const [sel, type, at, step = 0, cap = 99] of CARD_SEQ[a.kind]) root.querySelectorAll(sel).forEach((el, k) => {
+    const d = Math.min(cap, at + k * step); el.dataset.a = type; el.style.setProperty('--ad', d + 's'); end = Math.max(end, d + 0.4);
+  });
+  root.classList.add('anim');
+  if (!track) return;
+  CardAnim.root = root;
+  const gen = CardAnim.gen;
+  for (const c of a.counters || []) {   // números que cuentan desde 0
+    c.el = root.querySelector(c.sel); if (!c.el) continue;
+    c.el.textContent = fmtCount(c, 0); CardAnim.counters.push(c); end = Math.max(end, c.at + c.dur);
+    CardAnim.timers.push(setTimeout(() => {
+      const t0 = performance.now(); let shown = 0, lastSnd = 0;
+      const stepFn = now => {
+        if (gen !== CardAnim.gen) return;
+        const p = clamp((now - t0) / (c.dur * 1000), 0, 1), v = Math.round(c.to * (1 - (1 - p) * (1 - p)));
+        if (v !== shown) { shown = v; c.el.textContent = fmtCount(c, v); if (now - lastSnd > c.gap * 1000) { lastSnd = now; c.snd(); } }
+        if (p < 1) requestAnimationFrame(stepFn); else if (c.end) c.end();
+      };
+      requestAnimationFrame(stepFn);
+    }, c.at * 1000));
+  }
+  for (const [at, fn] of a.cues || []) { CardAnim.timers.push(setTimeout(fn, at * 1000)); end = Math.max(end, at + 0.3); }
+  CardAnim.until = performance.now() + end * 1000;
+}
+// tocar el cartel (o ESPACIO) mientras se arma: aparece todo de una con los números finales
+function cardAnimSkip() {
+  if (performance.now() >= CardAnim.until || !CardAnim.root) return false;
+  for (const c of CardAnim.counters) if (c.el) c.el.textContent = fmtCount(c, c.to);
+  CardAnim.root.classList.add('skip');
+  cardAnimStop();
+  return true;
+}
 function showWinCard() {
   G.winCard = true;
   {
@@ -3157,21 +3248,29 @@ function showWinCard() {
     const record = prev.best != null && time < Math.floor(prev.best);
     const cheeseIco = document.querySelector('#cheese svg').outerHTML;
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
-    const stars = [0, 1, 2].map(k => starSvg(k < st, 0.25 + k * 0.22)).join('');
+    const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k])).join('');
     card(`<div class="win">
       <div class="wtitle"><b>${story ? 'Nivel' : 'Desafío'} ${G.level}</b><span>¡Completado!</span></div>
       <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         <i class="wray l">${RAYS_SVG}</i><i class="wray r">${RAYS_SVG}</i>${stars}</div>
       <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
         ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>Quesos</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
-        <div class="wbox wstat">${WATCH_SVG}<div><h3>Tiempo</h3><span class="num">${fmtMS(time)}</span></div>${record ? '<span class="stamp">¡Nuevo récord!</span>' : ''}</div>
+        <div class="wbox wstat">${WATCH_SVG}<div><h3>Tiempo</h3><span class="num">${fmtMS(time)}</span></div>${record ? '<span class="stamp" style="animation-delay:1.75s">¡Nuevo récord!</span>' : ''}</div>
       </div>
       <div class="wbox wreward"><span class="wtag">Recompensa</span><i class="wray">${RAYS_SVG}</i>
         <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SVG}</i></div>
       <div id="machSlot">${machButton()}</div>
       ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
       <div class="wbtns ${last ? 'home' : 'three'}">${exitBtn()}<button class="wbtn re" data-act="retry">${RETRY_SVG}Repetir</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}Siguiente</button>`}</div>
-    </div>`);   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
+    </div>`, { kind: 'win',
+      // los quesos, el tiempo y la recompensa cuentan desde 0, con un tic (o un tintineo de moneda) cada tanto
+      counters: [
+        { sel: '.wstat.q .num', fmt: 'frac', to: Math.min(G.cheese, G.cheeseTotal), of: G.cheeseTotal, at: 1.0, dur: 0.35, gap: 0.05, snd: () => Snd.tick(false) },
+        { sel: '.wstat:not(.q) .num', fmt: 'time', to: time, at: 1.15, dur: 0.55, gap: 0.07, snd: () => Snd.tick(false) },
+        { sel: '.wreward .num', fmt: 'plus', to: G.runCoins, at: 1.45, dur: 0.5, gap: 0.1, snd: () => Snd.coin() }],
+      // cada estrella suena al caer (más aguda la siguiente); el récord, con un golpe y un temblorcito
+      cues: STAR_AT.slice(0, st).map((d, k) => [d + 0.3, () => Snd.star(k)]).concat(record ? [[1.85, () => {
+        Snd.thunk(); const w = $card.querySelector('.win'); if (w) { w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 350); } }]] : []) });   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
     updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
   }
 }
@@ -3187,13 +3286,13 @@ function lost() {
   const trap = G.dieReason === 'trap';
   card(`<div class="win">
       <div class="wtitle lose"><b>${G.mode === 'story' ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${trap ? '¡Atrapado!' : G.lamp ? '¡Sin pila!' : '¡Se acabó el tiempo!'}</span></div>
-      <div class="wbox wlose"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
+      <div class="wbox wlose${trap ? '' : ' lamp'}"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         ${trap ? TRAP_SVG : DEAD_LAMP_SVG}
         <div><b>${trap ? 'La trampa se cerró.' : 'La linterna se apagó.'}</b><span>Volvés a la entrada del mismo laberinto.</span></div>
       </div>
       <div id="machSlot">${machButton()}</div>
       <div class="wbtns home">${exitBtn()}<button class="wbtn go" data-act="retry">${RETRY_SVG}Reintentar</button></div>
-    </div>`);
+    </div>`, { kind: 'lose' });
   updateButtons();
 }
 function togglePause() {
@@ -3222,7 +3321,7 @@ function renderOpts() {
       ? `<button class="wbtn re" data-o="home" title="Salir al menú (Q)" aria-label="Salir al menú">${ICONS.home}</button><button class="wbtn go" data-o="resume">${PLAY_SVG}Reanudar</button>`
       : '<button class="wbtn re" data-o="close">Cerrar</button>'}</div></div>`;
 }
-function openOpts() { clearTimeout(optsT); $opts.classList.remove('closing'); $opts.innerHTML = ''; renderOpts(); $opts.classList.remove('hidden'); Snd.click(); }
+function openOpts() { clearTimeout(optsT); $opts.classList.remove('closing'); $opts.innerHTML = ''; renderOpts(); animIn($opts.querySelector('.box'), { kind: 'opts' }, false); $opts.classList.remove('hidden'); Snd.click(); }
 function closeOpts() {   // con su animación de salida; después se esconde
   if ($opts.classList.contains('hidden') || $opts.classList.contains('closing')) return;
   $opts.classList.add('closing'); clearTimeout(optsT);
@@ -3241,6 +3340,7 @@ $opts.addEventListener('click', e => {
 // Acción principal: ESPACIO en teclado o tocar la pantalla
 function primaryAction() {
   Snd.init();
+  if (cardAnimSkip()) return;   // el cartel se estaba armando: se completa de una
   if (G.screen) { if (G.screen === 'machine') gachaSpin(); return; }   // en la Máquina, ESPACIO gira
   if (G.state === 'title') act('story');
   else if (G.state === 'select') fadeTo(() => { loadStory(Math.min(Story.data.unlocked, LEVELS.length) - 1); showIntro(); });
@@ -3807,10 +3907,10 @@ function drawFloor(c, v) {
   }
   // salida e inicio pintados en el piso
   c.save(); c.translate(C * 0.5, (m.exitRow + 0.5) * C);
-  c.fillStyle = 'rgba(150,20,16,0.85)'; c.font = `13px 'Permanent Marker', cursive`;
-  c.fillText('SALIDA', 2, -10); c.font = `22px 'Permanent Marker', cursive`; c.fillText('←', 0, 10); c.restore();
+  c.fillStyle = 'rgba(150,20,16,0.85)'; c.font = `13px 'Kalam', cursive`;
+  c.fillText('SALIDA', 2, -10); c.font = `22px 'Kalam', cursive`; c.fillText('←', 0, 10); c.restore();
   c.save(); c.translate((m.W + 0.5) * C, (m.entRow + 0.5) * C + 18); c.rotate(-0.08);
-  c.fillStyle = 'rgba(30,20,12,0.55)'; c.font = `10px 'Permanent Marker', cursive`; c.fillText('INICIO', 0, 0); c.restore();
+  c.fillStyle = 'rgba(30,20,12,0.55)'; c.font = `10px 'Kalam', cursive`; c.fillText('INICIO', 0, 0); c.restore();
   drawStartTape(c, Wp, m.entRow * C + T / 2 - 2, C - T + 4);
   drawStartTape(c, 0, m.exitRow * C + T / 2 - 2, C - T + 4, 0, true);   // la llegada, a cuadros
   // sombras de contacto al pie de las paredes
@@ -4524,7 +4624,7 @@ function renderGallery() {
   list.forEach(([name, draw], i) => {
     const p = at(i); draw(p);
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = 'rgba(20,12,4,0.85)'; ctx.font = `${Math.max(12, 5 * s)}px 'Permanent Marker', cursive`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(20,12,4,0.85)'; ctx.font = `${Math.max(12, 5 * s)}px 'Kalam', cursive`; ctx.textAlign = 'center';
     ctx.fillText(name, ox + p[0] * s, oy + (p[1] + CELL * 0.42) * s);
     ctx.restore();
   });
@@ -4790,7 +4890,7 @@ function ratGrid(bg, draw) {
     ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y0 + 0.5, cw - 1, ch - 1);
     draw(x0, y0, cw, ch - fs * 2.6, i);
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.fillStyle = '#2a2a2a';
-    ctx.font = `${fs}px 'Permanent Marker', cursive`; ctx.fillText(`${i} · ${r[0]}`, x0 + cw / 2, y0 + ch - fs * 1.35);
+    ctx.font = `${fs}px 'Kalam', cursive`; ctx.fillText(`${i} · ${r[0]}`, x0 + cw / 2, y0 + ch - fs * 1.35);
     ctx.font = `${fs * 0.72}px 'Special Elite', monospace`; ctx.fillText(`piel ${P.fur} · orejas ${P.ear}`, x0 + cw / 2, y0 + ch - fs * 0.35);
   });
 }
@@ -4867,12 +4967,12 @@ function openLib() {
   const st = document.createElement('style');
   st.textContent = `
   #lib { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: #ececec; color: #2a2622; font-family: 'Special Elite', monospace; padding: 16px 16px 60px; }
-  #lib h1 { font-family: 'Permanent Marker', cursive; font-weight: normal; margin: 0 0 4px; font-size: 32px; }
+  #lib h1 { font-family: 'Kalam', cursive; font-weight: normal; margin: 0 0 4px; font-size: 32px; }
   #lib .bar { position: sticky; top: -16px; z-index: 2; background: #ececec; padding: 10px 0 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #ccc; }
-  #lib button { font-family: 'Permanent Marker', cursive; font-size: 16px; padding: 6px 14px; border: 0; background: #e2d6b8; box-shadow: 0 2px 0 #6b4c2c; cursor: pointer; }
+  #lib button { font-family: 'Kalam', cursive; font-size: 16px; padding: 6px 14px; border: 0; background: #e2d6b8; box-shadow: 0 2px 0 #6b4c2c; cursor: pointer; }
   #lib .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: 16px; margin-top: 14px; }
   #lib .rc { background: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
-  #lib .rc h2 { font-family: 'Permanent Marker', cursive; font-weight: normal; margin: 0 0 6px; font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
+  #lib .rc h2 { font-family: 'Kalam', cursive; font-weight: normal; margin: 0 0 6px; font-size: 22px; display: flex; justify-content: space-between; align-items: center; }
   #lib .rc h2 button { font-size: 12px; padding: 3px 8px; }
   #lib .views { display: flex; gap: 6px; justify-content: space-between; background: #f3f1ec; border-radius: 8px; }
   #lib .views figure { margin: 0; flex: 1; text-align: center; font-size: 11px; color: #777; }
