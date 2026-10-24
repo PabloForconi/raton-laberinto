@@ -1677,7 +1677,8 @@ function showSelect() {
       <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
   }).join('');
   card(`<div class="win"><div class="wtitle"><b>Niveles</b></div>
-    <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div></div>`);   // volver: la flechita de arriba a la izquierda (ESPACIO sigue jugando el último desbloqueado)
+    <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div>
+    <div class="wbtns home"><button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button><button class="wbtn re" data-act="ratitas">Bioterio</button></div></div>`);   // adentro del cartel (como en los demás): la casita a la portada y el Bioterio para elegir la ratita antes de jugar (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
 }
 
@@ -1686,6 +1687,9 @@ function showSelect() {
 // (la portada queda atrás, tal cual). Entre una y otra solo se cambia el contenido.
 const $scr = document.getElementById('screen');
 let scrTimer = 0;
+const screenBackBtn = () => G.state === 'select'
+  ? `<button class="cbtn home" data-act="back" aria-label="Niveles">${LEVELS_SVG}</button>`
+  : `<button class="cbtn home" data-act="back" aria-label="Portada">${ICONS.home}</button>`;
 function openScreen(html) {   // aparece de una (la entrada la hace el fundido a negro, fadeTo)
   clearTimeout(scrTimer);
   if (!$scr.classList.contains('open')) Snd.cardIn();
@@ -1748,7 +1752,7 @@ function showRatitas(from) {
       <canvas width="${CAGE_W}" height="${CAGE_H}" data-rat="${i}"></canvas></button>`).join('')).join('');
   openScreen(`<div class="rack"><div class="bandtop"></div><div class="rackin"><div class="bgrack">${cells}</div>
       <div class="biohead" aria-hidden="true" style="visibility:hidden"><h2 class="stitle">BIOTERIO</h2></div></div></div>
-    <div class="bandbot"></div><div class="sbtns bionav"><button class="cbtn home" data-act="back" aria-label="Portada">${ICONS.home}</button><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de abajo, al lado de Máquina
+    <div class="bandbot"></div><div class="sbtns bionav">${screenBackBtn()}<button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de abajo, al lado de Máquina
   updateButtons(); layoutRack();
   cageAnimLoop();
 }
@@ -2182,7 +2186,7 @@ function showMachine(from) {
     <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
     <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>
-    <div class="sbtns" id="gachaNav"><button class="cbtn home" data-act="back" aria-label="Portada">${ICONS.home}</button><button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio (con la casita a la izquierda)
+    <div class="sbtns" id="gachaNav">${screenBackBtn()}<button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio (con la casita a la izquierda)
   updateButtons(); placeScreenBg();
   cancelAnimationFrame(Gacha.raf);
   let last = performance.now();
@@ -3276,7 +3280,7 @@ function actNow(a, el) {
   else if (a === 'resume') togglePause();
   else if (a === 'retry') { G.attempts++; resetRun(); startPlay(); }   // el mismo laberinto, de nuevo
   else if (a === 'back') {   // en el Bioterio y la Máquina es la casita: cierra la pantalla y va a la portada
-    if (G.screen) { G.screen = null; closeScreen(); if (G.state !== 'title') showTitle(); else { refreshPrize(); updateButtons(); } }
+    if (G.screen) { G.screen = null; closeScreen(); if (G.state === 'select') showSelect(); else if (G.state !== 'title') showTitle(); else { refreshPrize(); updateButtons(); } }
     else showTitle();
   }
   else if (a === 'menu') { closeOpts(); Music.resume(); showTitle(); }
@@ -3308,7 +3312,7 @@ function updateButtons() {
   if ($btnBack.dataset.icon !== icon) { $btnBack.dataset.icon = icon; $btnBack.innerHTML = G.screen ? ICONS.home : BACK_ARROW; }
   $btnLight.classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el botón de la luz de prueba solo está en la portada
   // flechita / casita arriba a la izquierda: en el selector, los resultados, el Bioterio y la Máquina
-  const back = !G.screen && G.state === 'select';   // en los carteles de fin de nivel la salida va adentro del cartel, y en el Bioterio y la Máquina abajo
+  const back = false;   // ya no hay flechita en la esquina: en los carteles la salida va adentro del cartel, y en el Bioterio y la Máquina abajo
   $btnBack.classList.toggle('hidden', !back);
   // mientras anda la máquina, la casita, las monedas, el engranaje y el botón Bioterio se desvanecen (sin moverse de
   // lugar) y vuelven cuando sale la ratita
