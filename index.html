@@ -187,7 +187,7 @@
   .bgrack .rat { position: absolute; }
   .rat { position: relative; z-index: 1; background: none; border: 0; padding: 0; cursor: pointer; display: block;
     width: min(calc(100vw / var(--cols)), 280px); -webkit-tap-highlight-color: transparent; }
-  .rat canvas { display: block; width: 100%; aspect-ratio: 330 / 300; }
+  .rat canvas { display: block; width: 100%; }   /* (la proporción la da el lienzo: CAGE_W × CAGE_H) */
   .rat:disabled { cursor: default; }
   .rat:not(:disabled):active canvas { transform: scale(.96); }
   /* máquina */
@@ -1807,11 +1807,15 @@ function drawRatBall(c, x, y, size, i, rot = 0, t = 0) {
 // Adentro va la ratita de perfil; si todavía no la tenés, es una silueta oscura y el cartel dice "???".
 // Dibuja en (0, 0) con tamaño w × h; t anima a la ratita (0: quieta).
 const cageOff = document.createElement('canvas'), cageOffCtx = cageOff.getContext('2d');
-// lienzo de cada jaula del Bioterio (más ancho que alto: antes era 330 × 300) y cuánto más grande va la ratita adentro
-const CAGE_W = 412, CAGE_H = 300, CAGE_RAT = 1.12;
+// lienzo de cada jaula del Bioterio: el mismo alto que antes y más ancho (antes 330 × 300), así la jaula solo crece
+// para los costados; y cuánto más grande va la ratita adentro
+const CAGE_W = 396, CAGE_H = 300, CAGE_RAT = 1.3;   // (1,3: lo más grande sin que las orejas lleguen al cartel del nombre)
 // shelf: dibuja su pedazo de estante (en la pantalla de Ratitas el estante lo pone el CSS, de punta a punta)
 function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag = 0) {
   const rnd = mulberry32(i * 977 + 13);
+  // u: el ancho que tenía la jaula antes de ensancharla (330 de 300 de alto). Los bordes de la caja van con el ancho
+  // nuevo; lo demás (grosores, alambres, el cartel, la viruta, el brillo) con u, así queda igual que antes
+  const u = h * 1.1;
   g.save();
   const sy = h * 0.86, sh = h * 0.07;                                                // estante
   if (shelf) {
@@ -1820,18 +1824,18 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
     g.fillStyle = mg; g.fillRect(0, sy, w, sh);
   }
   // caja
-  const x0 = w * 0.07, x1 = w * 0.93, top = h * 0.3, bot = sy, ins = w * 0.035;
+  const x0 = u * 0.07, x1 = w - x0, top = h * 0.3, bot = sy, ins = u * 0.035;   // (el mismo margen de antes: la caja ocupa el ancho nuevo)
   const box = new Path2D(); box.moveTo(x0, top); box.lineTo(x1, top); box.lineTo(x1 - ins, bot); box.lineTo(x0 + ins, bot); box.closePath();
   g.fillStyle = 'rgba(205,220,226,0.45)'; g.fill(box);
   g.save(); g.clip(box);
   const bed = bot - h * 0.085;                                                       // viruta (bien abajo, casi al ras del estante)
-  g.fillStyle = '#dcc69e'; g.beginPath(); g.moveTo(0, bot);
-  for (let x = 0; x <= w; x += w / 12) g.lineTo(x, bed + Math.sin(x * 0.2 + i) * h * 0.012);
+  g.fillStyle = '#c4aa7c'; g.beginPath(); g.moveTo(0, bot);   // (más oscura que antes, #dcc69e)
+  for (let x = 0; x <= w; x += u / 12) g.lineTo(x, bed + Math.sin(x * 0.2 + i) * h * 0.012);
   g.lineTo(w, bot); g.closePath(); g.fill();
-  const flecks = ['#c9a873', '#ecdcb6', '#b38f5c', '#f3e9cf'];
-  for (let k = 0; k < 40; k++) {
+  const flecks = ['#ad8e5b', '#d4c198', '#96764a', '#ddd0ae'];   // (también más oscuras)
+  for (let k = 0, n = Math.round(40 * (x1 - x0) / (u * 0.86)); k < n; k++) {   // (más pedacitos si la caja es más ancha)
     g.fillStyle = flecks[k % 4];
-    g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), bed + rnd() * (bot - bed), w * (0.012 + rnd() * 0.02), h * (0.005 + rnd() * 0.008), rnd() * 3, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), bed + rnd() * (bot - bed), u * (0.012 + rnd() * 0.02), h * (0.005 + rnd() * 0.008), rnd() * 3, 0, Math.PI * 2); g.fill();
   }
   // ratita parada sobre la viruta (las patas quedan 82 unidades del retrato debajo de su centro)
   // (el tamaño sale del alto de la jaula, no del ancho: así las jaulas más anchas no la agrandan de más)
@@ -1848,26 +1852,26 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   // plástico: brillo en diagonal y bordes
   g.save(); g.clip(box);
   g.fillStyle = 'rgba(255,255,255,0.16)';
-  g.beginPath(); g.moveTo(x0 + w * 0.12, top); g.lineTo(x0 + w * 0.3, top); g.lineTo(x0 + w * 0.08, bot); g.lineTo(x0 - w * 0.1, bot); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(x0 + u * 0.12, top); g.lineTo(x0 + u * 0.3, top); g.lineTo(x0 + u * 0.08, bot); g.lineTo(x0 - u * 0.1, bot); g.closePath(); g.fill();
   g.restore();
   g.lineJoin = 'round';
-  g.strokeStyle = 'rgba(110,130,138,0.45)'; g.lineWidth = Math.max(1, w * 0.012); g.stroke(box);
-  g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = Math.max(1, w * 0.006); g.stroke(box);
+  g.strokeStyle = 'rgba(110,130,138,0.45)'; g.lineWidth = Math.max(1, u * 0.012); g.stroke(box);
+  g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = Math.max(1, u * 0.006); g.stroke(box);
   // tapa de reja
   const ly = top - h * 0.07;
   // atrás de la reja, la otra pared de la tapa (como la referencia): una franja oscura en la mitad de abajo y barritas
   // oscuras que suben, paralelas a las de adelante pero corridas, así asoman entre los alambres
   const lh2 = top - ly;
-  g.fillStyle = '#17191c'; g.fillRect(x0 - w * 0.01, top - lh2 * 0.45, x1 - x0 + w * 0.02, lh2 * 0.45);
-  for (let x = x0 + w * 0.02 + w * 0.0175; x <= x1 - w * 0.02; x += w * 0.035) g.fillRect(x - w * 0.005, ly + lh2 * 0.12, w * 0.01, lh2 * 0.5);
-  g.strokeStyle = '#9aa2a8'; g.lineWidth = Math.max(1, w * 0.008);
+  g.fillStyle = '#17191c'; g.fillRect(x0 - u * 0.01, top - lh2 * 0.45, x1 - x0 + u * 0.02, lh2 * 0.45);
+  for (let x = x0 + u * 0.02 + u * 0.0175; x <= x1 - u * 0.02; x += u * 0.035) g.fillRect(x - u * 0.005, ly + lh2 * 0.12, u * 0.01, lh2 * 0.5);
+  g.strokeStyle = '#9aa2a8'; g.lineWidth = Math.max(1, u * 0.008);
   g.beginPath();
-  for (let x = x0 + w * 0.02; x <= x1 - w * 0.02; x += w * 0.035) { g.moveTo(x, ly); g.lineTo(x, top); }
+  for (let x = x0 + u * 0.02; x <= x1 - u * 0.02; x += u * 0.035) { g.moveTo(x, ly); g.lineTo(x, top); }
   g.stroke();
-  g.strokeStyle = '#7f878d'; g.lineWidth = Math.max(1.5, w * 0.016);
-  g.beginPath(); g.moveTo(x0 - w * 0.02, ly); g.lineTo(x1 + w * 0.02, ly); g.moveTo(x0 - w * 0.02, top); g.lineTo(x1 + w * 0.02, top); g.stroke();
+  g.strokeStyle = '#7f878d'; g.lineWidth = Math.max(1.5, u * 0.016);
+  g.beginPath(); g.moveTo(x0 - u * 0.02, ly); g.lineTo(x1 + u * 0.02, ly); g.moveTo(x0 - u * 0.02, top); g.lineTo(x1 + u * 0.02, top); g.stroke();
   // cartelito con el nombre (amarillo si es la elegida)
-  const lw = w * 0.62, lh = h * 0.12, lx = (w - lw) / 2, lyy = top + h * 0.035;
+  const lw = u * 0.62, lh = h * 0.12, lx = (w - lw) / 2, lyy = top + h * 0.035;
   g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(lx + 2, lyy + 2, lw, lh);
   g.fillStyle = sel ? '#ffe17a' : '#fbf8ee'; g.fillRect(lx, lyy, lw, lh);
   if (owned) {   // el nombre en mayúsculas; la jaula vacía lleva la etiqueta en blanco
