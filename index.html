@@ -3599,10 +3599,16 @@ function collide() {
   const ca = Math.cos(M.a), sa = Math.sin(M.a);
   doorCheck();
   // cuerpo, cabeza y cadera (la cadera evita que al girar pegado a una pared la cola se meta en el cartón)
+  let spinLeft = SPIN_PUSH_MAX * 1.4;   // lo que pueden empujar los molinetes en un cuadro, entre todos los círculos (nunca un salto)
   for (let it = 0; it < 3; it++) for (const [off, r] of [[0, RAD], [12, 7], [-11, 6]]) {
     let cx = M.x + ca * off, cy = M.y + sa * off;
-    const [sx, sy] = spinPush(cx, cy, r);   // las aspas del molinete la empujan (las paredes se resuelven después y ganan)
-    if (sx || sy) { M.x += sx; M.y += sy; cx += sx; cy += sy; pushed = Math.max(pushed, Math.hypot(sx, sy)); }
+    if (it === 0 && spinLeft > 0) {   // las aspas del molinete la empujan (las paredes se resuelven después y ganan)
+      let [sx, sy] = spinPush(cx, cy, r, off > 0 ? 1 : off < 0 ? 2 : 0);
+      const L = Math.hypot(sx, sy);
+      if (L > spinLeft) { sx *= spinLeft / L; sy *= spinLeft / L; }
+      spinLeft -= Math.min(L, spinLeft);
+      if (L) { M.x += sx; M.y += sy; cx += sx; cy += sy; pushed = Math.max(pushed, Math.hypot(sx, sy)); }
+    }
     for (const R of G.solids) {   // paredes (con los huecos de las puertas) + huecos que están cerrados
       if (R.door && R.door.passing) continue;
       if (cx + r < R.x || cx - r > R.x + R.w || cy + r < R.y || cy - r > R.y + R.h) continue;
@@ -4154,23 +4160,38 @@ const CHEESE_SCALE = 1.25;   // tamaño del queso
 // ni hacen sombra en las paredes. No atrapan: empujan a la rata (spinPush), hay que pasar en el hueco.
 const SPIN_ARM = 19, SPIN_HW = 3.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
 const spinAng = it => it.a0 + it.dir * SPIN_SPEED * G.time;
+const SPIN_PUSH_MAX = 2.5;   // empujón máximo de un aspa por pasada (de a poco, nunca un salto)
 // cuánto hay que correr un círculo de la rata (centro cx, cy, radio r) para sacarlo de las aspas y el eje
-function spinPush(cx, cy, r) {
+// k: qué círculo de la rata es (cuerpo, cabeza, cadera). Cada aspa recuerda de qué lado tocó a cada círculo y lo empuja
+// siempre hacia ese lado mientras sigan en contacto, de a poco: si la rata queda apretada contra una pared, el aspa le
+// pasa por debajo (es bajita) en vez de hacerla saltar al otro lado (antes, al cruzar la mitad del aspa, el empujón se
+// daba vuelta y la rata aparecía de golpe del otro lado)
+function spinPush(cx, cy, r, k = 0) {
   let ox = 0, oy = 0;
   for (const it of G.items) {
     if (it.type !== 'spinner') continue;
-    const dx = cx - it.x, dy = cy - it.y;
-    if (dx * dx + dy * dy > (SPIN_ARM + r + 3) ** 2) continue;
+    const dx = cx - it.x, dy = cy - it.y, side = it.side || (it.side = []);
+    if (dx * dx + dy * dy > (SPIN_ARM + r + 3) ** 2) { for (let q = 0; q < 4; q++) side[q * 3 + k] = 0; continue; }
     const d = Math.hypot(dx, dy), need = SPIN_HUB + r;
     if (d < need && d > 1e-6) { ox += dx / d * (need - d); oy += dy / d * (need - d); }
     const a = spinAng(it);
     for (let q = 0; q < 4; q++) {
       const ux = Math.cos(a + q * Math.PI / 2), uy = Math.sin(a + q * Math.PI / 2);
       const t = clamp(dx * ux + dy * uy, 0, SPIN_ARM), px = dx - ux * t, py = dy - uy * t, pd = Math.hypot(px, py), need2 = SPIN_HW + r;
-      if (pd >= need2) continue;
-      // afuera del aspa por el lado más cercano (si está justo encima, hacia donde gira: la arrastra como una puerta giratoria)
-      const [nx, ny] = pd > 1e-6 ? [px / pd, py / pd] : [-uy * it.dir, ux * it.dir];
-      ox += nx * (need2 - pd); oy += ny * (need2 - pd); it.hit = true;
+      const key = q * 3 + k;
+      if (pd >= need2) { side[key] = 0; continue; }
+      let nx, ny, pen;
+      if (t >= SPIN_ARM) {   // contra la punta: hacia afuera
+        if (pd < 1e-6) continue;
+        nx = px / pd; ny = py / pd; pen = need2 - pd;
+      } else {
+        const lx = -uy * it.dir, ly = ux * it.dir, sd = px * lx + py * ly;   // distancia con signo, positiva hacia donde gira el aspa
+        if (!side[key]) side[key] = sd >= 0 ? 1 : -1;                        // el lado del primer toque queda fijo mientras dure
+        nx = lx * side[key]; ny = ly * side[key]; pen = need2 - side[key] * sd;
+        if (pen <= 0) continue;
+      }
+      pen = Math.min(pen, SPIN_PUSH_MAX);
+      ox += nx * pen; oy += ny * pen; it.hit = true;
     }
   }
   return [ox, oy];
