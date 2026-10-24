@@ -1333,6 +1333,7 @@ function drawHinge(c, d, P, quad) {
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const [wallCv, wctx] = mk(), [lightCv, lctx] = mk(), [aCv, actx] = mk(), [bCv, bctx] = mk();
 const [blurCv, blurCtx] = mk(), [litCv, litCtx] = mk(), [mouseCv, mouseCtx] = mk();   // sombras suaves / paredes por encima del ratón / ratón opaco
+const [topCv, topCtx] = mk();   // máscara de lo que tapa al ratón: solo los cantos de arriba de las paredes (y las cortinas de adelante)
 // ¿El navegador desenfoca de verdad con ctx.filter? (Safari / iPhone no: a veces tiene la propiedad pero la ignora)
 let CAN_BLUR = (() => {
   try {
@@ -1394,7 +1395,7 @@ function resize() {
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
   // tamaño real visible del canvas (en el celular 100vh incluye la barra del navegador y descentraba la cámara)
   const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
-  for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv, mouseCv]) { c.width = w; c.height = h; }
+  for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv, mouseCv, topCv]) { c.width = w; c.height = h; }
   blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);  computeScale();
 }
 function computeScale() {
@@ -4574,14 +4575,27 @@ function render() {
     ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); ctx.fill();
   }
 
-  // 5) las paredes son más altas que el ratón: se vuelven a dibujar encima, solo en la zona alrededor de él
+  // 5) las paredes son más altas que el ratón: se vuelven a dibujar encima, solo en la zona alrededor de él. Solo los
+  //    cantos de arriba (y las cortinas de las puertas vistas de frente): las caras que miran a la cámara quedan debajo
+  //    del ratón, así cuando se apoya contra una pared se le ven las orejas, la cabeza y las patas delante de la cara (antes
+  //    la pared se las tapaba y parecía que se metía por debajo)
   if (!lit) { wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.clearRect(0, 0, w, h); wctx.setTransform(...T6); drawWalls(wctx, v); }
   if (sw > 0 && sh > 0 && !menu) {
     litCtx.setTransform(1, 0, 0, 1, 0, 0); litCtx.globalCompositeOperation = 'source-over'; litCtx.clearRect(sx, sy, sw, sh);
     litCtx.drawImage(wallCv, sx, sy, sw, sh, sx, sy, sw, sh);
     if (lit) { litCtx.globalCompositeOperation = 'multiply'; litCtx.drawImage(lightCv, sx, sy, sw, sh, sx, sy, sw, sh); }
     else { litCtx.globalCompositeOperation = 'source-in'; litCtx.fillStyle = '#000'; litCtx.fillRect(sx, sy, sw, sh); }
-    litCtx.globalCompositeOperation = 'destination-in'; litCtx.drawImage(wallCv, sx, sy, sw, sh, sx, sy, sw, sh);
+    topCtx.setTransform(1, 0, 0, 1, 0, 0); topCtx.clearRect(sx, sy, sw, sh);
+    topCtx.save(); topCtx.beginPath(); topCtx.rect(sx, sy, sw, sh); topCtx.clip(); topCtx.setTransform(...T6);
+    const rx0 = cam.x + (sx - w / 2) / scale, ry0 = cam.y + (sy - h / 2) / scale, rx1 = rx0 + sw / scale, ry1 = ry0 + sh / scale;
+    topCtx.fillStyle = '#000';
+    for (const R of G.rects) {
+      const t = R._t; if (!t) continue;
+      if (t[0] < rx1 && t[0] + t[2] > rx0 && t[1] < ry1 && t[1] + t[3] > ry0) topCtx.fillRect(t[0] - 0.5, t[1] - 0.5, t[2] + 1, t[3] + 1);
+    }
+    drawDoors(topCtx, v, 'front');
+    topCtx.restore();
+    litCtx.globalCompositeOperation = 'destination-in'; litCtx.drawImage(topCv, sx, sy, sw, sh, sx, sy, sw, sh);
     litCtx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(litCv, sx, sy, sw, sh, sx, sy, sw, sh);
   }
