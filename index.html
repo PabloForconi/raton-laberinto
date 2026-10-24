@@ -4263,13 +4263,17 @@ function drawSpinner(c, it) {
 // Un instante antes de bajar tiembla y suena un "clac". No atrapa: si baja con la rata abajo, la empuja de a poco hacia
 // afuera de la tabla (gatePush). Sin sombra en las paredes, como el molinete.
 const GATE_CYCLE = 3.4, GATE_OPEN = 1.4, GATE_MOVE = 0.35, GATE_SHUT = 1.3, GATE_T = 5, GATE_HALF = C / 2 - T / 2;   // ciclo (s): abierta, moviéndose, cerrada; grosor de la tabla; medio ancho del pasillo
-const GATE_AXLE = 0.85, GATE_L = GATE_AXLE * WALL_HW, GATE_MAXA = 1.4, GATE_BLOCK = 1.05, GATE_AXLE_W = 4, GATE_RED = '#c8312a';   // (GATE_AXLE_W: grosor del eje rojo)   // alto del eje (fracción de la pared), largo de la tabla (llega al piso), ángulo abierta, hasta qué ángulo tapa el paso, grosor del canto de arriba
+const GATE_AXLE = 0.92, GATE_GAP = 0.18, GATE_L = (GATE_AXLE - GATE_GAP) * WALL_HW, GATE_MAXA = 1.4, GATE_BLOCK = 1.05, GATE_AXLE_W = 6, GATE_RED = '#c8312a';   // alto del eje y luz entre la tabla y el piso (fracción de la pared: colgada no llega al piso, la cola de la rata pasa por debajo), largo de la tabla, ángulo abierta, hasta qué ángulo tapa el paso, grosor del eje (el sorbete)
+const GATE_BOUNCE = 0.2, GATE_BOUNCE_T = 0.3, GATE_BOUNCE_K = 5;   // el rebote blando al cerrar: alto (fracción de abierta), duración de cada rebote (s), cuánto se apaga
 // cuánto está abierta (1 abierta del todo, 0 cerrada) y si está por cerrarse (para el temblor)
 function gateState(it) {
   const t = ((G.time + it.ph) % GATE_CYCLE + GATE_CYCLE) % GATE_CYCLE, e = u => u * u * (3 - 2 * u);
   if (t < GATE_OPEN) return { o: 1, warn: t > GATE_OPEN - 0.3 };
-  if (t < GATE_OPEN + GATE_MOVE) return { o: 1 - e((t - GATE_OPEN) / GATE_MOVE), warn: false };
-  if (t < GATE_OPEN + GATE_MOVE + GATE_SHUT) return { o: 0, warn: false };
+  if (t < GATE_OPEN + GATE_MOVE) { const u = (t - GATE_OPEN) / GATE_MOVE; return { o: 1 - u * u, warn: false }; }   // cae acelerando
+  if (t < GATE_OPEN + GATE_MOVE + GATE_SHUT) {   // abajo: un rebote blando que se apaga
+    const tb = t - GATE_OPEN - GATE_MOVE;
+    return { o: GATE_BOUNCE * Math.exp(-tb * GATE_BOUNCE_K) * Math.abs(Math.sin(Math.PI * tb / GATE_BOUNCE_T)), warn: false };
+  }
   return { o: e((t - GATE_OPEN - GATE_MOVE - GATE_SHUT) / GATE_MOVE), warn: false };
 }
 const gateSide = it => it.side || 1;   // hacia qué lado del pasillo se levanta: hacia donde viene la rata (en general la derecha)
@@ -4297,15 +4301,14 @@ function gatePush(cx, cy, r) {
   }
   return [ox, oy];
 }
-// en el piso: flechas a lo largo del pasillo (en el marrón de los textos del piso) y la sombra de la tabla
+// en el piso: una flecha a lo largo del pasillo hacia donde se levanta (en el marrón de los textos del piso) y la sombra de la tabla
 function drawGate(c, it) {
   const a = gateAng(it), sd = gateSide(it), u1 = sd * GATE_L * Math.sin(a);
   c.save(); c.translate(it.x, it.y); if (it.vert) c.rotate(Math.PI / 2);
   c.strokeStyle = 'rgba(35,24,14,0.55)'; c.lineWidth = 1.8; c.lineCap = 'round'; c.lineJoin = 'round';
-  for (const sx of [-1, 1]) {
-    c.beginPath(); c.moveTo(sx * 9, 0); c.lineTo(sx * 22, 0); c.stroke();
-    c.beginPath(); c.moveTo(sx * 18, -4); c.lineTo(sx * 22, 0); c.lineTo(sx * 18, 4); c.stroke();
-  }
+  // una sola flecha, del lado hacia el que se levanta y separada de la tabla
+  c.beginPath(); c.moveTo(sd * 38, 0); c.lineTo(sd * 51, 0); c.stroke();
+  c.beginPath(); c.moveTo(sd * 47, -4); c.lineTo(sd * 51, 0); c.lineTo(sd * 47, 4); c.stroke();
   c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(Math.min(0, u1) - 2, -GATE_HALF, Math.abs(u1) + 4, GATE_HALF * 2);
   c.restore();
 }
@@ -4318,7 +4321,7 @@ function drawGates(c, v, mask = false, list = G.items) {
     const P = (u, w, f) => { const x = it.x + ax * u + tx * w, y = it.y + ay * u + ty * w, k = 1 + K * f; return [cam.x + (x - cam.x) * k, cam.y + (y - cam.y) * k]; };
     const quad = pts => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
     const a = gateAng(it), sd = gateSide(it), w = GATE_HALF - 1;
-    const u1 = sd * GATE_L * Math.sin(a), f1 = GATE_AXLE * (1 - Math.cos(a));
+    const u1 = sd * GATE_L * Math.sin(a), f1 = GATE_AXLE - GATE_L / WALL_HW * Math.cos(a);   // alto del canto libre
     const A = P(0, -w, GATE_AXLE), B = P(0, w, GATE_AXLE), Cc = P(u1, w, f1), D = P(u1, -w, f1);
     // la pared del costado que está entre la cámara y la compuerta (la de adelante) la tapa: se recorta su lugar (la
     // pared con su canto proyectado); la de atrás queda debajo de la compuerta
@@ -4333,21 +4336,31 @@ function drawGates(c, v, mask = false, list = G.items) {
       const eh = GATE_AXLE_W / 2 + 0.5; quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(eh, GATE_HALF, GATE_AXLE), P(eh, -GATE_HALF, GATE_AXLE)]); c.fill();
       c.restore(); continue;
     }
-    // la tabla: amarilla con franjas negras en diagonal, más oscura cuanto más levantada (le llega menos luz)
+    // la tabla: amarilla con franjas negras en diagonal, más oscura cuanto más baja y más iluminada cuanto más levantada
     c.save(); quad([A, B, Cc, D]); c.clip();
     c.fillStyle = '#efc12a'; c.fill();
     c.setTransform(c.getTransform().multiply(new DOMMatrix([B[0] - A[0], B[1] - A[1], D[0] - A[0], D[1] - A[1], A[0], A[1]])));
     c.fillStyle = '#1c1b18';
     for (let k = -2; k < 9; k++) { c.beginPath(); const x0 = k / 7; c.moveTo(x0, 0); c.lineTo(x0 + 0.07, 0); c.lineTo(x0 + 0.07 + 0.18, 1); c.lineTo(x0 + 0.18, 1); c.closePath(); c.fill(); }
-    c.fillStyle = `rgba(30,18,8,${0.12 + 0.3 * a / GATE_MAXA})`; c.fillRect(0, 0, 1, 1);
+    c.fillStyle = `rgba(30,18,8,${0.42 - 0.3 * Math.min(1, a / GATE_MAXA)})`; c.fillRect(0, 0, 1, 1);
     c.restore();
     quad([A, B, Cc, D]); c.strokeStyle = 'rgba(40,24,8,0.8)'; c.lineWidth = 0.7; c.stroke();
     c.strokeStyle = '#f3d36a'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(...Cc); c.lineTo(...D); c.stroke();   // canto de abajo de la tabla, finito y amarillo
-    // el eje de pared a pared, rojo (colgada, es lo que se ve desde arriba y marca la barrera), con una tuerca en cada punta
-    const eh = GATE_AXLE_W / 2;
-    quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(eh, GATE_HALF, GATE_AXLE), P(eh, -GATE_HALF, GATE_AXLE)]);
-    c.fillStyle = GATE_RED; c.fill(); c.strokeStyle = 'rgba(60,14,10,0.8)'; c.lineWidth = 0.6; c.stroke();
-    c.fillStyle = 'rgba(255,255,255,0.22)'; quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(-eh + 1, GATE_HALF, GATE_AXLE), P(-eh + 1, -GATE_HALF, GATE_AXLE)]); c.fill();   // un brillo
+    // el eje de pared a pared: un sorbete de papel blanco con la espiral roja (después de una foto del usuario), que gira
+    // con la tabla (la espiral corre a lo largo), con su sombreado de cilindro y una tuerca en cada punta
+    const eh = GATE_AXLE_W / 2, L = GATE_HALF * 2, O = P(-eh, -GATE_HALF, GATE_AXLE), X = P(eh, -GATE_HALF, GATE_AXLE), Y = P(-eh, GATE_HALF, GATE_AXLE);
+    c.save();
+    c.setTransform(c.getTransform().multiply(new DOMMatrix([(X[0] - O[0]) / GATE_AXLE_W, (X[1] - O[1]) / GATE_AXLE_W, (Y[0] - O[0]) / L, (Y[1] - O[1]) / L, O[0], O[1]])));
+    c.beginPath(); c.rect(0, 0, GATE_AXLE_W, L); c.clip();
+    c.fillStyle = '#f4efe6'; c.fillRect(0, 0, GATE_AXLE_W, L);
+    const per = 7, sh = (a / (Math.PI * 2) * per * 3) % per;   // paso de la espiral; cuánto corrió al girar
+    c.fillStyle = GATE_RED;
+    for (let y = sh - per * 2; y < L + per; y += per) { c.beginPath(); c.moveTo(0, y); c.lineTo(GATE_AXLE_W, y + 4); c.lineTo(GATE_AXLE_W, y + 7.5); c.lineTo(0, y + 3.5); c.closePath(); c.fill(); }
+    const gr = c.createLinearGradient(0, 0, GATE_AXLE_W, 0);
+    gr.addColorStop(0, 'rgba(40,18,10,0.4)'); gr.addColorStop(0.3, 'rgba(255,255,255,0.35)'); gr.addColorStop(0.55, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(40,18,10,0.5)');
+    c.fillStyle = gr; c.fillRect(0, 0, GATE_AXLE_W, L);
+    c.restore();
+    quad([O, Y, P(eh, GATE_HALF, GATE_AXLE), X]); c.strokeStyle = 'rgba(60,24,14,0.6)'; c.lineWidth = 0.5; c.stroke();
     for (const wy of [-GATE_HALF + 2.5, GATE_HALF - 2.5]) { const [bx, by] = P(0, wy, GATE_AXLE); c.fillStyle = '#b9bec4'; c.beginPath(); c.arc(bx, by, 1.6, 0, Math.PI * 2); c.fill(); }
     c.restore();
   }
