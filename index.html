@@ -472,7 +472,7 @@
   @media (max-width: 560px) { #lamp { top: 118px; } }
   /* el nivel, una etiqueta oscura montada sobre el borde de arriba del reloj */
   #level { z-index: 2; top: 6px; padding: 1px 10px 0; background: #2b1a0b; color: #f3e4c4; border-radius: 7px; box-shadow: 0 2px 4px rgba(0,0,0,.5); letter-spacing: .5px; }
-  #timer { top: 24px; padding: 6px 12px 1px; min-width: 0; font-size: 26px; }   /* más chico, con minutos de dos cifras (00:25) */
+  #timer { top: 24px; padding: 6px 12px 1px; min-width: 0; width: 2.7em; box-sizing: content-box; font-size: 26px; }   /* más chico, con minutos de dos cifras (00:25); ancho fijo: entran los 4 números más anchos de Kalam (el 8, 0,59 em) y los dos puntos (0,25 em), así la caja no cambia de tamaño mientras corre */
   @media (max-width: 560px) { #timer { top: 22px; font-size: 22px; } }
   /* Bioterio y Máquina: los botones de abajo y Activar, como los botones de los carteles */
   #screen .sbtns .cbtn { transform: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 4px 24px 0;
@@ -4589,9 +4589,18 @@ function render() {
     topCtx.save(); topCtx.beginPath(); topCtx.rect(sx, sy, sw, sh); topCtx.clip(); topCtx.setTransform(...T6);
     const rx0 = cam.x + (sx - w / 2) / scale, ry0 = cam.y + (sy - h / 2) / scale, rx1 = rx0 + sw / scale, ry1 = ry0 + sh / scale;
     topCtx.fillStyle = '#000';
+    const quad = (...p) => { topCtx.beginPath(); topCtx.moveTo(p[0], p[1]); for (let i = 2; i < 8; i += 2) topCtx.lineTo(p[i], p[i + 1]); topCtx.closePath(); topCtx.fill(); };
     for (const R of G.rects) {
       const t = R._t; if (!t) continue;
-      if (t[0] < rx1 && t[0] + t[2] > rx0 && t[1] < ry1 && t[1] + t[3] > ry0) topCtx.fillRect(t[0] - 0.5, t[1] - 0.5, t[2] + 1, t[3] + 1);
+      const [tx, ty, tw, th] = t;
+      if (Math.min(tx, R.x) >= rx1 || Math.max(tx + tw, R.x + R.w) <= rx0 || Math.min(ty, R.y) >= ry1 || Math.max(ty + th, R.y + R.h) <= ry0) continue;
+      topCtx.fillRect(tx - 0.5, ty - 0.5, tw + 1, th + 1);
+      // la cara que mira a la cámara tapa al ratón solo si él está del otro lado de la pared (detrás de ella); si está
+      // del lado de la cara, queda delante (si no, se le veían las patas y los bigotes asomando del otro lado)
+      if (R.x > cam.x && M.x > R.x + R.w / 2) quad(R.x, R.y, R.x, R.y + R.h, tx, ty + th, tx, ty);
+      if (R.x + R.w < cam.x && M.x < R.x + R.w / 2) quad(R.x + R.w, R.y, R.x + R.w, R.y + R.h, tx + tw, ty + th, tx + tw, ty);
+      if (R.y > cam.y && M.y > R.y + R.h / 2) quad(R.x, R.y, R.x + R.w, R.y, tx + tw, ty, tx, ty);
+      if (R.y + R.h < cam.y && M.y < R.y + R.h / 2) quad(R.x, R.y + R.h, R.x + R.w, R.y + R.h, tx + tw, ty + th, tx, ty + th);
     }
     drawDoors(topCtx, v, 'front');
     topCtx.restore();
