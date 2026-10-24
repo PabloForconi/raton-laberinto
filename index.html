@@ -1158,7 +1158,9 @@ function placeItems(L, m, rng) {
     const on = shuffle(free.filter(([c, r]) => onPath(idx(c, r)))), off = shuffle(free.filter(([c, r]) => !onPath(idx(c, r))));
     pick(on.concat(off), L.gates, 2, used).forEach(([c, r]) => {
       const [x, y] = center(c, r);
-      items.push({ type: 'gate', x, y, vert: straight(c, r) === 'v', ph: rng() * GATE_CYCLE });
+      const vert = straight(c, r) === 'v', [p, q] = vert ? [[c, r - 1], [c, r + 1]] : [[c - 1, r], [c + 1, r]];
+      const far = (a, b) => (dX[idx(...a)] ?? -1) - (dX[idx(...b)] ?? -1);   // de qué lado se viene (más lejos de la salida)
+      items.push({ type: 'gate', x, y, vert, ph: rng() * GATE_CYCLE, side: far(q, p) >= 0 ? 1 : -1 });
       used.push([c, r]);
     });
   }
@@ -4042,7 +4044,7 @@ function drawWalls(c, v) {
   }
   // cortinas de las puertas vistas desde su lado (van delante de la cara de la pared)
   drawDoors(c, v, 'front');
-  drawGates(c, v);   // las compuertas, colgadas de su eje en el pasillo
+  drawGates(c, v);   // las compuertas, colgadas de su eje en el pasillo: encima de la pared de atrás y debajo de la de adelante
 }
 
 // ---- items ----
@@ -4261,7 +4263,7 @@ function drawSpinner(c, it) {
 // Un instante antes de bajar tiembla y suena un "clac". No atrapa: si baja con la rata abajo, la empuja de a poco hacia
 // afuera de la tabla (gatePush). Sin sombra en las paredes, como el molinete.
 const GATE_CYCLE = 3.4, GATE_OPEN = 1.4, GATE_MOVE = 0.35, GATE_SHUT = 1.3, GATE_T = 5, GATE_HALF = C / 2 - T / 2;   // ciclo (s): abierta, moviéndose, cerrada; grosor de la tabla; medio ancho del pasillo
-const GATE_AXLE = 0.7, GATE_L = GATE_AXLE * WALL_HW, GATE_MAXA = 1.4, GATE_BLOCK = 1.05, GATE_EDGE = 9;   // alto del eje (fracción de la pared), largo de la tabla (llega al piso), ángulo abierta, hasta qué ángulo tapa el paso, grosor del canto de arriba
+const GATE_AXLE = 0.85, GATE_L = GATE_AXLE * WALL_HW, GATE_MAXA = 1.4, GATE_BLOCK = 1.05, GATE_AXLE_W = 4, GATE_RED = '#c8312a';   // (GATE_AXLE_W: grosor del eje rojo)   // alto del eje (fracción de la pared), largo de la tabla (llega al piso), ángulo abierta, hasta qué ángulo tapa el paso, grosor del canto de arriba
 // cuánto está abierta (1 abierta del todo, 0 cerrada) y si está por cerrarse (para el temblor)
 function gateState(it) {
   const t = ((G.time + it.ph) % GATE_CYCLE + GATE_CYCLE) % GATE_CYCLE, e = u => u * u * (3 - 2 * u);
@@ -4270,7 +4272,7 @@ function gateState(it) {
   if (t < GATE_OPEN + GATE_MOVE + GATE_SHUT) return { o: 0, warn: false };
   return { o: e((t - GATE_OPEN - GATE_MOVE - GATE_SHUT) / GATE_MOVE), warn: false };
 }
-const gateSide = it => it.ph < GATE_CYCLE / 2 ? 1 : -1;   // hacia qué lado del pasillo se levanta
+const gateSide = it => it.side || 1;   // hacia qué lado del pasillo se levanta: hacia donde viene la rata (en general la derecha)
 const gateAng = it => { const { o, warn } = gateState(it); return o * GATE_MAXA + (warn ? 0.06 * Math.sin(G.time * 70) : 0); };
 // lo que ocupa la tabla en el piso mientras tapa el paso: a lo largo del pasillo, de [a0, a1] respecto del eje (o null)
 function gateSpan(it) {
@@ -4318,10 +4320,18 @@ function drawGates(c, v, mask = false, list = G.items) {
     const a = gateAng(it), sd = gateSide(it), w = GATE_HALF - 1;
     const u1 = sd * GATE_L * Math.sin(a), f1 = GATE_AXLE * (1 - Math.cos(a));
     const A = P(0, -w, GATE_AXLE), B = P(0, w, GATE_AXLE), Cc = P(u1, w, f1), D = P(u1, -w, f1);
+    // la pared del costado que está entre la cámara y la compuerta (la de adelante) la tapa: se recorta su lugar (la
+    // pared con su canto proyectado); la de atrás queda debajo de la compuerta
+    const cs = ((it.vert ? cam.x - it.x : cam.y - it.y) >= 0 ? 1 : -1);   // de qué costado está la cámara
+    const k1 = 1 + K, wx0 = it.x + tx * cs * (GATE_HALF) - ax * (C / 2 + T), wy0 = it.y + ty * cs * (GATE_HALF) - ay * (C / 2 + T);
+    const wx1 = it.x + tx * cs * (GATE_HALF + T) + ax * (C / 2 + T), wy1 = it.y + ty * cs * (GATE_HALF + T) + ay * (C / 2 + T);
+    const pr = (x, y) => [cam.x + (x - cam.x) * k1, cam.y + (y - cam.y) * k1], [px0, py0] = pr(wx0, wy0), [px1, py1] = pr(wx1, wy1);
+    const ex0 = Math.min(wx0, wx1, px0, px1), ex1 = Math.max(wx0, wx1, px0, px1), ey0 = Math.min(wy0, wy1, py0, py1), ey1 = Math.max(wy0, wy1, py0, py1);
+    c.save(); c.beginPath(); c.rect(it.x - C * 2, it.y - C * 2, C * 4, C * 4); c.rect(ex0, ey0, ex1 - ex0, ey1 - ey0); c.clip('evenodd');
     if (mask) {
       c.fillStyle = '#000'; quad([A, B, Cc, D]); c.fill();
-      const eh = GATE_EDGE / 2 * Math.cos(a) + 1.5; quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(eh, GATE_HALF, GATE_AXLE), P(eh, -GATE_HALF, GATE_AXLE)]); c.fill();
-      continue;
+      const eh = GATE_AXLE_W / 2 + 0.5; quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(eh, GATE_HALF, GATE_AXLE), P(eh, -GATE_HALF, GATE_AXLE)]); c.fill();
+      c.restore(); continue;
     }
     // la tabla: amarilla con franjas negras en diagonal, más oscura cuanto más levantada (le llega menos luz)
     c.save(); quad([A, B, Cc, D]); c.clip();
@@ -4332,20 +4342,14 @@ function drawGates(c, v, mask = false, list = G.items) {
     c.fillStyle = `rgba(30,18,8,${0.12 + 0.3 * a / GATE_MAXA})`; c.fillRect(0, 0, 1, 1);
     c.restore();
     quad([A, B, Cc, D]); c.strokeStyle = 'rgba(40,24,8,0.8)'; c.lineWidth = 0.7; c.stroke();
-    c.strokeStyle = '#d9c39a'; c.lineWidth = 1; c.beginPath(); c.moveTo(...Cc); c.lineTo(...D); c.stroke();   // canto de abajo de la tabla
-    // el canto de arriba de la tabla (grueso, con la cinta): colgada, es lo que se ve desde arriba y marca la barrera
-    const eh = GATE_EDGE / 2 * Math.cos(a) + 1;
-    const E = [P(-eh, -w, GATE_AXLE), P(-eh, w, GATE_AXLE), P(eh, w, GATE_AXLE), P(eh, -w, GATE_AXLE)];
-    c.save(); quad(E); c.clip(); c.fillStyle = '#efc12a'; c.fill();
-    c.setTransform(c.getTransform().multiply(new DOMMatrix([E[1][0] - E[0][0], E[1][1] - E[0][1], E[3][0] - E[0][0], E[3][1] - E[0][1], E[0][0], E[0][1]])));
-    c.fillStyle = '#1c1b18';
-    for (let k = -1; k < 10; k++) { c.beginPath(); const x0 = k / 9; c.moveTo(x0, 0); c.lineTo(x0 + 0.05, 0); c.lineTo(x0 + 0.09, 1); c.lineTo(x0 + 0.04, 1); c.closePath(); c.fill(); }
-    c.restore();
-    quad(E); c.strokeStyle = 'rgba(40,24,8,0.8)'; c.lineWidth = 0.7; c.stroke();
-    // el eje de madera de pared a pared, y una tuerca en cada punta
-    quad([P(-1.3, -GATE_HALF, GATE_AXLE), P(-1.3, GATE_HALF, GATE_AXLE), P(1.3, GATE_HALF, GATE_AXLE), P(1.3, -GATE_HALF, GATE_AXLE)]);
-    c.fillStyle = '#9b7041'; c.fill(); c.strokeStyle = '#5b3a1b'; c.lineWidth = 0.6; c.stroke();
+    c.strokeStyle = '#f3d36a'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(...Cc); c.lineTo(...D); c.stroke();   // canto de abajo de la tabla, finito y amarillo
+    // el eje de pared a pared, rojo (colgada, es lo que se ve desde arriba y marca la barrera), con una tuerca en cada punta
+    const eh = GATE_AXLE_W / 2;
+    quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(eh, GATE_HALF, GATE_AXLE), P(eh, -GATE_HALF, GATE_AXLE)]);
+    c.fillStyle = GATE_RED; c.fill(); c.strokeStyle = 'rgba(60,14,10,0.8)'; c.lineWidth = 0.6; c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.22)'; quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(-eh + 1, GATE_HALF, GATE_AXLE), P(-eh + 1, -GATE_HALF, GATE_AXLE)]); c.fill();   // un brillo
     for (const wy of [-GATE_HALF + 2.5, GATE_HALF - 2.5]) { const [bx, by] = P(0, wy, GATE_AXLE); c.fillStyle = '#b9bec4'; c.beginPath(); c.arc(bx, by, 1.6, 0, Math.PI * 2); c.fill(); }
+    c.restore();
   }
 }
 function drawBattery(c, it) {
