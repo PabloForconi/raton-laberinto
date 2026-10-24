@@ -4152,7 +4152,7 @@ const CHEESE_SCALE = 1.25;   // tamaño del queso
 // Molinete (niveles 29–40): cuatro aspas de cartón con puntas de cinta de peligro que giran sobre un eje de metal en un
 // cruce, con flechas de tiza en el piso que marcan el sentido (como la referencia del usuario). Son bajas: no tapan la luz
 // ni hacen sombra en las paredes. No atrapan: empujan a la rata (spinPush), hay que pasar en el hueco.
-const SPIN_ARM = 25, SPIN_HW = 3.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
+const SPIN_ARM = 19, SPIN_HW = 3.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
 const spinAng = it => it.a0 + it.dir * SPIN_SPEED * G.time;
 // cuánto hay que correr un círculo de la rata (centro cx, cy, radio r) para sacarlo de las aspas y el eje
 function spinPush(cx, cy, r) {
@@ -4180,7 +4180,7 @@ function drawSpinner(c, it) {
   c.save(); c.translate(it.x, it.y);
   // flechas en el piso, alrededor, en el sentido del giro
   c.strokeStyle = 'rgba(35,24,14,0.55)'; c.lineWidth = 1.8; c.lineCap = 'round'; c.lineJoin = 'round';   // el marrón de los textos escritos en el piso
-  const R = SPIN_ARM + 4;
+  const R = 29;   // las flechas, donde estaban con las aspas largas: separadas de las aspas cortas, así no se empastan
   for (let q = 0; q < 4; q++) {
     const m0 = q * Math.PI / 2 + Math.PI / 4 - 0.45, m1 = m0 + 0.9, e = it.dir > 0 ? m1 : m0;
     c.beginPath(); c.arc(0, 0, R, m0, m1); c.stroke();
