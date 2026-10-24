@@ -206,6 +206,7 @@
   #card .wlose b { display: block; font: 23px/1.1 'Kalam', cursive; font-weight: normal; }
   #card .wlose span { display: block; margin-top: 4px; font-size: 15px; line-height: 1.3; }
   #card .wplay { width: 100%; height: 72px; gap: 14px; font-size: 32px; }
+  #card .wbtns.intro { grid-template-columns: 72px 1fr; } #card .wbtns.intro .wbtn { height: 72px; }   /* inicio: el botón cuadrado de Niveles al lado de Jugar, del mismo alto */
   #card .wplay svg { width: 38px; height: 38px; }
   #card .wreward { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 14px; padding: 18px 10px 6px; }
   #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f6cf4a;   /* amarilla (como las monedas y el botón de la máquina), así no se pierde contra la caja */ font: 17px/1.2 'Kalam', cursive;
@@ -3139,7 +3140,7 @@ function showIntro() {
           <div class="wg">${WATCH_SVG}<div><span class="num">${fmtMS(G.star3)}</span><small>Tiempo</small></div></div>
         </div>
       </div>
-      <button class="wbtn go wplay" data-act="start">${PLAY_SVG}Jugar</button>
+      <div class="wbtns home intro">${exitBtn()}<button class="wbtn go wplay" data-act="start">${PLAY_SVG}Jugar</button></div>   <!-- la grilla vuelve a Niveles (en Desafío, la casita a la portada) -->
     </div>`, { kind: 'intro' });
   G.iris = 0; G.irisTarget = 0;
   pop($level); pop($timer);
@@ -3244,7 +3245,7 @@ const CARD_SEQ = {
   win: [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.12], ['.wstars .wray', 'pop', 0.95, 0.05], ['.wstat.q', 'up', 0.9],
     ['.wstat:not(.q)', 'up', 1.05], ['.wreward', 'up', 1.35], ['.win > p', 'up', 1.7], ['#machSlot', 'up', 1.85], ['.wbtns > *', 'pop', 2.05, 0.07]],
   lose: [['.wtitle', 'drop', 0.08], ['.wlose', 'up', 0.2], ['#machSlot', 'up', 0.42], ['.wbtns > *', 'pop', 0.56, 0.07]],
-  intro: [['.wtitle', 'drop', 0.08], ['.wgoal', 'up', 0.2], ['.wg', 'pop', 0.36, 0.1], ['.wplay', 'pop', 0.6]],
+  intro: [['.wtitle', 'drop', 0.08], ['.wgoal', 'up', 0.2], ['.wg', 'pop', 0.36, 0.1], ['.wbtns > *', 'pop', 0.56, 0.07]],
   select: [['.wtitle', 'drop', 0.06], ['.wlevels', 'up', 0.14], ['.lvl', 'pop', 0.22, 0.018, 0.9], ['.wbtns > *', 'pop', 0.45, 0.07]],
   title: [['.logo', 'drop', 0.04], ['.wctl', 'up', 0.18], ['.wbtns > *', 'pop', 0.28, 0.07]],
   opts: [['.wtitle', 'drop', 0.05], ['.orows', 'up', 0.12], ['.wbtns > *', 'pop', 0.22, 0.07]],
@@ -4041,6 +4042,7 @@ function drawWalls(c, v) {
   }
   // cortinas de las puertas vistas desde su lado (van delante de la cara de la pared)
   drawDoors(c, v, 'front');
+  drawGates(c, v);   // las compuertas, colgadas de su eje en el pasillo
 }
 
 // ---- items ----
@@ -4252,12 +4254,14 @@ function drawSpinner(c, it) {
   c.fillStyle = '#d7dce0'; c.beginPath(); c.arc(-0.6, -0.6, 1.3, 0, Math.PI * 2); c.fill();
   c.restore();
 }
-// Compuerta (después de una referencia del usuario): en un pasillo recto, dos hojas de cartón con cinta de peligro
-// colgadas de bisagras de madera en las dos paredes, que se levantan y bajan solas (GATE_CYCLE). Vistas de arriba,
-// al levantarse se acortan hacia la pared (se ven de canto) y dejan el pasillo libre. Un instante antes de bajar, las
-// bisagras tiemblan y suena un "clac". No atrapan: si bajan con la rata abajo, la empujan de a poco hacia el lado más
-// cercano (gatePush). Bajas, sin sombra, como el molinete.
-const GATE_CYCLE = 3.4, GATE_OPEN = 1.4, GATE_MOVE = 0.35, GATE_SHUT = 1.3, GATE_T = 6, GATE_HALF = C / 2 - T / 2;   // ciclo (s): abierta, moviéndose, cerrada; grosor; largo de cada hoja
+// Compuerta (después de una referencia del usuario): una tabla de cartón con cinta de peligro colgada de un eje de
+// madera que cruza el pasillo arriba, entre las dos paredes; se levanta hacia uno de los lados como la cortina de las
+// puertas (gira sobre el eje) y vuelve a bajar sola (GATE_CYCLE). Colgada tapa el pasillo; levantada, la rata pasa por
+// debajo y la tabla la tapa (se dibuja con las paredes, en wallCv, y entra en la máscara de lo que tapa a la rata).
+// Un instante antes de bajar tiembla y suena un "clac". No atrapa: si baja con la rata abajo, la empuja de a poco hacia
+// afuera de la tabla (gatePush). Sin sombra en las paredes, como el molinete.
+const GATE_CYCLE = 3.4, GATE_OPEN = 1.4, GATE_MOVE = 0.35, GATE_SHUT = 1.3, GATE_T = 5, GATE_HALF = C / 2 - T / 2;   // ciclo (s): abierta, moviéndose, cerrada; grosor de la tabla; medio ancho del pasillo
+const GATE_AXLE = 0.7, GATE_L = GATE_AXLE * WALL_HW, GATE_MAXA = 1.4, GATE_BLOCK = 1.05, GATE_EDGE = 9;   // alto del eje (fracción de la pared), largo de la tabla (llega al piso), ángulo abierta, hasta qué ángulo tapa el paso, grosor del canto de arriba
 // cuánto está abierta (1 abierta del todo, 0 cerrada) y si está por cerrarse (para el temblor)
 function gateState(it) {
   const t = ((G.time + it.ph) % GATE_CYCLE + GATE_CYCLE) % GATE_CYCLE, e = u => u * u * (3 - 2 * u);
@@ -4266,63 +4270,83 @@ function gateState(it) {
   if (t < GATE_OPEN + GATE_MOVE + GATE_SHUT) return { o: 0, warn: false };
   return { o: e((t - GATE_OPEN - GATE_MOVE - GATE_SHUT) / GATE_MOVE), warn: false };
 }
-// largo de cada hoja vista de arriba (se acorta al levantarse)
-const gateLen = o => GATE_HALF * Math.cos(o * Math.PI / 2);
-// rectángulos sólidos de las dos hojas, en coordenadas del mundo
-function gateRects(it) {
-  const len = gateLen(gateState(it).o); if (len < 2) return [];
-  return it.vert
-    ? [{ x: it.x - GATE_HALF, y: it.y - GATE_T / 2, w: len, h: GATE_T }, { x: it.x + GATE_HALF - len, y: it.y - GATE_T / 2, w: len, h: GATE_T }]
-    : [{ x: it.x - GATE_T / 2, y: it.y - GATE_HALF, w: GATE_T, h: len }, { x: it.x - GATE_T / 2, y: it.y + GATE_HALF - len, w: GATE_T, h: len }];
+const gateSide = it => it.ph < GATE_CYCLE / 2 ? 1 : -1;   // hacia qué lado del pasillo se levanta
+const gateAng = it => { const { o, warn } = gateState(it); return o * GATE_MAXA + (warn ? 0.06 * Math.sin(G.time * 70) : 0); };
+// lo que ocupa la tabla en el piso mientras tapa el paso: a lo largo del pasillo, de [a0, a1] respecto del eje (o null)
+function gateSpan(it) {
+  const a = gateAng(it); if (a >= GATE_BLOCK) return null;
+  const u1 = gateSide(it) * GATE_L * Math.sin(a);
+  return [Math.min(0, u1) - GATE_T / 2, Math.max(0, u1) + GATE_T / 2];
 }
-// cuánto correr un círculo de la rata para sacarlo de las hojas: siempre a lo largo del pasillo, hacia el lado donde ya
-// está (si está justo en el medio, hacia adelante de la rata)
+// cuánto correr un círculo de la rata para sacarlo de debajo de la tabla: a lo largo del pasillo; del lado al que se
+// levanta, hacia afuera (la tabla baja empujándola); del otro lado, para atrás del eje
 function gatePush(cx, cy, r) {
   let ox = 0, oy = 0;
   for (const it of G.items) {
     if (it.type !== 'gate' || Math.abs(cx - it.x) > C || Math.abs(cy - it.y) > C) continue;
-    for (const R of gateRects(it)) {
-      const px = clamp(cx, R.x, R.x + R.w), py = clamp(cy, R.y, R.y + R.h), dx = cx - px, dy = cy - py, d2 = dx * dx + dy * dy;
-      if (d2 >= r * r) continue;
-      const along = it.vert ? cy - it.y : cx - it.x, s = Math.abs(along) > 0.5 ? Math.sign(along) : (it.vert ? Math.sign(Math.sin(M.a)) : Math.sign(Math.cos(M.a))) || 1;
-      const pen = r + GATE_T / 2 - Math.abs(along);
-      if (pen <= 0) continue;
-      if (it.vert) oy += s * pen; else ox += s * pen;
-      it.hit = true;
-    }
+    if (Math.abs(it.vert ? cx - it.x : cy - it.y) > GATE_HALF + r) continue;
+    const span = gateSpan(it); if (!span) continue;
+    const u = it.vert ? cy - it.y : cx - it.x;
+    if (u + r <= span[0] || u - r >= span[1]) continue;
+    const toward = u * gateSide(it) >= 0 ? gateSide(it) : -gateSide(it);
+    const target = toward > 0 ? span[1] + r : span[0] - r, d = target - u;
+    if (it.vert) oy += d; else ox += d;
+    it.hit = true;
   }
   return [ox, oy];
 }
+// en el piso: flechas a lo largo del pasillo (en el marrón de los textos del piso) y la sombra de la tabla
 function drawGate(c, it) {
-  const { o, warn } = gateState(it), len = gateLen(o), shake = warn ? Math.sin(G.time * 70) * 0.8 : 0;
+  const a = gateAng(it), sd = gateSide(it), u1 = sd * GATE_L * Math.sin(a);
   c.save(); c.translate(it.x, it.y); if (it.vert) c.rotate(Math.PI / 2);
-  // flechas en el piso, a los dos lados de la compuerta, a lo largo del pasillo (en el marrón de los textos del piso)
   c.strokeStyle = 'rgba(35,24,14,0.55)'; c.lineWidth = 1.8; c.lineCap = 'round'; c.lineJoin = 'round';
   for (const sx of [-1, 1]) {
     c.beginPath(); c.moveTo(sx * 9, 0); c.lineTo(sx * 22, 0); c.stroke();
     c.beginPath(); c.moveTo(sx * 18, -4); c.lineTo(sx * 22, 0); c.lineTo(sx * 18, 4); c.stroke();
   }
-  // las dos hojas: desde cada pared hacia el medio (en coordenadas locales el pasillo va de izquierda a derecha y la compuerta lo cruza en vertical)
-  for (const sy of [-1, 1]) {
-    c.save(); c.translate(shake * sy, sy * GATE_HALF);
-    if (len > 0.5) {
-      c.fillStyle = 'rgba(0,0,0,0.28)'; c.fillRect(-GATE_T / 2 + 2, sy > 0 ? -len : 0, GATE_T, len);   // sombra
-      const y0 = sy > 0 ? -len : 0;
-      c.save(); c.beginPath(); c.rect(-GATE_T / 2, y0, GATE_T, len); c.clip();
-      c.fillStyle = '#efc12a'; c.fillRect(-GATE_T / 2, y0, GATE_T, len);
-      c.fillStyle = '#1c1b18';
-      for (let k = -2; k < len / 4 + 2; k++) { const yy = y0 + k * 5; c.beginPath(); c.moveTo(-GATE_T / 2, yy); c.lineTo(GATE_T / 2, yy - GATE_T); c.lineTo(GATE_T / 2, yy - GATE_T + 2.4); c.lineTo(-GATE_T / 2, yy + 2.4); c.closePath(); c.fill(); }
-      c.fillStyle = `rgba(30,18,8,${0.35 * o})`; c.fillRect(-GATE_T / 2, y0, GATE_T, len);   // más oscura mientras se levanta
-      c.restore();
-      c.strokeStyle = 'rgba(40,24,8,0.7)'; c.lineWidth = 0.6; c.strokeRect(-GATE_T / 2, y0, GATE_T, len);
-    }
-    // bisagra de madera con su eje, contra la pared
-    c.fillStyle = '#a77b45'; c.fillRect(-6, sy > 0 ? -4 : 0, 12, 4);
-    c.fillStyle = '#6f4d27'; c.fillRect(-6, sy > 0 ? -1 : 0, 12, 1);
-    c.fillStyle = '#b9bec4'; c.beginPath(); c.arc(0, sy * -2, 1.4, 0, Math.PI * 2); c.fill();
-    c.restore();
-  }
+  c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(Math.min(0, u1) - 2, -GATE_HALF, Math.abs(u1) + 4, GATE_HALF * 2);
   c.restore();
+}
+// la tabla y el eje, en el cielo del pasillo (con la paralaje de las paredes); mask: solo la silueta (para la máscara
+// de lo que tapa a la rata)
+function drawGates(c, v, mask = false, list = G.items) {
+  for (const it of list) {
+    if (it.type !== 'gate' || it.x < v.x0 - C || it.x > v.x1 + C || it.y < v.y0 - C || it.y > v.y1 + C) continue;
+    const ax = it.vert ? 0 : 1, ay = it.vert ? 1 : 0, tx = -ay, ty = ax;   // a lo largo del pasillo / de costado
+    const P = (u, w, f) => { const x = it.x + ax * u + tx * w, y = it.y + ay * u + ty * w, k = 1 + K * f; return [cam.x + (x - cam.x) * k, cam.y + (y - cam.y) * k]; };
+    const quad = pts => { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
+    const a = gateAng(it), sd = gateSide(it), w = GATE_HALF - 1;
+    const u1 = sd * GATE_L * Math.sin(a), f1 = GATE_AXLE * (1 - Math.cos(a));
+    const A = P(0, -w, GATE_AXLE), B = P(0, w, GATE_AXLE), Cc = P(u1, w, f1), D = P(u1, -w, f1);
+    if (mask) {
+      c.fillStyle = '#000'; quad([A, B, Cc, D]); c.fill();
+      const eh = GATE_EDGE / 2 * Math.cos(a) + 1.5; quad([P(-eh, -GATE_HALF, GATE_AXLE), P(-eh, GATE_HALF, GATE_AXLE), P(eh, GATE_HALF, GATE_AXLE), P(eh, -GATE_HALF, GATE_AXLE)]); c.fill();
+      continue;
+    }
+    // la tabla: amarilla con franjas negras en diagonal, más oscura cuanto más levantada (le llega menos luz)
+    c.save(); quad([A, B, Cc, D]); c.clip();
+    c.fillStyle = '#efc12a'; c.fill();
+    c.setTransform(c.getTransform().multiply(new DOMMatrix([B[0] - A[0], B[1] - A[1], D[0] - A[0], D[1] - A[1], A[0], A[1]])));
+    c.fillStyle = '#1c1b18';
+    for (let k = -2; k < 9; k++) { c.beginPath(); const x0 = k / 7; c.moveTo(x0, 0); c.lineTo(x0 + 0.07, 0); c.lineTo(x0 + 0.07 + 0.18, 1); c.lineTo(x0 + 0.18, 1); c.closePath(); c.fill(); }
+    c.fillStyle = `rgba(30,18,8,${0.12 + 0.3 * a / GATE_MAXA})`; c.fillRect(0, 0, 1, 1);
+    c.restore();
+    quad([A, B, Cc, D]); c.strokeStyle = 'rgba(40,24,8,0.8)'; c.lineWidth = 0.7; c.stroke();
+    c.strokeStyle = '#d9c39a'; c.lineWidth = 1; c.beginPath(); c.moveTo(...Cc); c.lineTo(...D); c.stroke();   // canto de abajo de la tabla
+    // el canto de arriba de la tabla (grueso, con la cinta): colgada, es lo que se ve desde arriba y marca la barrera
+    const eh = GATE_EDGE / 2 * Math.cos(a) + 1;
+    const E = [P(-eh, -w, GATE_AXLE), P(-eh, w, GATE_AXLE), P(eh, w, GATE_AXLE), P(eh, -w, GATE_AXLE)];
+    c.save(); quad(E); c.clip(); c.fillStyle = '#efc12a'; c.fill();
+    c.setTransform(c.getTransform().multiply(new DOMMatrix([E[1][0] - E[0][0], E[1][1] - E[0][1], E[3][0] - E[0][0], E[3][1] - E[0][1], E[0][0], E[0][1]])));
+    c.fillStyle = '#1c1b18';
+    for (let k = -1; k < 10; k++) { c.beginPath(); const x0 = k / 9; c.moveTo(x0, 0); c.lineTo(x0 + 0.05, 0); c.lineTo(x0 + 0.09, 1); c.lineTo(x0 + 0.04, 1); c.closePath(); c.fill(); }
+    c.restore();
+    quad(E); c.strokeStyle = 'rgba(40,24,8,0.8)'; c.lineWidth = 0.7; c.stroke();
+    // el eje de madera de pared a pared, y una tuerca en cada punta
+    quad([P(-1.3, -GATE_HALF, GATE_AXLE), P(-1.3, GATE_HALF, GATE_AXLE), P(1.3, GATE_HALF, GATE_AXLE), P(1.3, -GATE_HALF, GATE_AXLE)]);
+    c.fillStyle = '#9b7041'; c.fill(); c.strokeStyle = '#5b3a1b'; c.lineWidth = 0.6; c.stroke();
+    for (const wy of [-GATE_HALF + 2.5, GATE_HALF - 2.5]) { const [bx, by] = P(0, wy, GATE_AXLE); c.fillStyle = '#b9bec4'; c.beginPath(); c.arc(bx, by, 1.6, 0, Math.PI * 2); c.fill(); }
+  }
 }
 function drawBattery(c, it) {
   const L = 26, Wd = 12, p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph);
@@ -4806,6 +4830,7 @@ function render() {
       if (R.y + R.h < cam.y && M.y < R.y + R.h / 2) quad(R.x, R.y + R.h, R.x + R.w, R.y + R.h, tx + tw, ty + th, tx, ty + th);
     }
     drawDoors(topCtx, v, 'front');
+    drawGates(topCtx, v, true);
     topCtx.restore();
     litCtx.globalCompositeOperation = 'destination-in'; litCtx.drawImage(topCv, sx, sy, sw, sh, sx, sy, sw, sh);
     litCtx.globalCompositeOperation = 'source-over';
@@ -4868,7 +4893,7 @@ function renderGallery() {
     ['Queso', p => drawCheese(ctx, { x: p[0], y: p[1], rot: -0.3 })],
     ['Queso (otro ángulo)', p => drawCheese(ctx, { x: p[0], y: p[1], rot: 2.2 })],
     ['Molinete', p => drawSpinner(ctx, { x: p[0], y: p[1], a0: 0, dir: 1 })],
-    ['Compuerta', p => drawGate(ctx, { x: p[0], y: p[1], vert: false, ph: 0 })],
+    ['Compuerta', p => { const it = { x: p[0], y: p[1], vert: false, ph: 0 }; drawGate(ctx, it); drawGates(ctx, { x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 }, false, [it]); }],
     ['Moneda (girando)', p => drawCoin(ctx, { x: p[0], y: p[1], ph: 0 })],
     ['Moneda (de frente)', p => drawCoin(ctx, { x: p[0], y: p[1], ph: -G.time * 3 })],
     ['Ratón (escala)', p => { const keep = { x: M.x, y: M.y, a: M.a, tail: M.tail, feet: M.feet }; Object.assign(M, { x: p[0] + 6, y: p[1], a: Math.PI, tail: null, feet: null }); updateTail(0); drawMouse(ctx, 1); Object.assign(M, keep); }],
