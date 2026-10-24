@@ -89,19 +89,19 @@
   #card:has(.win) { width: min(430px, calc(100vw - 24px)); margin-top: 14px; padding: 0 14px 16px; border: 3px solid #5b3a1b; border-radius: 16px;
     background-color: #c4915a; }
   #card .win { margin-top: -30px; color: #2b1a0b; }
-  #card .wtitle { position: relative; z-index: 2; display: inline-block; margin: 0 auto; padding: 9px 28px 7px; background: #efdfbd;
+  :is(#card, #opts) .wtitle { position: relative; z-index: 2; display: inline-block; margin: 0 auto; padding: 9px 28px 7px; background: #efdfbd;
     font-family: 'Permanent Marker', cursive; line-height: 1; transform: rotate(-2deg);
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.4), transparent 70%); box-shadow: 0 3px 0 #a07345, 0 6px 14px rgba(0,0,0,.35); }
-  #card .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; }
-  #card .wtitle span { display: inline-block; margin-top: 3px; font-size: 25px; border-bottom: 3px solid #2b1a0b; }
+  :is(#card, #opts) .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; }
+  :is(#card, #opts) .wtitle span { display: inline-block; margin-top: 3px; font-size: 25px; border-bottom: 3px solid #2b1a0b; }
   #card .wstars { position: relative; display: flex; justify-content: center; align-items: center; margin: -24px 4px 12px; padding: 34px 8px 12px;
     background: #9a6838 repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 3px, transparent 3px 7px);
     border: 6px solid #ead6ae; box-shadow: 0 3px 0 #8a6236, inset 0 0 18px rgba(40,20,5,.55); }
-  #card .tp { position: absolute; width: 46px; height: 16px; background: rgba(240,236,225,.55); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
-  #card .tp:nth-of-type(1) { left: -18px; top: 2px; transform: rotate(-42deg); }
-  #card .tp:nth-of-type(2) { right: -18px; top: 2px; transform: rotate(42deg); }
-  #card .tp:nth-of-type(3) { left: -18px; bottom: 2px; transform: rotate(42deg); }
-  #card .tp:nth-of-type(4) { right: -18px; bottom: 2px; transform: rotate(-42deg); }
+  :is(#card, #opts) .tp { position: absolute; width: 46px; height: 16px; background: rgba(240,236,225,.55); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  :is(#card, #opts) .tp:nth-of-type(1) { left: -18px; top: 2px; transform: rotate(-42deg); }
+  :is(#card, #opts) .tp:nth-of-type(2) { right: -18px; top: 2px; transform: rotate(42deg); }
+  :is(#card, #opts) .tp:nth-of-type(3) { left: -18px; bottom: 2px; transform: rotate(42deg); }
+  :is(#card, #opts) .tp:nth-of-type(4) { right: -18px; bottom: 2px; transform: rotate(-42deg); }
   #card .wstar { position: relative; width: 31%; max-width: 104px; margin: 0 -4px; }
   #card .wstar svg { display: block; width: 100%; height: auto; }
   #card .wstar .wsh { transform: translateY(7%) scale(1.16); }   /* un poco más grande y más abajo: asoma por debajo de la dorada */
@@ -112,10 +112,10 @@
   #card .wray.l { left: 6px; } #card .wray.r { right: 6px; transform: scaleX(-1); }
   #card .wrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
   #card .wrow.solo { grid-template-columns: 1fr; }
-  #card .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
+  :is(#card, #opts) .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.35), transparent 70%); box-shadow: 0 3px 0 #9b7244, 0 4px 8px rgba(0,0,0,.25); }
-  #card .wbox h3 { margin: 0; font: 17px/1.2 'Permanent Marker', cursive; letter-spacing: .5px; text-transform: uppercase; }
-  #card .wbox .num { font: 44px/1 'Permanent Marker', cursive; }
+  :is(#card, #opts) .wbox h3 { margin: 0; font: 17px/1.2 'Permanent Marker', cursive; letter-spacing: .5px; text-transform: uppercase; }
+  :is(#card, #opts) .wbox .num { font: 44px/1 'Permanent Marker', cursive; }
   /* quesos y tiempo: dos cajas iguales, el ícono grande a la izquierda y a su lado el título y el número */
   #card .wstat { display: flex; align-items: center; justify-content: center; gap: 8px; height: 84px; padding: 6px 8px; }
   #card .wstat > svg { flex: none; width: 58px; height: 58px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
@@ -124,7 +124,7 @@
   #card .wstat h3 { font-size: 15px; }
   #card .wstat .num { display: block; font-size: 34px; white-space: nowrap; }
   /* el sello del récord va abajo de la caja del tiempo, así no tapa nada */
-  #card .wbox .stamp { top: auto; bottom: -19px; z-index: 1; font-size: 18px; padding: 0 9px; transform: translateX(-50%) rotate(-4deg); animation-name: stampLow; }
+  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -19px; z-index: 1; font-size: 18px; padding: 0 9px; transform: translateX(-50%) rotate(-4deg); animation-name: stampLow; }
   @keyframes stampLow { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-4deg) scale(1); opacity: 1; } }
   /* cartel de inicio con el mismo formato: el título y una caja "Objetivo" con los quesos y el tiempo de las tres
      estrellas, separados por una rayita, y el botón verde para jugar */
@@ -140,8 +140,25 @@
   #card .wg .num { display: block; font: 36px/1 'Permanent Marker', cursive; white-space: nowrap; }
   #card .wg small { display: block; margin-top: 3px; font: 13px/1.1 'Permanent Marker', cursive; text-transform: uppercase; }
   @media (max-width: 480px) { #card .wg { gap: 6px; } #card .wg > svg { width: 44px; height: 44px; } #card .wg .num { font-size: 30px; } #card .wg small { font-size: 11.5px; } }
+  /* portada con el formato nuevo: sin cartel de título (el logo es el título) */
+  #card .wmenu { margin-top: 0; padding-top: 12px; }
+  #card .wmenu .logo { margin: -4px auto 4px; }
+  #card .wctl { margin: 4px 2px 16px; padding: 4px 12px; }
+  #card .wctl .ctl { margin: 0 auto; border: 0; }
+  #card .wmenu .wbtns { grid-template-columns: 1fr 1fr; margin-top: 12px; }
+  #card .wmenu .wbtns + .wbtns .wbtn { height: 54px; font-size: 21px; }
+  #card .wbtn.yl { background: linear-gradient(#ffdc45, #f4b00e); color: #2b1a0b; border: 3px solid #b77d06; box-shadow: 0 4px 0 #8f5f05; }
+  #card .wprice { display: inline-flex; align-items: center; gap: 4px; font-size: .8em; opacity: .85; }
+  #card .wprice .ci { width: 1.05em; height: 1.05em; }
+  /* selector de niveles: fichas de papel en una caja de papel encintada; las de los niveles a oscuras, oscuras */
+  #card .wlevels { margin: 16px 2px 4px; padding: 10px 6px; }
+  #card .wlevels .levels { margin: 0; }
+  #card .lvl { background: #f6e9cc; border-radius: 6px; box-shadow: 0 3px 0 #9b7244; }
+  #card .lvl.dark { background: #3a3542; color: #f1e3c2; box-shadow: 0 3px 0 #1d1a22; }
+  #card .lvl.dark .st i { color: rgba(241,227,194,.25); }
+  #card .lvl.dark small { opacity: .8; }
   /* carteles de perder (trampa o tiempo): el subtítulo en rojo y una caja con el dibujito y qué pasó */
-  #card .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
+  :is(#card, #opts) .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
   #card .wlose { display: flex; align-items: center; gap: 14px; margin: 16px 2px 18px; padding: 16px 16px 14px; text-align: left; }
   #card .wlose > svg { flex: none; width: 76px; height: 76px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
   #card .wlose b { display: block; font: 23px/1.1 'Permanent Marker', cursive; font-weight: normal; }
@@ -167,15 +184,16 @@
   #card .wmach.short { filter: saturate(.3) brightness(.95); }
   #card .wmach > span:first-of-type { white-space: nowrap; }
   #card .wmach.short > span:first-of-type { font-size: 18px; }
-  #card .wbtns { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; }
-  #card .wbtns.one { grid-template-columns: 1fr; }
-  #card .wbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 62px; border-radius: 14px; font: 25px 'Permanent Marker', cursive;
+  :is(#card, #opts) .wbtns { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; }
+  :is(#card, #opts) .wbtns.one { grid-template-columns: 1fr; }
+  :is(#card, #opts) .wbtn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 62px; border-radius: 14px; font: 25px 'Permanent Marker', cursive;
     cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  #card .wbtn svg { width: 30px; height: 30px; }
-  #card .wbtn.re { background: #ecd7ae; color: #2b1a0b; border: 3px solid #9b7041; box-shadow: 0 4px 0 #75522c; }
-  #card .wbtn.go { background: linear-gradient(#5fce50, #2f9b33); color: #fff; border: 3px solid #1f6f24; box-shadow: 0 4px 0 #185a1c; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
-  #card .wbtn:active, #card .wmach:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
-  #card .wbtn:hover, #card .wmach:hover { filter: brightness(1.05); }
+  :is(#card, #opts) .wbtn svg { width: 30px; height: 30px; }
+  @media (max-width: 480px) { #card .wbtns.three .wbtn { font-size: 21px; gap: 6px; } #card .wbtns.three .wbtn:not(.sq) svg { width: 24px; height: 24px; } }
+  :is(#card, #opts) .wbtn.re { background: #ecd7ae; color: #2b1a0b; border: 3px solid #9b7041; box-shadow: 0 4px 0 #75522c; }
+  :is(#card, #opts) .wbtn.go { background: linear-gradient(#5fce50, #2f9b33); color: #fff; border: 3px solid #1f6f24; box-shadow: 0 4px 0 #185a1c; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  :is(#card, #opts) .wbtn:active, #card .wmach:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
+  :is(#card, #opts) .wbtn:hover, #card .wmach:hover { filter: brightness(1.05); }
   #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Permanent Marker', cursive; font-size: 20px; line-height: 1.15;
     color: #b3140f; border: 3px solid #b3140f; border-radius: 7px; padding: 1px 10px 0; background: rgba(255,235,220,.6);
     transform: translateX(-50%) rotate(-3deg); animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
@@ -320,10 +338,12 @@
   /* ventana de pausa / opciones: Música y Sonido con interruptores, y abajo la casita y Reanudar (o Cerrar) */
   #opts { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
   #opts.hidden { display: none; }
-  #opts .box { width: min(360px, calc(100vw - 40px)); box-sizing: border-box; padding: 18px 20px 20px; text-align: center; transform: rotate(-1deg);
-    background: #a27b4f; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
+  /* pausa / opciones: con el formato de los carteles nuevos (cartón claro, título de papel que asoma arriba, caja de papel
+     encintada con Música y Sonido, y botones grandes: la casita y Reanudar en verde, o Cerrar) */
+  #opts .box { width: min(400px, calc(100vw - 24px)); box-sizing: border-box; margin-top: 14px; padding: 0 14px 16px; text-align: center; transform: rotate(-1deg);
+    background: #c4915a; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
       radial-gradient(ellipse at 30% 20%, rgba(255,230,190,.25), transparent 60%);
-    border: 2px solid #6b4c2c; box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5);
+    border: 3px solid #5b3a1b; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.35); color: #2b1a0b;
     animation: optsIn .22s cubic-bezier(.2, .9, .3, 1.25) both; }
   @keyframes optsIn { from { transform: rotate(-5deg) scale(.6); opacity: 0; } to { transform: rotate(-1deg) scale(1); opacity: 1; } }
   /* al cerrarse (sacar la pausa, cerrar opciones) se achica y se va, como entró pero al revés; el fondo oscuro se aclara */
@@ -336,22 +356,20 @@
   @keyframes optsOut { from { transform: rotate(-1deg) scale(1); opacity: 1; } to { transform: rotate(4deg) scale(.6); opacity: 0; } }
   @keyframes optsBgIn { from { background: rgba(0,0,0,0); } }
   @keyframes optsBgOut { to { background: rgba(0,0,0,0); } }
-  #opts h2 { font-family: 'Permanent Marker', cursive; font-weight: normal; font-size: 34px; margin: 0 0 12px; color: #1e1208; }
-  #opts .rows { background: rgba(255,245,220,.35); padding: 4px 14px; margin: 0 0 16px; }
-  #opts .opt { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; font-size: 19px; color: #1e1208; }
-  #opts .opt + .opt { border-top: 1px dashed rgba(60,40,20,.25); }
-  #opts .opt span { display: flex; align-items: center; gap: 10px; }
-  #opts .opt svg { width: 24px; height: 24px; }
+  #opts .box > .wtitle { margin-top: -30px; padding: 12px 34px 10px; }
+  #opts .orows { margin: 18px 2px 18px; padding: 6px 16px; text-align: left; }
+  #opts .opt { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; font: 23px/1.1 'Permanent Marker', cursive; }
+  #opts .opt + .opt { border-top: 2px dashed rgba(90,60,30,.3); }
+  #opts .opt span { display: flex; align-items: center; gap: 12px; }
+  #opts .opt svg { width: 28px; height: 28px; }
   #opts .tog { position: relative; width: 56px; height: 30px; border: 0; border-radius: 15px; background: #7d6a52; cursor: pointer;
     box-shadow: inset 0 2px 3px rgba(0,0,0,.35); -webkit-tap-highlight-color: transparent; transition: background .15s; }
   #opts .tog::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #e2d6b8;
     box-shadow: 0 2px 2px rgba(0,0,0,.35); transition: left .15s; }
   #opts .tog.on { background: #6f9e3c; } #opts .tog.on::after { left: 29px; }
-  #opts .obtns { display: flex; gap: 12px; justify-content: center; }
-  #opts .obtns .cbtn { transform: none; }
-  #opts .obtns .home { width: 58px; padding: 0; display: grid; place-items: center; }
-  #opts .obtns .home svg { width: 26px; height: 26px; }
-  #opts .obtns .wide { flex: 1; }
+  :is(#card, #opts) .wbtns.home { grid-template-columns: 66px 1fr; }   /* el botón cuadrado (casita o niveles) y el principal a lo ancho */
+  :is(#card, #opts) .wbtns.three { grid-template-columns: 62px 1fr 1.25fr; gap: 10px; }
+  :is(#card, #opts) .wbtn.sq { padding: 0; } :is(#card, #opts) .wbtn.sq svg { width: 30px; height: 30px; }
   .btn.tape { position: static; width: 44px; height: 44px; padding: 0; border: 0; display: grid; place-items: center;
     color: #2a1a0c; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .btn.tape:nth-child(odd) { transform: rotate(-2deg); } .btn.tape:nth-child(even) { transform: rotate(2deg); }
@@ -1638,11 +1656,11 @@ function showTitle() {
     ? `<span class="finger">☝</span>`
     : `<span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>`;
   const how = isTouch ? 'arrastrá el dedo para moverte: <br>el ratón gira hacia donde apuntás' : 'moverte: el ratón gira <br>hacia donde apuntás';
-  card(`<img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
-    <div class="ctl">${keys}<span>${how}</span></div>
-    <div class="menu"><button class="cbtn" data-act="story">Historia</button><button class="cbtn" data-act="challenge">Desafío</button></div>
-    <div class="menu sub"><button class="cbtn alt" data-act="ratitas">Bioterio</button><button class="cbtn alt" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>
-`);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
+  card(`<div class="win wmenu"><img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
+    <div class="wbox wctl"><div class="ctl">${keys}<span>${how}</span></div></div>
+    <div class="wbtns"><button class="wbtn go" data-act="story">${PLAY_SVG}Historia</button><button class="wbtn yl" data-act="challenge">Desafío</button></div>
+    <div class="wbtns"><button class="wbtn re" data-act="ratitas">Bioterio</button><button class="wbtn re" data-act="machine">Máquina <span class="wprice">${COIN_SPIN} ${COIN_ICON}</span></button></div>
+    </div>`);   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
 // Selector de niveles de Historia: los bloqueados aparecen apagados; se ven las mejores estrellas de cada uno
@@ -1652,11 +1670,11 @@ function showSelect() {
   const d = Story.data;
   const btns = LEVELS.map((L, i) => {
     const locked = !UNLOCK_ALL && i + 1 > d.unlocked, st = d.stars[i] || 0;
-    return `<button class="lvl" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
+    return `<button class="lvl${DARK_LEVELS.includes(i + 1) ? ' dark' : ''}" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
       <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
   }).join('');
-  card(`<h1>NIVELES</h1>
-    <div class="levels">${btns}</div>`);   // volver: la flechita de arriba a la izquierda (ESPACIO sigue jugando el último desbloqueado)
+  card(`<div class="win"><div class="wtitle"><b>Niveles</b></div>
+    <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div></div>`);   // volver: la flechita de arriba a la izquierda (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
 }
 
@@ -3085,6 +3103,12 @@ const DEAD_LAMP_SVG = `<svg viewBox="0 0 64 64"><g transform="rotate(-25 32 32)"
   <rect x="25" y="23" width="7" height="4" rx="1" fill="#3d4a57"/>
   <path d="M37 24 L50 16 L50 48 L37 40 Z" fill="#8a97a3" stroke="#3d4a57" stroke-width="2" stroke-linejoin="round"/>
   <rect x="49" y="15" width="6" height="34" rx="3" fill="#3a3f45" stroke="#2a2f35" stroke-width="1.5"/></g></svg>`;
+// grilla de niveles (botón cuadrado de los carteles de fin de nivel, en Historia)
+const LEVELS_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="3" width="5" height="5" rx="1.2"/><rect x="16" y="3" width="5" height="5" rx="1.2"/><rect x="3" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16" y="9.5" width="5" height="5" rx="1.2"/><rect x="3" y="16" width="5" height="5" rx="1.2"/><rect x="9.5" y="16" width="5" height="5" rx="1.2"/><rect x="16" y="16" width="5" height="5" rx="1.2"/></svg>`;
+// el botón cuadrado de papel para salir del cartel: a los niveles en Historia, a la portada en Desafío
+const exitBtn = () => G.mode === 'story'
+  ? `<button class="wbtn re sq" data-act="levels" aria-label="Niveles">${LEVELS_SVG}</button>`
+  : `<button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button>`;
 const PLAY_SVG = `<svg viewBox="0 0 32 32"><path d="M9 5 L27 16 L9 27 Z" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linejoin="round"/></svg>`;
 // la bolita del botón de la máquina: una cápsula como las de la pecera, dibujada una vez
 let capImg = null;
@@ -3139,7 +3163,7 @@ function showWinCard() {
         <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SVG}</i></div>
       <div id="machSlot">${machButton()}</div>
       ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
-      <div class="wbtns${last ? ' one' : ''}"><button class="wbtn re" data-act="retry">${RETRY_SVG}Repetir</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}Siguiente</button>`}</div>
+      <div class="wbtns ${last ? 'home' : 'three'}">${exitBtn()}<button class="wbtn re" data-act="retry">${RETRY_SVG}Repetir</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}Siguiente</button>`}</div>
     </div>`);   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
     updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
   }
@@ -3161,7 +3185,7 @@ function lost() {
         <div><b>${trap ? 'La trampa se cerró.' : 'La linterna se apagó.'}</b><span>Volvés a la entrada del mismo laberinto.</span></div>
       </div>
       <div id="machSlot">${machButton()}</div>
-      <button class="wbtn go wplay" data-act="retry">${RETRY_SVG}Reintentar</button>
+      <div class="wbtns home">${exitBtn()}<button class="wbtn go" data-act="retry">${RETRY_SVG}Reintentar</button></div>
     </div>`);
   updateButtons();
 }
@@ -3182,14 +3206,14 @@ function renderOpts() {
     $opts.querySelector('[data-o="sound"]').classList.toggle('on', !Snd.muted);
     return;
   }
-  $opts.innerHTML = `<div class="box" data-paused="${paused}"><h2>${paused ? 'PAUSA' : 'OPCIONES'}</h2>
-    <div class="rows">
+  $opts.innerHTML = `<div class="box" data-paused="${paused}"><div class="wtitle"><b>${paused ? 'Pausa' : 'Opciones'}</b></div>
+    <div class="wbox orows"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
       <div class="opt"><span>${ICONS.music} Música</span><button class="tog${Music.muted ? '' : ' on'}" data-o="music" aria-label="Música"></button></div>
       <div class="opt"><span>${ICONS.sound} Sonido</span><button class="tog${Snd.muted ? '' : ' on'}" data-o="sound" aria-label="Sonido"></button></div>
     </div>
-    <div class="obtns">${paused
-      ? `<button class="cbtn alt home" data-o="home" title="Salir al menú (Q)">${ICONS.home}</button><button class="cbtn wide" data-o="resume">▶ Reanudar</button>`
-      : '<button class="cbtn wide" data-o="close">Cerrar</button>'}</div></div>`;
+    <div class="wbtns ${paused ? 'home' : 'one'}">${paused
+      ? `<button class="wbtn re" data-o="home" title="Salir al menú (Q)" aria-label="Salir al menú">${ICONS.home}</button><button class="wbtn go" data-o="resume">${PLAY_SVG}Reanudar</button>`
+      : '<button class="wbtn re" data-o="close">Cerrar</button>'}</div></div>`;
 }
 function openOpts() { clearTimeout(optsT); $opts.classList.remove('closing'); $opts.innerHTML = ''; renderOpts(); $opts.classList.remove('hidden'); Snd.click(); }
 function closeOpts() {   // con su animación de salida; después se esconde
@@ -3281,7 +3305,7 @@ function updateButtons() {
   if ($btnBack.dataset.icon !== icon) { $btnBack.dataset.icon = icon; $btnBack.innerHTML = G.screen ? ICONS.home : BACK_ARROW; }
   $btnLight.classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el botón de la luz de prueba solo está en la portada
   // flechita / casita arriba a la izquierda: en el selector, los resultados, el Bioterio y la Máquina
-  const back = !!G.screen || (G.state === 'select' || (G.state === 'won' && G.winCard));
+  const back = !!G.screen || G.state === 'select';   // en los carteles de fin de nivel la salida va adentro del cartel
   $btnBack.classList.toggle('hidden', !back);
   // mientras anda la máquina, la casita, las monedas, el engranaje y el botón Bioterio se desvanecen (sin moverse de
   // lugar) y vuelven cuando sale la ratita
