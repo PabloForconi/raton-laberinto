@@ -142,7 +142,7 @@
   @media (max-width: 480px) { #card .wg { gap: 6px; } #card .wg > svg { width: 44px; height: 44px; } #card .wg .num { font-size: 30px; } #card .wg small { font-size: 11.5px; } }
   /* portada con el formato nuevo: sin cartel de título (el logo es el título) */
   #card .wmenu { margin-top: 0; padding-top: 12px; }
-  #card .wmenu .logo { margin: -4px auto 4px; }
+  #card .wmenu .logo { margin: -14px auto 26px; }   /* arriba, con el doble de aire hasta los controles que de los controles a Historia */
   #card .wctl { margin: 4px 2px 16px; padding: 4px 12px; }
   #card .wctl .ctl { margin: 0 auto; border: 0; }
   #card .wmenu .wbtns { grid-template-columns: 1fr 1fr; margin-top: 12px; }
@@ -239,13 +239,13 @@
   #cheese svg { width: 27px; height: 27px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   /* batería de la linterna (niveles a oscuras): 4 bloques de 15 s, debajo del queso */
-  #lamp { top: 112px; left: 14px; display: flex; align-items: center; padding: 3px 12px 1px 10px; font-size: 24px; transform: rotate(-1deg); }
+  #lamp { top: 114px; left: 14px; display: flex; align-items: center; padding: 3px 12px 1px 10px; font-size: 24px; transform: rotate(-1deg); }
   #lamp::before { content: '\200b'; }   /* una línea de texto invisible: así mide lo mismo de alto que el queso */
-  #lamp.up { top: 64px; }   /* sin queso, va en su lugar */
+  #lamp.up { top: 64px; }   /* sin queso, va en su lugar (entre monedas, queso y batería queda el mismo espacio: 8 px) */
   #lamp.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
-  #lamp .bat { position: relative; display: flex; gap: 2px; margin-right: 5px; padding: 2px; border: 3px solid #2b2d31; border-radius: 6px; background: #3a3d42; }
-  #lamp .bat::after { content: ''; position: absolute; right: -8px; top: 50%; width: 4px; height: 40%; transform: translateY(-50%); background: #2b2d31; border-radius: 0 3px 3px 0; }
-  #lamp .bat i { width: .56em; height: .66em; border-radius: 2px; background: #25272b; }
+  #lamp .bat { position: relative; display: flex; gap: 2px; margin-right: 5px; padding: 2px; border: 2.5px solid #2b2d31; border-radius: 5px; background: #3a3d42; }
+  #lamp .bat::after { content: ''; position: absolute; right: -6.5px; top: 50%; width: 3.5px; height: 40%; transform: translateY(-50%); background: #2b2d31; border-radius: 0 3px 3px 0; }
+  #lamp .bat i { width: .46em; height: .5em; border-radius: 2px; background: #25272b; }
   #lamp .bat i.on { background: linear-gradient(#e9f56a, #b8d42a); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
   #lamp .bat i.low { background: linear-gradient(#ffb15a, #f07a18); }
   #lamp .bat i.crit { background: linear-gradient(#ff7a6a, #d8281a); }
@@ -405,7 +405,7 @@
     #level { font-size: 13px; }
     #timer { top: 32px; font-size: 26px; }
     #cheese, #lamp { font-size: 21px; }
-    #lamp { top: 106px; }
+    #lamp { top: 108px; }
     #card .levels { grid-template-columns: repeat(4, 1fr); gap: 7px; }
     #card .lvl b { font-size: 21px; }
     #card .lvl small { font-size: 9px; }
@@ -428,7 +428,7 @@
   <div id="level" class="tape">NIVEL 1</div>
   <div id="timer" class="tape">0:00</div>
 
-  <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><path d="M2 17 L21 7 L22 17 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 17 L22 17 L22 20 L2 20 Z" fill="#d9a62e" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><circle cx="14" cy="13.5" r="1.6" fill="#c98f1d"/><circle cx="18.5" cy="12" r="1.1" fill="#c98f1d"/></svg><span id="cheeseN">0/5</span></div>
+  <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><defs><linearGradient id="chG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8d662"/><stop offset="1" stop-color="#efb53a"/></linearGradient></defs><path d="M2 15.1 L21.25 17.3 L21.25 20.8 L2 18.6 Z" fill="#e0a432" stroke="#8a5b10" stroke-width="1.1" stroke-linejoin="round"/><path d="M17.95 3 L21.25 17.3 L21.25 20.8 L17.95 6.5 Z" fill="#cf8a1f" stroke="#8a5b10" stroke-width="1.1" stroke-linejoin="round"/><path d="M2 15.1 L17.95 3 L21.25 17.3 Z" fill="url(#chG)" stroke="#8a5b10" stroke-width="1.1" stroke-linejoin="round"/><circle cx="8.6" cy="12.7" r="1.45" fill="#c98a1d"/><circle cx="14.4" cy="8.3" r="1.75" fill="#c98a1d"/><circle cx="17.5" cy="13.8" r="1.2" fill="#c98a1d"/><circle cx="11.8" cy="14.9" r=".8" fill="#c98a1d"/><circle cx="18.2" cy="7.9" r=".8" fill="#c98a1d"/></svg><span id="cheeseN">0/5</span></div>
   <div id="lamp" class="tape hidden"><span class="bat"><i></i><i></i><i></i><i></i></span></div>
 </div>
 <div id="coins" class="tape"><span id="coinsIco"></span><span id="coinsN">0</span></div>
@@ -1282,6 +1282,7 @@ let CAN_BLUR = (() => {
 })();
 const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo)
 const WALL_SOFT = 8;     // esfumado del borde de la luz sobre las paredes
+const WALL_LIGHT = 0.6;   // cuánto de la linterna llega a las paredes (sus cantos se veían más brillantes que el piso)
 let scale = 1;
 
 function makeFloorTile() {
@@ -4056,7 +4057,7 @@ function drawPrints(c) {
 // Moneda plateada (el diseño de COIN_BANDS, sin borde): dos ranuras de lado a lado. Gira sobre sí misma como un cilindro
 // chato: la cara se angosta con el coseno del giro y el canto (el costado) se ensancha con el seno, así de canto queda
 // solo el rectángulo del costado. Las ranuras siguen por el canto (línea oscura y fondo gris, sin la línea clara).
-const COIN_R = 8, COIN_T = COIN_R * 0.24;   // radio y espesor
+const COIN_R = 8, COIN_T = COIN_R * 0.36;   // radio y espesor (más gruesa: de canto se ve más ancha)
 const COIN_ROLL = 1.1;                      // radianes por segundo que rota sobre su centro
 let coinBack = null;   // colores de la cara de atrás (los mismos, más oscuros); se arman la primera vez
 function drawCoin(c, it) {
@@ -4361,6 +4362,12 @@ function render() {
     actx.globalCompositeOperation = 'destination-in'; actx.fillStyle = '#000'; actx.beginPath();
     for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * HITS[i], y = oy + SIN[i] * HITS[i]; i ? actx.lineTo(x, y) : actx.moveTo(x, y); }
     actx.closePath(); actx.fill(); actx.globalCompositeOperation = 'source-over';
+    // la luz del piso no cae sobre las paredes (sus cantos se proyectan encima del piso): las paredes se iluminan solo
+    // con la suya, más tenue (WALL_LIGHT), así el borde de arriba no queda más brillante que el piso
+    if (!menu) {
+      actx.setTransform(1, 0, 0, 1, 0, 0); actx.globalCompositeOperation = 'destination-out';
+      actx.drawImage(wallCv, 0, 0); actx.globalCompositeOperation = 'source-over';
+    }
 
     // las paredes se iluminan un poco más allá del impacto (su canto y su cara proyectada)
     bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, w, h); bctx.setTransform(...T6);
@@ -4398,7 +4405,7 @@ function render() {
       blurCtx.drawImage(aCv, 0, 0, bw, bh); blurCtx.filter = 'none';
       lctx.drawImage(blurCv, 0, 0, w, h);
     } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
-    lctx.drawImage(bCv, 0, 0);
+    lctx.globalAlpha = G.light * WALL_LIGHT; lctx.drawImage(bCv, 0, 0);   // las paredes, menos iluminadas que el piso
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
     const amb = menu ? MENU_AMBIENT : debugLight ? DEBUG_AMBIENT : roomLit ? ROOM_AMBIENT : G.dark ? DARK_AMBIENT * G.light : 0;   // menús: fondo tenue · luz de prueba: todo el laberinto a la vista
     if (amb) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + amb + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
