@@ -4477,11 +4477,11 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   }
   c.restore();
   // --- bracitos: del hombro (con el cuerpo) a la manito (con las manitos); en la bolita suben hasta la boca ---
-  const hand = sd => ({ c: m2([590 + sd * 114, 870], [590 + sd * 47, 725]), rx: m(42, 45), ry: m(50, 36), rot: m(-sd * 0.35, sd * 0.5) });   // (sentada: como el salto del usuario)
+  const hand = sd => ({ c: m2([590 + sd * 78, 880], [590 + sd * 47, 725]), rx: m(60, 45), ry: m(43, 36), rot: m(-sd * 0.75, sd * 0.5) });
   c.strokeStyle = P.legLine; c.lineWidth = 6;
   for (const sd of [-1, 1]) {
     const a = sqPt(sqB, m2([590 + sd * 207, 760], [590 + sd * 205, 760])), mm = sqPt((sqB + sqH) / 2, m2([590 + sd * 202, 852], [590 + sd * 200, 700]));
-    const b = sqPt(sqH, m2([590 + sd * 130, 832], [590 + sd * 85, 738]));
+    const b = sqPt(sqH, m2([590 + sd * 124, 864], [590 + sd * 85, 738]));
     c.beginPath(); c.moveTo(...a); c.quadraticCurveTo(...mm, ...b); c.stroke();
   }
   // --- manitos (siguen el aplastado un poquito desfasadas): sentada juntas abajo, hecha bolita tapando la boca ---
@@ -4490,7 +4490,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
     const h = hand(sd), sh = handShake(t, i, sd, land) * (1 - u);
     c.save();
     if (sh) {   // cada tanto sacude rapidito la manito, con el pivote en la muñeca (donde llega el bracito)
-      const wr = m2([590 + sd * 130, 832], [590 + sd * 85, 738]), pv = lerp2(wr, [h.c[0], h.c[1] - h.ry * 0.7], 0.5);
+      const wr = m2([590 + sd * 124, 864], [590 + sd * 85, 738]), pv = lerp2(wr, [h.c[0], h.c[1] - h.ry * 0.7], 0.5);
       c.translate(...pv); c.rotate(sh); c.translate(-pv[0], -pv[1]);
     }
     c.fillStyle = P.paws; c.beginPath(); c.ellipse(h.c[0], h.c[1], h.rx, h.ry, h.rot, 0, Math.PI * 2); c.fill();
