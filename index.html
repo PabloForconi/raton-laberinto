@@ -82,7 +82,7 @@
   #card .small { font-size: 13px; opacity: .8; }
   /* resultados de Historia: en el estilo del juego (cartón, cinta, marcador), no como un formulario */
   #card .lvlname { margin: -4px 0 4px; font-size: 14px; letter-spacing: .5px; opacity: .7; }
-  @keyframes starDrop { from { transform: scale(2.4) rotate(-40deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+  @keyframes starDrop { from { transform: scale(2.3); opacity: 0; } 70% { transform: scale(.94); opacity: 1; } to { transform: scale(1); opacity: 1; } }   /* cae de frente, sin girar */
   /* cartel de fin de nivel, con la composición y los colores del boceto del usuario: cartón claro, el título en un cartel
      de papel que asoma arriba, las estrellas en un recuadro de cartón oscuro encintado, cajas de papel (quesos, tiempo,
      recompensa), el botón amarillo de la máquina y Repetir / Siguiente (verde) */
@@ -102,15 +102,18 @@
   :is(#card, #opts) .tp:nth-of-type(2) { right: -18px; top: 2px; transform: rotate(42deg); }
   :is(#card, #opts) .tp:nth-of-type(3) { left: -18px; bottom: 2px; transform: rotate(42deg); }
   :is(#card, #opts) .tp:nth-of-type(4) { right: -18px; bottom: 2px; transform: rotate(-42deg); }
-  #card .wstar { position: relative; width: 31%; max-width: 104px; margin: 0 -4px; }
+  #card .wstar { position: relative; width: 31%; max-width: 104px; margin: 0 2px; flex: none; }   /* las de los costados, del mismo tamaño que antes y un poco hacia afuera */
   #card .wstar svg { display: block; width: 100%; height: auto; }
   #card .wstar .wsh { transform: translateY(7%) scale(1.16); }   /* un poco más grande y más abajo: asoma por debajo de la dorada */
   #card .wstar .wgold { position: absolute; inset: 0; filter: drop-shadow(0 4px 2px rgba(60,30,5,.45)); animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
-  #card .wstar:nth-of-type(2) { top: -6px; }
+  #card .wstar:nth-of-type(2) { top: -14px; width: 36%; max-width: 122px; }   /* la del medio, más grande y más arriba */
   #card .wray { position: absolute; width: 34px; height: 34px; top: 18px; }
   #card .wray svg { display: block; width: 100%; height: 100%; }
   #card .wray.l { left: 6px; } #card .wray.r { right: 6px; transform: scaleX(-1); }
   #card .wrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
+  /* capas: la caja del tiempo (con el sello del récord) va arriba de la recompensa, y la recompensa (con su etiqueta) arriba
+     de la de los quesos, así cada una pisa a la vecina por donde se monta */
+  #card .wstat.q { z-index: 1; } #card .wreward { z-index: 2; } #card .wstat:not(.q) { z-index: 3; }
   #card .wrow.solo { grid-template-columns: 1fr; }
   :is(#card, #opts) .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.35), transparent 70%); box-shadow: 0 3px 0 #9b7244, 0 4px 8px rgba(0,0,0,.25); }
@@ -124,7 +127,7 @@
   #card .wstat h3 { font-size: 15px; }
   #card .wstat .num { display: block; font-size: 34px; white-space: nowrap; }
   /* el sello del récord va abajo de la caja del tiempo, así no tapa nada */
-  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -19px; z-index: 1; font-size: 18px; padding: 0 9px; transform: translateX(-50%) rotate(-4deg); animation-name: stampLow; }
+  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -11px; z-index: 1; font-size: 18px; padding: 3px 14px 2px; background: #fff; transform: translateX(-50%) rotate(-4deg); animation-name: stampLow; }
   @keyframes stampLow { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-4deg) scale(1); opacity: 1; } }
   /* cartel de inicio con el mismo formato: el título y una caja "Objetivo" con los quesos y el tiempo de las tres
      estrellas, separados por una rayita, y el botón verde para jugar */
@@ -200,7 +203,7 @@
   #card .wplay { width: 100%; height: 72px; gap: 14px; font-size: 32px; }
   #card .wplay svg { width: 38px; height: 38px; }
   #card .wreward { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 14px; padding: 18px 10px 6px; }
-  #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f3e4c4; font: 17px/1.2 'Kalam', cursive;
+  #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f6cf4a;   /* amarilla (como las monedas y el botón de la máquina), así no se pierde contra la caja */ font: 17px/1.2 'Kalam', cursive;
     text-transform: uppercase; transform: rotate(-4deg); box-shadow: 0 2px 4px rgba(0,0,0,.3); }
   #card .wcoins { position: relative; width: 82px; height: 58px; }
   #card .wcoins .ci { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
