@@ -138,6 +138,12 @@
   #card .wg .num { display: block; font: 36px/1 'Permanent Marker', cursive; white-space: nowrap; }
   #card .wg small { display: block; margin-top: 3px; font: 13px/1.1 'Permanent Marker', cursive; text-transform: uppercase; }
   @media (max-width: 480px) { #card .wg { gap: 6px; } #card .wg > svg { width: 44px; height: 44px; } #card .wg .num { font-size: 30px; } #card .wg small { font-size: 11.5px; } }
+  /* carteles de perder (trampa o tiempo): el subtítulo en rojo y una caja con el dibujito y qué pasó */
+  #card .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
+  #card .wlose { display: flex; align-items: center; gap: 14px; margin: 16px 2px 18px; padding: 16px 16px 14px; text-align: left; }
+  #card .wlose > svg { flex: none; width: 76px; height: 76px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
+  #card .wlose b { display: block; font: 23px/1.1 'Permanent Marker', cursive; font-weight: normal; }
+  #card .wlose span { display: block; margin-top: 4px; font-size: 15px; line-height: 1.3; }
   #card .wplay { width: 100%; height: 72px; gap: 14px; font-size: 32px; }
   #card .wplay svg { width: 38px; height: 38px; }
   #card .wreward { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 14px; padding: 18px 10px 6px; }
@@ -277,13 +283,6 @@
   #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; text-shadow: 0 0 6px #000, 0 2px 4px #000, 0 0 14px rgba(0,0,0,0.8); }
   .gname { font-family: 'Permanent Marker', cursive; font-size: 30px; color: #f6e7bf; }
   .cbtn:disabled { opacity: .5; cursor: default; }
-  /* aviso de premio en el cartel de fin de nivel */
-  .cbtn.prize { background: #ffd84a; animation: prizePulse 1s ease-in-out infinite alternate; }
-  @keyframes prizePulse { to { filter: brightness(1.12); transform: rotate(-1.5deg) scale(1.05); } }
-  .prizebar { position: relative; width: min(340px, 90%); height: 24px; margin: 12px auto 4px; background: rgba(40,25,10,.35);
-    border: 2px solid #6b4c2c; overflow: hidden; }
-  .prizebar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#ffe27a, #e0a514); }
-  .prizebar span { position: relative; display: block; line-height: 22px; font-size: 13px; color: #1e1208; white-space: nowrap; }
   /* portada */
   #card .lead { margin: 4px 0 12px; }
   #card .lead p { margin: 2px 0; font-size: 16px; line-height: 1.35; text-wrap: balance; }
@@ -422,6 +421,11 @@ const SPEED = 150;         // velocidad hacia adelante
 const TURN = 4.2;          // velocidad de giro máxima (rad/s)
 const RAD = 9;             // radio de colisión del cuerpo
 const LIGHT_R = 5.2 * C;   // alcance de la linterna
+// alrededor de la linterna, una luz tenue y redonda (cortada por las paredes) deja ver un poco lo que hay cerca, también
+// atrás y a los costados; el haz de la linterna no cambia
+const AURA_R = LIGHT_R * 0.42, AURA_A = 0.25;
+// qué tan cerca hay que pasar para agarrar una moneda o un queso (antes 23 y 21: costaba un poco agarrarlos)
+const PICK_COIN = 30, PICK_CHEESE = 28;
 const CONE = 0.50;         // medio ángulo del haz (rad)
 const CONE_SOFT = 0.16;    // suavizado del borde del haz
 const RAYS = 540;          // rayos para calcular sombras
@@ -2989,18 +2993,8 @@ function starsFor(time) {
   return 1 + (time <= G.star2 ? 1 : 0) + (time <= G.star3 && cheeseOk ? 1 : 0);
 }
 const fmtMS = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };   // 32 → 00:32
-// Aviso de premio en el cartel de fin de nivel (como el "Get a prize!" del Crossy Road): si te alcanzan las monedas,
-// un botón directo a la Máquina; si no, una barrita con cuánto te falta. Se actualiza al volver de la Máquina.
-function prizeBlock() {
-  if (Wallet.coins >= COIN_SPIN)
-    return `<div class="menu"><button class="cbtn prize" data-act="machine">¡Activá la máquina! · ${COIN_SPIN} ${COIN_ICON}</button></div>`;
-  return `<div class="prizebar"><i style="width:${Wallet.coins / COIN_SPIN * 100}%"></i>
-    <span>${COIN_ICON} ${Wallet.coins} / ${COIN_SPIN} · te faltan ${COIN_SPIN - Wallet.coins} para activar la máquina</span></div>`;
-}
-function refreshPrize() {
-  const el = document.getElementById('prizeSlot'); if (el) el.innerHTML = prizeBlock();
-  const mb = document.getElementById('machSlot'); if (mb) mb.innerHTML = machButton();
-}
+// El botón de la máquina de los carteles de fin de nivel (como el "Get a prize!" del Crossy Road) se actualiza al volver de la Máquina
+function refreshPrize() { const mb = document.getElementById('machSlot'); if (mb) mb.innerHTML = machButton(); }
 // Íconos del cartel de fin de nivel (en SVG, como los del HUD)
 // estrella con facetas (cada punta, una mitad clara y una oscura), como las del boceto; apagada es una sombra en el cartón
 const STAR_PTS = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 21 : 46; return [+(50 + r * Math.cos(a)).toFixed(1), +(53 + r * Math.sin(a)).toFixed(1)]; });
@@ -3022,6 +3016,18 @@ const WATCH_SVG = `<svg viewBox="0 0 64 64"><rect x="26" y="3" width="12" height
   <path d="M32 37V23" stroke="#3b3b40" stroke-width="3" stroke-linecap="round"/><path d="M32 37l9-7" stroke="#d23a20" stroke-width="2.5" stroke-linecap="round"/>
   <circle cx="32" cy="37" r="2.6" fill="#3b3b40"/><path d="M16 30a17 17 0 0 1 12-11" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`;
 const RETRY_SVG = `<svg viewBox="0 0 32 32"><path d="M25.5 17a9.5 9.5 0 1 1-3.6-7.6" fill="none" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/><path d="M17.5 4.5 L27.5 6 L24 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+// carteles de perder: una trampa cerrada (tabla, plaquita, resorte, arco de alambre y el queso de cebo) y la linterna
+// apagada (cuerpo gris azulado, panel apagado, batería vacía con un hilito rojo, cabeza y vidrio oscuros)
+const TRAP_SVG = `<svg viewBox="0 0 64 64"><rect x="5" y="12" width="54" height="42" rx="4" fill="#c48a4a" stroke="#7a4f22" stroke-width="2"/>
+  <path d="M9 22h46M9 44h46" stroke="#a97237" stroke-width="1.5"/><rect x="22" y="25" width="20" height="16" rx="2" fill="#b9bec4" stroke="#7d848b" stroke-width="1.5"/>
+  <path d="M27 31 L37 31 L32 24 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="32" cy="47" r="4" fill="none" stroke="#6f767c" stroke-width="2.5"/>
+  <path d="M11 47 V19 Q11 15 15 15 H49 Q53 15 53 19 V47" fill="none" stroke="#5d6369" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+const DEAD_LAMP_SVG = `<svg viewBox="0 0 64 64"><g transform="rotate(-25 32 32)">
+  <rect x="5" y="26" width="32" height="12" rx="3" fill="#6d7f92" stroke="#3d4a57" stroke-width="2"/><path d="M11 27v10M15 27v10" stroke="#56677a" stroke-width="1.5"/>
+  <rect x="25" y="23" width="7" height="4" rx="1" fill="#3d4a57"/>
+  <path d="M37 24 L50 16 L50 48 L37 40 Z" fill="#8a97a3" stroke="#3d4a57" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="49" y="15" width="6" height="34" rx="3" fill="#3a3f45" stroke="#2a2f35" stroke-width="1.5"/></g></svg>`;
 const PLAY_SVG = `<svg viewBox="0 0 32 32"><path d="M9 5 L27 16 L9 27 Z" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linejoin="round"/></svg>`;
 // la bolita del botón de la máquina: una cápsula como las de la pecera, dibujada una vez
 let capImg = null;
@@ -3088,15 +3094,18 @@ function startDie(reason = 'time') {
 }
 function lost() {
   G.state = 'lost';
-  card(G.dieReason === 'trap'
-    ? `<h1 class="red">¡ATRAPADO!</h1>
-       <p>La trampa se cerró. Volvés a la entrada del mismo laberinto.</p>
-       <div id="prizeSlot">${prizeBlock()}</div>
-       <div class="menu res"><button class="cbtn" data-act="retry">Reintentar</button></div>`
-    : `<h1 class="red">SE ACABÓ<br>EL TIEMPO</h1>
-       <p>La linterna se apagó. Volvés a la entrada del mismo laberinto.</p>
-       <div id="prizeSlot">${prizeBlock()}</div>
-       <div class="menu res"><button class="cbtn" data-act="retry">Reintentar</button></div>`);
+  // con el formato de los carteles nuevos: el título (nivel y qué pasó, en rojo), una caja con el dibujito y qué pasó,
+  // el botón de la máquina y Reintentar (verde)
+  const trap = G.dieReason === 'trap';
+  card(`<div class="win">
+      <div class="wtitle lose"><b>${G.mode === 'story' ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${trap ? '¡Atrapado!' : '¡Se acabó el tiempo!'}</span></div>
+      <div class="wbox wlose"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
+        ${trap ? TRAP_SVG : DEAD_LAMP_SVG}
+        <div><b>${trap ? 'La trampa se cerró.' : 'La linterna se apagó.'}</b><span>Volvés a la entrada del mismo laberinto.</span></div>
+      </div>
+      <div id="machSlot">${machButton()}</div>
+      <button class="wbtn go wplay" data-act="retry">${RETRY_SVG}Reintentar</button>
+    </div>`);
   updateButtons();
 }
 function togglePause() {
@@ -3225,9 +3234,9 @@ function updateButtons() {
   // al terminar el nivel (ganado o perdido) el contador de monedas no se muestra: tapaba el cartel en el celular
   // (ni en el selector de niveles: ahí no se usan y en el celular tapaban el cartel)
   $coins.style.visibility = !G.screen && ['won', 'lost', 'select'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
-  // con el cartel de fin de nivel, el nivel y el reloj de arriba se esconden: el cartel ya los muestra y en el celular
+  // con el cartel de fin de nivel (ganado o perdido), el nivel y el reloj de arriba se esconden: el cartel ya los muestra y en el celular
   // su título se montaba sobre el reloj
-  $level.style.visibility = $timer.style.visibility = G.state === 'won' && G.winCard && !G.screen ? 'hidden' : '';
+  $level.style.visibility = $timer.style.visibility = ((G.state === 'won' && G.winCard) || G.state === 'lost') && !G.screen ? 'hidden' : '';
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
@@ -3420,7 +3429,7 @@ function updateItems() {
         }
       }
     } else if (it.type === 'coin' && !it.got) {
-      if (Math.hypot(M.x + ca * 6 - it.x, M.y + sa * 6 - it.y) < 23) {
+      if (Math.hypot(M.x + ca * 6 - it.x, M.y + sa * 6 - it.y) < PICK_COIN) {
         it.got = true; G.runCoins++; Wallet.add(1); Snd.coin(); pop($coins);
         for (let k = 0; k < 8; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
@@ -3429,7 +3438,7 @@ function updateItems() {
         }
       }
     } else if (it.type === 'cheese' && !it.got) {
-      if (Math.hypot(M.x + ca * 10 - it.x, M.y + sa * 10 - it.y) < 21) {
+      if (Math.hypot(M.x + ca * 10 - it.x, M.y + sa * 10 - it.y) < PICK_CHEESE) {
         it.got = true; G.cheese++; Snd.cheese(); pop($cheese);
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
@@ -3631,7 +3640,12 @@ function drawBulb(c, ox, oy) {
 }
 
 function drawCone(c, ox, oy) {
-  c.save(); c.translate(ox, oy); c.rotate(M.a); c.drawImage(coneCv, -LIGHT_R, -LIGHT_R, LIGHT_R * 2, LIGHT_R * 2); c.restore();
+  c.save(); c.translate(ox, oy); c.rotate(M.a); c.drawImage(coneCv, -LIGHT_R, -LIGHT_R, LIGHT_R * 2, LIGHT_R * 2);
+  c.restore();
+  // la luz tenue de alrededor (se suma al haz; después las dos se recortan juntas con las sombras de las paredes)
+  const g = c.createRadialGradient(ox, oy, 0, ox, oy, AURA_R);
+  g.addColorStop(0, `rgba(255,232,195,${AURA_A})`); g.addColorStop(0.45, `rgba(255,225,185,${AURA_A * 0.5})`); g.addColorStop(1, 'rgba(255,220,180,0)');
+  c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(ox - AURA_R, oy - AURA_R, AURA_R * 2, AURA_R * 2); c.restore();
 }
 
 // ===================== RENDER =====================
