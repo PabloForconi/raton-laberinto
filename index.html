@@ -102,9 +102,11 @@
   #card .tp:nth-of-type(2) { right: -18px; top: 2px; transform: rotate(42deg); }
   #card .tp:nth-of-type(3) { left: -18px; bottom: 2px; transform: rotate(42deg); }
   #card .tp:nth-of-type(4) { right: -18px; bottom: 2px; transform: rotate(-42deg); }
-  #card .wstar { width: 31%; max-width: 104px; margin: 0 -4px; filter: drop-shadow(0 4px 2px rgba(60,30,5,.45)); }
-  #card .wstar.on { animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
-  #card .wstar:nth-of-type(2) { position: relative; top: -6px; }
+  #card .wstar { position: relative; width: 31%; max-width: 104px; margin: 0 -4px; }
+  #card .wstar svg { display: block; width: 100%; height: auto; }
+  #card .wstar .wsh { transform: translateY(7%) scale(1.16); }   /* un poco más grande y más abajo: asoma por debajo de la dorada */
+  #card .wstar .wgold { position: absolute; inset: 0; filter: drop-shadow(0 4px 2px rgba(60,30,5,.45)); animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
+  #card .wstar:nth-of-type(2) { top: -6px; }
   #card .wray { position: absolute; width: 34px; height: 34px; top: 18px; }
   #card .wray svg { display: block; width: 100%; height: 100%; }
   #card .wray.l { left: 6px; } #card .wray.r { right: 6px; transform: scaleX(-1); }
@@ -218,6 +220,17 @@
   #cheese { top: 64px; left: 14px; font-size: 24px; display: flex; align-items: center; gap: 7px; transform: rotate(1deg); padding: 3px 12px 1px; }
   #cheese svg { width: 27px; height: 27px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
+  /* batería de la linterna (niveles a oscuras): 4 bloques de 15 s, debajo del queso */
+  #lamp { top: 112px; left: 14px; padding: 7px 12px; transform: rotate(-1deg); }
+  #lamp.up { top: 64px; }   /* sin queso, va en su lugar */
+  #lamp.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
+  #lamp .bat { position: relative; display: flex; gap: 3px; padding: 3px; border: 3px solid #2b2d31; border-radius: 7px; background: #3a3d42; }
+  #lamp .bat::after { content: ''; position: absolute; right: -9px; top: 50%; width: 5px; height: 12px; transform: translateY(-50%); background: #2b2d31; border-radius: 0 3px 3px 0; }
+  #lamp .bat i { width: 15px; height: 22px; border-radius: 2px; background: #25272b; }
+  #lamp .bat i.on { background: linear-gradient(#e9f56a, #b8d42a); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
+  #lamp .bat i.low { background: linear-gradient(#ffb15a, #f07a18); }
+  #lamp .bat i.crit { background: linear-gradient(#ff7a6a, #d8281a); }
+  #lamp .bat i.blink { opacity: .25; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
   #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
     transform: rotate(-1.5deg); padding: 3px 12px 1px; pointer-events: none; }
@@ -396,6 +409,7 @@
   <div id="timer" class="tape">0:00</div>
 
   <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><path d="M2 17 L21 7 L22 17 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><path d="M2 17 L22 17 L22 20 L2 20 Z" fill="#d9a62e" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/><circle cx="14" cy="13.5" r="1.6" fill="#c98f1d"/><circle cx="18.5" cy="12" r="1.1" fill="#c98f1d"/></svg><span id="cheeseN">0/5</span></div>
+  <div id="lamp" class="tape hidden"><span class="bat"><i></i><i></i><i></i><i></i></span></div>
 </div>
 <div id="coins" class="tape"><span id="coinsIco"></span><span id="coinsN">0</span></div>
 <div id="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> música · <kbd>F</kbd> efectos ·<kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)</div>
@@ -540,6 +554,11 @@ const LEVELS = [
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
+// Niveles a oscuras de Historia (el 30%, repartidos; los que presentan una mecánica van con luz para aprenderla viendo):
+// en esos la linterna tiene una pila de LAMP_MAX segundos en bloques de LAMP_BLOCK, y en el laberinto hay pilas que
+// recargan un bloque. En los demás la luz del laberinto está prendida, el reloj corre libre y no se pierde por tiempo.
+const DARK_LEVELS = [4, 8, 11, 15, 18, 23, 26, 29, 32, 35, 38, 40];
+const LAMP_MAX = 60, LAMP_BLOCK = 15;
 const UNLOCK_ALL = true;   // provisorio, para probar: todos los niveles de Historia desbloqueados (después va false)
 
 // Progreso de Historia (niveles desbloqueados, mejores estrellas y mejor tiempo de cada nivel), guardado en el navegador
@@ -789,6 +808,7 @@ const Snd = {
   squish() { this.sweep(900, 220, 0.25, 0.3, 2.5); this.tone(110, 70, 0.15, 'sine', 0.12); },
   // agarrar un queso: dos notitas para arriba
   cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
+  battery() { this.tone(330, 660, 0.12, 'square', 0.06); this.tone(660, 1320, 0.16, 'square', 0.05, 0.1); this.tone(1320, 1320, 0.1, 'triangle', 0.12, 0.24); },
   flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
   flapShut(v = 1) { this.noise(0.05, 650, 0.9, 0.3 * v, 'lowpass'); this.tone(190, 95, 0.07, 'sine', 0.16 * v); },   // la cortina golpea el marco
 };
@@ -1036,6 +1056,26 @@ function placeItems(L, m, rng) {
 // tiene N monedas en total (budget): sirve para juntar, pero rinde ir más lejos. Usan su propio rng, así no cambian
 // dónde caen los otros items. No van en la entrada, la salida ni encima de otro item.
 const COIN_DETOUR_S = 2.5;   // en los tesoros: una moneda por cada tantos segundos de desvío (de 3 a 5)
+// Pilas de los niveles a oscuras: n repartidas parejo a lo largo del camino más corto (si el lugar está ocupado, la
+// celda libre más cercana del camino), así siguiéndolo siempre alcanza la linterna
+function placeBatteries(m, items, n) {
+  const { W, H } = m, out = [];
+  const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), D = dE[m.exitRow * W];
+  const path = [];
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (dE[r * W + c] >= 0 && dE[r * W + c] + dX[r * W + c] === D) path.push([c, r, dE[r * W + c]]);
+  path.sort((p, q) => p[2] - q[2]);
+  const busy = (x, y) => items.concat(out).some(it => Math.hypot((it.x ?? it.wx) - x, (it.y ?? it.wy) - y) < C * 0.75);
+  for (let k = 1; k <= n; k++) {
+    const want = Math.round(k * (path.length - 1) / (n + 1));
+    for (let j = 0; j < path.length; j++) {
+      const idx = want + (j % 2 ? -1 : 1) * Math.ceil(j / 2);
+      if (idx < 1 || idx > path.length - 2) continue;
+      const x = (path[idx][0] + 0.5) * C, y = (path[idx][1] + 0.5) * C;
+      if (!busy(x, y)) { out.push({ type: 'battery', x, y, got: false, ph: k * 1.7 }); break; }
+    }
+  }
+  return out;
+}
 function placeCoins(m, items, seed, budget = null) {
   const rng = mulberry32(seed), { W, H } = m, out = [];
   const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), D = dE[m.exitRow * W];
@@ -1474,6 +1514,7 @@ function loadLevel(n) {
   buildMaze(W, H, G.baseSeed + n * 7919, Math.min(0.05, 0.008 * (n - 1)));
   G.items = placeCoins(G.maze, [], G.baseSeed + n * 7919 + 777, n); G.runCoins = 0; G.coinsTotal = G.items.length;
   G.solids = G.holeRects = G.rects; G.cheeseTotal = 0;
+  G.dark = true; G.lamp = false;   // Desafío: a oscuras con el tiempo de siempre (todavía sin pilas; se revisa después)
   G.timeLimit = timeFor(n, pathLen(G.maze));
   starTimes(0);
   G.attempts = 1; G.chBest = null; G.chStars = 0;   // récord y estrellas de este laberinto (son al azar: valen mientras lo repetís)
@@ -1496,6 +1537,13 @@ function loadStory(i) {
   const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5;   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
   G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
   starTimes(extra);
+  // a oscuras: la linterna arranca con LAMP_MAX segundos y hay pilas en el camino para que alcance el tiempo de antes
+  G.dark = G.lamp = DARK_LEVELS.includes(i + 1);
+  if (G.dark) {
+    const bats = placeBatteries(G.maze, G.items, Math.ceil(Math.max(0, G.timeLimit - LAMP_MAX) / LAMP_BLOCK) + 1);
+    G.items = G.items.filter(it => it.type !== 'coin').concat(bats, G.items.filter(it => it.type === 'coin'));
+    G.timeLimit = LAMP_MAX;
+  }
   G.attempts = 1; G.chBest = null; G.chStars = 0;
   computeScale();
   resetRun();
@@ -1507,7 +1555,7 @@ function resetRun() {
   // las monedas que ya agarraste quedan agarradas (son tuyas aunque pierdas; no vuelven a aparecer al reintentar)
   for (const it of G.items) { it.closed = false; it.t = 0; it.got = it.type === 'coin' && it.got; it.passing = false; it.ang = DOOR_REST; it.av = 0; it.rattle = 0; }   // trampas abiertas, quesos sin juntar, puertas cerradas
   G.cheese = 0; G.fx = []; G.dieReason = 'time'; G.siren = 0;
-  G.timeLeft = G.timeLimit; G.lastTick = 99; G.light = 0;
+  G.timeLeft = G.timeLimit; G.elapsed = 0; G.lastTick = 99; G.light = 0;
   const t = camTarget(); cam.x = t.x; cam.y = t.y;
 }
 function camTarget() {
@@ -1525,6 +1573,7 @@ function camTarget() {
 const $card = document.getElementById('card'), $hud = document.getElementById('hud');
 const $timer = document.getElementById('timer'), $level = document.getElementById('level');
 const $cheese = document.getElementById('cheese'), $cheeseN = document.getElementById('cheeseN');
+const $lamp = document.getElementById('lamp'), $lampCells = [...$lamp.querySelectorAll('i')];
 const $coins = document.getElementById('coins'), $coinsN = document.getElementById('coinsN');
 document.getElementById('coinsIco').outerHTML = COIN_ICON;
 function updateCoins() { $coinsN.textContent = Wallet.coins; }
@@ -2996,17 +3045,19 @@ const fmtMS = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s 
 // El botón de la máquina de los carteles de fin de nivel (como el "Get a prize!" del Crossy Road) se actualiza al volver de la Máquina
 function refreshPrize() { const mb = document.getElementById('machSlot'); if (mb) mb.innerHTML = machButton(); }
 // Íconos del cartel de fin de nivel (en SVG, como los del HUD)
-// estrella con facetas (cada punta, una mitad clara y una oscura), como las del boceto; apagada es una sombra en el cartón
+// estrella con facetas (cada punta, una mitad clara y una oscura), como las del boceto. Cada lugar tiene siempre su
+// silueta marrón (la sombra en el cartón) y las ganadas caen encima
 const STAR_PTS = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 21 : 46; return [+(50 + r * Math.cos(a)).toFixed(1), +(53 + r * Math.sin(a)).toFixed(1)]; });
 function starSvg(on, d) {
   const pts = STAR_PTS.map(p => p.join(',')).join(' ');
-  if (!on) return `<svg class="wstar" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="rgba(45,25,8,.35)" stroke="rgba(45,25,8,.35)" stroke-width="7" stroke-linejoin="round"/></svg>`;
+  const sh = `<svg class="wsh" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="rgba(45,25,8,.42)" stroke="rgba(45,25,8,.42)" stroke-width="7" stroke-linejoin="round"/></svg>`;
+  if (!on) return `<span class="wstar">${sh}</span>`;
   let fac = '';
   for (let i = 0; i < 10; i += 2) {
     const o = STAR_PTS[i], a = STAR_PTS[(i + 9) % 10], b = STAR_PTS[i + 1], c = '50,53';
     fac += `<polygon points="${c} ${a.join(',')} ${o.join(',')}" fill="${i < 6 ? '#ffe96a' : '#ffd23a'}"/><polygon points="${c} ${o.join(',')} ${b.join(',')}" fill="${i < 4 ? '#ffd02c' : '#f2a60e'}"/>`;
   }
-  return `<svg class="wstar on" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg>`;
+  return `<span class="wstar">${sh}<svg class="wgold" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg></span>`;
 }
 const RAYS_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M30 30 L14 16 M33 24 L28 5 M24 34 L5 30"/></svg>`;
 const WATCH_SVG = `<svg viewBox="0 0 64 64"><rect x="26" y="3" width="12" height="7" rx="2" fill="#3b3b40"/><rect x="29.5" y="9" width="5" height="6" fill="#3b3b40"/>
@@ -3061,7 +3112,7 @@ function showWinCard() {
     // resultados (Historia y Desafío), como el boceto del usuario: "Nivel N ¡Completado!", las estrellas, los quesos y el
     // tiempo, la recompensa (monedas juntadas en el nivel) y Repetir / Siguiente. En Historia el récord y las estrellas se
     // guardan por nivel; en Desafío (laberintos al azar) valen mientras repetís ese mismo laberinto
-    const story = G.mode === 'story', time = Math.floor(G.timeLimit - G.timeLeft), st = starsFor(time);   // tiempo en segundos enteros
+    const story = G.mode === 'story', time = Math.floor(G.elapsed), st = starsFor(time);   // tiempo en segundos enteros
     const last = story && G.story >= LEVELS.length - 1;
     let prev;
     if (story) prev = Story.finish(G.story, st, time);
@@ -3098,7 +3149,7 @@ function lost() {
   // el botón de la máquina y Reintentar (verde)
   const trap = G.dieReason === 'trap';
   card(`<div class="win">
-      <div class="wtitle lose"><b>${G.mode === 'story' ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${trap ? '¡Atrapado!' : '¡Se acabó el tiempo!'}</span></div>
+      <div class="wtitle lose"><b>${G.mode === 'story' ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${trap ? '¡Atrapado!' : G.lamp ? '¡Sin pila!' : '¡Se acabó el tiempo!'}</span></div>
       <div class="wbox wlose"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         ${trap ? TRAP_SVG : DEAD_LAMP_SVG}
         <div><b>${trap ? 'La trampa se cerró.' : 'La linterna se apagó.'}</b><span>Volvés a la entrada del mismo laberinto.</span></div>
@@ -3437,6 +3488,15 @@ function updateItems() {
             sq: true, s: 1.6 + Math.random() * 1.6, rot: Math.PI / 4, vr: (Math.random() - 0.5) * 6 });
         }
       }
+    } else if (it.type === 'battery' && !it.got) {
+      if (Math.hypot(M.x + ca * 8 - it.x, M.y + sa * 8 - it.y) < PICK_CHEESE) {
+        it.got = true; G.timeLeft = Math.min(G.timeLimit, G.timeLeft + LAMP_BLOCK); G.lastTick = 99; Snd.battery(); pop($lamp);
+        G.faltT = 0; G.onT = 0.2;   // la linterna da un chispazo al recargar
+        for (let k = 0; k < 10; k++) {
+          const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
+          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.2 });
+        }
+      }
     } else if (it.type === 'cheese' && !it.got) {
       if (Math.hypot(M.x + ca * 10 - it.x, M.y + sa * 10 - it.y) < PICK_CHEESE) {
         it.got = true; G.cheese++; Snd.cheese(); pop($cheese);
@@ -3495,9 +3555,10 @@ function update(dt) {
     const sp = moved / Math.max(dt, 1e-4) + Math.abs(M.turnV) * 20;
     M.phase += dt * sp * 0.12;
 
-    G.timeLeft -= dt;
+    G.elapsed += dt;
+    if (G.dark) G.timeLeft -= dt;   // con la luz prendida no se gasta: no hay derrota por tiempo
     const s = Math.ceil(G.timeLeft);
-    if (G.timeLeft <= 10 && s !== G.lastTick && s > 0) { G.lastTick = s; Snd.tick(s <= 5); }
+    if (G.dark && G.timeLeft <= 10 && s !== G.lastTick && s > 0) { G.lastTick = s; Snd.tick(s <= 5); }
     G.onT += dt;
     // encendido con parpadeo + leve oscilación del foco
     G.light = G.onT < 0.35 ? (Math.random() < 0.55 ? 1 : 0.15) : 0.96 + 0.04 * Math.sin(G.time * 13) * Math.sin(G.time * 7.3);
@@ -3510,7 +3571,7 @@ function update(dt) {
     updateItems();
     if (G.state !== 'play') { /* una trampa terminó la partida */ }
     else if (M.x < -6) win();
-    else if (G.timeLeft <= 0) startDie('time');
+    else if (G.dark && G.timeLeft <= 0) startDie('time');
   } else if (G.state === 'dying') {
     G.dieT += dt; M.v *= 0.9;
     G.light = G.dieT < 1.1 ? (Math.random() < 0.5 ? 0.12 : 0.85) * (1 - G.dieT / 1.25) : 0;
@@ -3539,7 +3600,7 @@ function update(dt) {
   for (const it of G.items) if (it.type === 'trap' && it.closed) it.t = Math.min(1, it.t + dt / 0.15);
   for (const p of G.fx) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   G.fx = G.fx.filter(p => p.t < p.life);
-  const sirenOn = (G.state === 'play' || G.state === 'paused') && G.timeLeft <= 10;
+  const sirenOn = (G.state === 'play' || G.state === 'paused') && G.dark && G.timeLeft <= 10;
   G.siren += clamp((sirenOn ? 1 : 0) - G.siren, -dt / 0.5, dt / 0.5);
   // "Uuuuh" de la sirena, una vez por vuelta: arranca un poco antes para que el pico coincida con el haz pasando
   // por encima de la rata (el haz gira a G.time·π, una vuelta cada 2 s)
@@ -3897,6 +3958,21 @@ const CHEESE_SHAPE = [[-9.5, 3.8], [5, -7.2], [8, 5.8]];         // punta y las 
 const CHEESE_RIND = new Set([1]);                                 // tramo que es cáscara (más anaranjado)
 const CHEESE_HOLES = [[-3.5, 1.6, 1.3], [1.8, -2.4, 1.6], [4.6, 2.6, 1.1], [-0.6, 3.6, 0.7], [5.2, -2.8, 0.7]];
 const CHEESE_SCALE = 1.25;   // tamaño del queso
+// Pila (niveles a oscuras): una pila AA tirada en el piso, vista de arriba: cuerpo verde lima con la punta de metal, el
+// polo +, un rayito y un brillo; late apenas para que se note
+function drawBattery(c, it) {
+  const L = 26, Wd = 12, p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph);
+  c.save(); c.translate(it.x, it.y); c.rotate(-0.5 + it.ph % 1); c.scale(p, p);
+  c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(1.5, 3, L / 2 + 2, Wd / 2 + 1, 0, 0, Math.PI * 2); c.fill();
+  const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
+  rr(L / 2 - 4, -Wd / 2, 4, Wd, 2); c.fillStyle = '#b9bec4'; c.fill();                       // punta de metal
+  c.fillStyle = '#d6dade'; c.fillRect(L / 2, -2.2, 2.2, 4.4);                                  // polo +
+  rr(-L / 2, -Wd / 2, L - 4, Wd, 3); c.fillStyle = '#9fd02a'; c.fill();                       // cuerpo
+  c.fillStyle = '#2b2d31'; c.fillRect(-L / 2, -Wd / 2, 6, Wd);                                 // fondo negro
+  c.fillStyle = '#2b2d31'; c.beginPath(); c.moveTo(2, -4); c.lineTo(-2, 0.5); c.lineTo(1, 0.5); c.lineTo(-1, 4.5); c.lineTo(4, -1); c.lineTo(1, -1); c.closePath(); c.fill();   // rayito
+  c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-L / 2 + 6, -Wd / 2 + 1.5, L - 12, 2);    // brillo
+  c.restore();
+}
 function drawCheese(c, it) {
   const ca = Math.cos(it.rot) * CHEESE_SCALE, sa = Math.sin(it.rot) * CHEESE_SCALE, s = 1 + CHEESE_H;
   const W2 = ([x, y]) => [it.x + x * ca - y * sa, it.y + x * sa + y * ca];
@@ -3987,6 +4063,7 @@ function drawFloorItems(c, v) {
     if (it.type === 'sticky') drawSticky(c, it);
     else if (it.type === 'trap') drawTrap(c, it);
     else if (it.type === 'cheese' && !it.got) drawCheese(c, it);
+    else if (it.type === 'battery' && !it.got) drawBattery(c, it);
     else if (it.type === 'door') drawDoorShadow(c, it);
     else if (it.type === 'coin' && !it.got) drawCoin(c, it);
   }
@@ -4162,7 +4239,7 @@ function drawMouse(c, alpha) {
   c.fillStyle = '#26282c'; c.fillRect(-12.2, -FL + 0.5, 0.9, FL * 2 - 1);   // tapa trasera
   c.fillStyle = '#121316'; rr(-11.3, -2.1, 10.4, 4.2, 1); c.fill();        // marco de la barra
   const frac = isMenu() ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
-  const blinkOut = G.state === 'play' && G.timeLeft <= 10 && Math.sin(G.time * 14) < -0.3;
+  const blinkOut = G.state === 'play' && G.dark && G.timeLeft <= 10 && Math.sin(G.time * 14) < -0.3;
   if (frac > 0 && !blinkOut) {
     c.fillStyle = frac > 0.25 ? '#e2ea3a' : frac > 0.1 ? '#f2b53a' : '#f0563a';
     rr(-10.8, -1.6, 9.4 * frac, 3.2, 0.6); c.fill();
@@ -4229,7 +4306,8 @@ function render() {
   const v = { x0: cam.x - hw, y0: cam.y - hh, x1: cam.x + hw, y1: cam.y + hh };
   const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
   const menu = isMenu();   // en los menús no hay rata
-  const lit = G.light > 0.01 || menu || debugLight;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
+  const roomLit = !menu && G.mode === 'story' && !G.dark && G.maze;   // nivel con la luz del laberinto prendida
+  const lit = G.light > 0.01 || menu || debugLight || roomLit;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
 
   if (lit) {
     // 1) escena completamente iluminada
@@ -4285,7 +4363,7 @@ function render() {
     } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
     lctx.drawImage(bCv, 0, 0);
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
-    const amb = menu ? MENU_AMBIENT : debugLight ? DEBUG_AMBIENT : 0;   // menús: fondo tenue · luz de prueba: todo el laberinto a la vista
+    const amb = menu ? MENU_AMBIENT : debugLight || roomLit ? DEBUG_AMBIENT : 0;   // menús: fondo tenue · luz de prueba: todo el laberinto a la vista
     if (amb) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + amb + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
     if (G.siren > 0.01) drawSiren(lctx, T6);
 
@@ -4358,10 +4436,19 @@ function render() {
     $level.textContent = 'NIVEL ' + G.level;
     // El reloj sube (lo que vas tardando), igual que los resultados y los objetivos; el límite se ve en la batería de la
     // linterna y en la sirena
-    $timer.textContent = fmtUp(G.timeLimit - G.timeLeft);
-    $timer.classList.toggle('warn', G.timeLeft <= 10 && G.state === 'play');
+    $timer.textContent = fmtUp(G.elapsed);
+    $timer.classList.toggle('warn', G.lamp && G.timeLeft <= 10 && G.state === 'play');
     $cheese.classList.toggle('hidden', !G.cheeseTotal || ['won', 'lost'].includes(G.state));   // detrás del cartel de fin de nivel, no (ya está en el cartel)
     $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
+    // batería de la linterna: un bloque prendido por cada 15 s que quedan (el que se está gastando también); con el
+    // último bloque se pone naranja y en los últimos 10 s rojo y titila
+    $lamp.classList.toggle('hidden', !G.lamp || ['won', 'lost'].includes(G.state));
+    $lamp.classList.toggle('up', !G.cheeseTotal);
+    if (G.lamp) {
+      const n = Math.ceil(Math.max(0, G.timeLeft) / LAMP_BLOCK - 1e-6), crit = G.timeLeft <= 10, low = n <= 1;
+      const blink = crit && G.state === 'play' && Math.sin(G.time * 14) < -0.3;
+      $lampCells.forEach((el, k) => { el.className = k < n ? (crit ? 'on crit' : low ? 'on low' : 'on') + (blink && k === n - 1 ? ' blink' : '') : ''; });
+    }
   }
   const showHint = G.state === 'play' && G.level <= 2;
   $hint.style.display = showHint ? '' : 'none';
