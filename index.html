@@ -290,6 +290,10 @@
   #screen .inner > .scrbg { will-change: opacity; }   /* el fondo se corta donde termina el deslizamiento */
   .biohead { position: absolute; top: 12px; left: 0; right: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
   #screen .bionav { margin-top: auto; }
+  /* la casita (a la portada) va abajo, cuadrada, a la izquierda del botón Máquina / Bioterio: así las monedas quedan
+     siempre arriba a la izquierda, en el mismo lugar que en el juego */
+  #screen .sbtns .cbtn.home { display: inline-grid; place-items: center; padding: 0 12px; }
+  #screen .sbtns .cbtn.home svg { width: 26px; height: 26px; }
   .rack::-webkit-scrollbar { display: none; }
   .bgrack { position: absolute; background: url(img/fondo-bioterio.jpg) 0 0 / 100% 100% no-repeat; }
   .bgrack .rat { position: absolute; }
@@ -669,12 +673,10 @@ function skinOf(i) {
   const [name, , , harness, light, eyes, , spots] = RATS[i], P = portraitOf(i), fur = P.fur;
   const shut = lum(fur) < 0.35 ? mixC(fur, '#ffffff', 0.5) : mixC(mixC(fur, '#000000', 0.55), eyes, 0.25);
   return skinCache[i] = { name, spots, harness, eyes, tail: P.tail, ear: P.ear,
-    body: [mixC(fur, '#ffffff', 0.8), fur, mixC(fur, '#000000', 0.2), mixC(fur, '#000000', 0.45)],
-    limb: [mixC(fur, '#000000', 0.38), mixC(fur, '#000000', 0.15)],
     earIn: P.earDark, nose: P.nose, shine: P.shine, eyeShut: shut,
     eyeGlow: i === 0 ? hexRgb(eyes).join(',') : null,   // brillo rojo alrededor de los ojos: solo la Albina
     light: [mixC(light, '#000000', 0.75), light, mixC(light, '#ffffff', 0.55)],
-    foot: hexRgb(mixC(P.paws, '#000000', 0.17)) };
+    fur, foot: hexRgb(P.paws) };   // colores planos (sin degradés), los mismos de la ratita de frente y de perfil
 }
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
 const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
@@ -1746,7 +1748,7 @@ function showRatitas(from) {
       <canvas width="${CAGE_W}" height="${CAGE_H}" data-rat="${i}"></canvas></button>`).join('')).join('');
   openScreen(`<div class="rack"><div class="bandtop"></div><div class="rackin"><div class="bgrack">${cells}</div>
       <div class="biohead" aria-hidden="true" style="visibility:hidden"><h2 class="stitle">BIOTERIO</h2></div></div></div>
-    <div class="bandbot"></div><div class="sbtns bionav"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de arriba a la izquierda
+    <div class="bandbot"></div><div class="sbtns bionav"><button class="cbtn home" data-act="back" aria-label="Portada">${ICONS.home}</button><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de abajo, al lado de Máquina
   updateButtons(); layoutRack();
   cageAnimLoop();
 }
@@ -2180,7 +2182,7 @@ function showMachine(from) {
     <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
     <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>
-    <div class="sbtns" id="gachaNav"><button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio
+    <div class="sbtns" id="gachaNav"><button class="cbtn home" data-act="back" aria-label="Portada">${ICONS.home}</button><button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio (con la casita a la izquierda)
   updateButtons(); placeScreenBg();
   cancelAnimationFrame(Gacha.raf);
   let last = performance.now();
@@ -3306,7 +3308,7 @@ function updateButtons() {
   if ($btnBack.dataset.icon !== icon) { $btnBack.dataset.icon = icon; $btnBack.innerHTML = G.screen ? ICONS.home : BACK_ARROW; }
   $btnLight.classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el botón de la luz de prueba solo está en la portada
   // flechita / casita arriba a la izquierda: en el selector, los resultados, el Bioterio y la Máquina
-  const back = !!G.screen || G.state === 'select';   // en los carteles de fin de nivel la salida va adentro del cartel
+  const back = !G.screen && G.state === 'select';   // en los carteles de fin de nivel la salida va adentro del cartel, y en el Bioterio y la Máquina abajo
   $btnBack.classList.toggle('hidden', !back);
   // mientras anda la máquina, la casita, las monedas, el engranaje y el botón Bioterio se desvanecen (sin moverse de
   // lugar) y vuelven cuando sale la ratita
@@ -4184,10 +4186,7 @@ function drawMouse(c, alpha) {
     const dx = x - ax, dy = y - ay, d = Math.hypot(dx, dy);
     const rx = Math.max(minLen, d * 0.42 + 0.8), ry = thick * (1 - 0.12 * lift);   // termina antes del centro de la pata
     c.save(); c.translate(ax + dx * 0.38, ay + dy * 0.38); c.rotate(Math.atan2(dy, dx));
-    const tg = c.createLinearGradient(0, -ry, 0, ry);
-    // un poco más oscuros que el cuerpo (claro y oscuro parejo): están más abajo, lejos de la luz
-    tg.addColorStop(0, S.limb[0]); tg.addColorStop(0.5, S.limb[1]); tg.addColorStop(1, S.limb[0]);
-    c.fillStyle = tg; c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = S.fur; c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); c.fill();   // del color del pelaje, plano
     c.restore();
   };
   for (const [x, y, side, lift] of backFeet) limb(-12.5, side * 6.5, x, y, 3.6, 3.8, lift);
@@ -4221,13 +4220,8 @@ function drawMouse(c, alpha) {
   bz(-11, 11.6, -5, 11.4, -1, 10);
   bz(3, 8.8, 5, 7, 9, 5.8);
   bz(13, 4.6, 16.5, 2.2, 18, 0);
-  // volumen: centrado sobre el lomo (igual de ambos lados) y con más contraste hacia los bordes
-  // degradé ovalado a lo largo del cuerpo: la cabeza queda del mismo tono y solo se oscurecen los bordes
-  c.save(); c.clip(body); c.translate(-2, 0); c.scale(1.6, 1);
-  const g = c.createRadialGradient(0, 0, 0.5, 0, 0, 15);
-  g.addColorStop(0, S.body[0]); g.addColorStop(0.45, S.body[1]); g.addColorStop(0.8, S.body[2]); g.addColorStop(1, S.body[3]);
-  c.fillStyle = g; c.fillRect(-20, -20, 40, 40);
-  c.restore();
+  // cuerpo de un solo color, plano (sin degradé), como las vistas de frente y de perfil (el usuario lo prefirió así)
+  c.fillStyle = S.fur; c.fill(body);
   if (S.spots) {   // manchas (Pandita): en el lomo y la cadera, recortadas a la silueta
     c.save(); c.clip(body); c.fillStyle = S.spots;
     for (const [x, y, rx, ry, r] of [[-13, -6.5, 5.5, 4.2, 0.3], [-5, 7, 4.6, 3.4, -0.4], [-18, 5, 3.4, 3, 0], [4, -6.5, 3, 2.4, 0.5]]) {
