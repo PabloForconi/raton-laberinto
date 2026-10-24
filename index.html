@@ -1560,13 +1560,14 @@ function closeScreen() {
 const BIO_BG = { src: 'img/fondo-bioterio.jpg', w: 1920, h: 2257,
   shelves: [633, 832, 1029, 1231, 1432, 1629, 1839],   // borde de arriba de cada estante y de la base (y en el fondo)
   cols: [674.5, 960, 1245.5],                          // centro de las luces amarillas de cada columna (x)
-  cageW: 237.6, gap: 47.9,                             // ancho de cada jaula y espacio entre jaulas (px del fondo)
+  cageW: 285,       // ancho de cada jaula (px del fondo): más anchas que antes (237,6), casi tocándose pero sin tocarse
+  fitW: 808.6,      // ancho de una fila con el que se escala el fondo (el de antes, así el fondo y los estantes no cambian)
   titleY: 330,     // el título va sobre la caja de la lámpara del techo (como la referencia del usuario): así arranca la galería
   end: 2016 };     // hasta dónde se desliza: un poco debajo de la base, donde empieza el piso (como marcó el usuario)
 function layoutRack() {
   const rack = $scr.querySelector('.rack'), bg = rack && rack.querySelector('.bgrack'), head = rack && rack.querySelector('.biohead');
   if (!bg) return;
-  const B = BIO_BG, rowW = 3 * B.cageW + 2 * B.gap, k = Math.min(rack.clientWidth * 0.96 / rowW, 1);   // (en la PC no tan grande)
+  const B = BIO_BG, k = Math.min(rack.clientWidth * 0.96 / B.fitW, 1);   // (en la PC no tan grande)
   const h2 = head.querySelector('.stitle'), ty = head.offsetTop + h2.offsetTop + h2.offsetHeight / 2;   // centro del título
   const top = ty - B.titleY * k;
   const [bt, bb] = bandHeights();   // las franjas oscuras
@@ -1575,7 +1576,7 @@ function layoutRack() {
   bg.style.width = B.w * k + 'px'; bg.style.height = B.h * k + 'px';
   bg.style.left = (rack.clientWidth - B.w * k) / 2 + 'px'; bg.style.top = top + 'px';
   rack.querySelector('.rackin').style.height = Math.max(rack.clientHeight, top + B.end * k) + 'px';
-  const cw = B.cageW * k, ch = cw * 300 / 330;
+  const cw = B.cageW * k, ch = cw * CAGE_H / CAGE_W;
   bg.querySelectorAll('.rat').forEach(el => {
     const row = +el.dataset.row, col = +el.dataset.col;
     el.style.width = cw + 'px';
@@ -1593,7 +1594,7 @@ function showRatitas(from) {
   const rows = [];
   for (let r = 0; r < order.length; r += 3) rows.push(order.slice(r, r + 3));
   const cells = rows.map((row, ri) => row.map((i, ci) => `<button class="rat" data-act="pick" data-i="${i}" data-row="${ri}" data-col="${ci}" ${Skins.has(i) ? '' : 'disabled'}>
-      <canvas width="330" height="300" data-rat="${i}"></canvas></button>`).join('')).join('');
+      <canvas width="${CAGE_W}" height="${CAGE_H}" data-rat="${i}"></canvas></button>`).join('')).join('');
   openScreen(`<div class="rack"><div class="bandtop"></div><div class="rackin"><div class="bgrack">${cells}</div>
       <div class="biohead" aria-hidden="true" style="visibility:hidden"><h2 class="stitle">BIOTERIO</h2></div></div></div>
     <div class="bandbot"></div><div class="sbtns bionav"><button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de arriba a la izquierda
@@ -1604,7 +1605,7 @@ function pickRat(i) {
   if (!Skins.has(i)) return;
   Skins.data.sel = i; Skins.save(); Snd.click();
   $scr.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // el cartel de la elegida se pinta de amarillo
-  const cv = $scr.querySelector(`canvas[data-rat="${i}"]`); if (cv) cagePokes.set(cv, 0);   // y le sacude la colita
+  const cv = $scr.querySelector(`canvas[data-rat="${i}"]`); if (cv) cagePokes.set(cv, -WAG_DELAY);   // y le sacude la colita (un instante después)
 }
 // Retrato de una ratita de perfil (mirando a la izquierda), agachada, sin arnés ni linterna: para la galería, la grilla
 // de ratitas y la máquina. Estilo plano como la referencia: cabeza en cuña baja (el hocico casi toca el piso), oreja de
@@ -1806,6 +1807,8 @@ function drawRatBall(c, x, y, size, i, rot = 0, t = 0) {
 // Adentro va la ratita de perfil; si todavía no la tenés, es una silueta oscura y el cartel dice "???".
 // Dibuja en (0, 0) con tamaño w × h; t anima a la ratita (0: quieta).
 const cageOff = document.createElement('canvas'), cageOffCtx = cageOff.getContext('2d');
+// lienzo de cada jaula del Bioterio (más ancho que alto: antes era 330 × 300) y cuánto más grande va la ratita adentro
+const CAGE_W = 412, CAGE_H = 300, CAGE_RAT = 1.12;
 // shelf: dibuja su pedazo de estante (en la pantalla de Ratitas el estante lo pone el CSS, de punta a punta)
 function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag = 0) {
   const rnd = mulberry32(i * 977 + 13);
@@ -1831,7 +1834,8 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
     g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), bed + rnd() * (bot - bed), w * (0.012 + rnd() * 0.02), h * (0.005 + rnd() * 0.008), rnd() * 3, 0, Math.PI * 2); g.fill();
   }
   // ratita parada sobre la viruta (las patas quedan 82 unidades del retrato debajo de su centro)
-  const size = (x1 - x0) * 0.8, k = size / 930, cx = w / 2 + w * 0.03, cy = bed + h * 0.035 - 82 * k;
+  // (el tamaño sale del alto de la jaula, no del ancho: así las jaulas más anchas no la agrandan de más)
+  const size = h * 0.757 * CAGE_RAT, k = size / 930, cx = w / 2 + h * 0.033, cy = bed + h * 0.035 - 82 * k;
   if (owned) {   // sombra suave debajo de la ratita, sobre la viruta (un óvalo con el borde esfumado)
     const fy = cy + 70 * k, sx = cx - 90 * k, rx = 420 * k, ry = 40 * k;   // pegada a las patas
     g.save(); g.translate(sx, fy); g.scale(1, ry / rx);
@@ -1889,7 +1893,8 @@ function drawThumb(cv, t = 0, amp = 0, wag = 0) {
 // redibuja esas jaulas. Cada movimiento arranca y termina suave (amp de 0 a 1 y a 0), así no salta del dibujo quieto
 const CAGE_ANIM_MAX = 2, CAGE_ANIM_T = 2.8;
 // al tocar una ratita para elegirla, levanta la cola y la ondula despacio un ratito, como un gatito
-const WAG_T = 1.9, WAG_HZ = 1.5, cagePokes = new Map();   // cuánto dura, ondas por segundo; jaula → segundos desde que se tocó
+// WAG_DELAY: arranca un instante después del toque, así no queda tapada por el dedo (el "click" de la jaula sigue al toque)
+const WAG_T = 1.9, WAG_HZ = 1.5, WAG_DELAY = 0.4, cagePokes = new Map();   // cuánto dura, ondas por segundo; jaula → segundos desde que se tocó
 let cageLoopId = 0;
 function cageAnimLoop() {
   const id = ++cageLoopId;   // si se vuelve a abrir el Bioterio, el loop viejo se corta
@@ -1915,7 +1920,7 @@ function cageAnimLoop() {
       }
       if (cagePokes.has(cv)) {
         const w = cagePokes.get(cv) + dt;
-        if (w >= WAG_T) cagePokes.delete(cv); else { cagePokes.set(cv, w); wag = w; }
+        if (w >= WAG_T) cagePokes.delete(cv); else { cagePokes.set(cv, w); wag = Math.max(0, w); }   // (negativo: todavía esperando)
       }
       if (cv.isConnected) drawThumb(cv, t, amp, wag); else { anims.delete(cv); cagePokes.delete(cv); }
     }
