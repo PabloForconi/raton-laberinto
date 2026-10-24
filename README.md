@@ -16,7 +16,8 @@ Prototipo de juego HTML: sos un ratoncito de laboratorio que tiene que escapar d
   - **7–12, pegote:** bandejas con pegamento que te frenan y te dejan las patas pegajosas un rato.
   - **13–20, trampas:** al fondo de los callejones sin salida; si tocás una, perdés.
   - **21–28, puertas:** puertitas de un solo sentido. Del lado de la cinta empujás la cortina de cartón y pasás; del otro lado, por más que empujes, no se abren.
-  - **29–40:** todo junto.
+  - **29–34, molinetes:** aspas de cartón que giran en los cruces; no te atrapan, te empujan: esperá el hueco y pasá.
+  - **35–40:** todo junto.
 - **Luz y oscuridad (Historia):** en la mayoría de los niveles la luz del laberinto está prendida: se ve todo, el reloj corre libre y no se pierde por tiempo. Unos pocos (el 30%) son a oscuras: la linterna tiene una pila de 60 segundos, que se ve abajo del queso en 4 bloques de 15, y en el laberinto hay pilas que la vuelven a llenar. Si se termina la pila, perdés. Con la luz prendida la rata va sin arnés ni linterna.
 - **Desafío:** laberintos al azar, infinitos, cada vez más grandes y con la cámara más cerca.
 - **Monedas y ratitas:** juntá monedas en los laberintos (se guardan aunque pierdas). En **Desafío** el nivel N tiene N monedas: sirve para juntar, y rinde llegar más lejos. En la **Máquina** cada giro cuesta 20 monedas (por ahora es gratis, para probarla) y te da una ratita según su rareza: 10 comunes, 6 infrecuentes, 3 raras y 1 legendaria, la Dorada (si sale repetida, te devuelve la mitad). Para verlas todas juntas: `index.html?ratas`. En el **Bioterio** elegís con cuál jugar.
