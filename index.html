@@ -6,7 +6,7 @@
 <title>Maze Mouse</title>
 <link rel="preload" as="image" href="img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Permanent+Marker&family=Special+Elite&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   body { font-family: 'Special Elite', 'Courier New', monospace; color: #2a1a0c; user-select: none; }
@@ -115,11 +115,12 @@
   /* capas: la caja del tiempo (con el sello del récord) va arriba de la recompensa, y la recompensa (con su etiqueta) arriba
      de la de los quesos, así cada una pisa a la vecina por donde se monta */
   #card .wstat.q { z-index: 1; } #card .wreward { z-index: 2; } #card .wstat:not(.q) { z-index: 3; }
-  /* sin quesos (Desafío y el nivel 1) la caja del tiempo va a todo el ancho: queda debajo de la recompensa (así se ve la
-     etiqueta) y el sello del récord se pega en su esquina de arriba a la derecha, donde no lo tapa nada */
+  /* sin quesos (Desafío y el nivel 1) la caja del tiempo va a todo el ancho, con el reloj y el tiempo al medio, y queda
+     debajo de la recompensa (así la etiqueta "Recompensa" no queda tapada por el tiempo); el sello del récord va entonces
+     en la caja de la recompensa, montado en su borde de arriba y corrido a la derecha (el usuario lo prefirió abajo del
+     tiempo, como en las otras, y no adentro de la caja) */
   #card .wrow.solo .wstat { z-index: 1; }
-  #card .wrow.solo .wbox .stamp { top: -14px; bottom: auto; left: auto; right: 12px; transform: rotate(5deg); animation-name: stampCorner; }
-  @keyframes stampCorner { from { transform: rotate(20deg) scale(2); opacity: 0; } to { transform: rotate(5deg) scale(1); opacity: 1; } }
+  #card .wbox.wreward .stamp { top: -36px; bottom: auto; left: 70%; z-index: 3; }
   #card .wrow.solo { grid-template-columns: 1fr; }
   :is(#card, #opts) .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.35), transparent 70%); box-shadow: 0 3px 0 #9b7244, 0 4px 8px rgba(0,0,0,.25); }
@@ -133,8 +134,8 @@
   #card .wstat h3 { font-size: 15px; }
   #card .wstat .num { display: block; font-size: 34px; white-space: nowrap; }
   /* el sello del récord va abajo de la caja del tiempo, así no tapa nada */
-  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -11px; z-index: 1; font-size: 18px; padding: 3px 14px 2px; background: #fff; transform: translateX(-50%) rotate(-4deg); animation-name: stampLow; }
-  @keyframes stampLow { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-4deg) scale(1); opacity: 1; } }
+  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -11px; z-index: 1; font-size: 21px; padding: 3px 11px 1px; transform: translateX(-50%) rotate(-6deg); animation-name: stampLow; }
+  @keyframes stampLow { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-6deg) scale(1); opacity: 1; } }
   /* cartel de inicio con el mismo formato: el título y una caja "Objetivo" con los quesos y el tiempo de las tres
      estrellas, separados por una rayita, y el botón verde para jugar */
   #card .wgoal { margin: 16px 2px 18px; padding: 10px 12px 14px; text-align: left; }
@@ -220,6 +221,11 @@
   #card .wreward { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 14px; padding: 18px 10px 6px; }
   #card .wtag { position: absolute; left: 10px; top: -10px; padding: 3px 12px 1px; background: #f6cf4a;   /* amarilla (como las monedas y el botón de la máquina), así no se pierde contra la caja */ font: 17px/1.2 'Kalam', cursive;
     text-transform: uppercase; transform: rotate(-4deg); box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  /* el tiempo objetivo sobre la caja del tiempo (lo pidió el usuario): una etiqueta derecha, cremita y centrada; verde si lo
+     cumpliste, roja si no */
+  #card .wtag.wobj { left: 50%; transform: translateX(-50%); white-space: nowrap; background: #fff6df; border: 1.5px solid rgba(110,75,35,.28);
+    border-radius: 4px; color: #c2362b; }
+  #card .wtag.wobj.ok { color: #3f8a2e; }
   #card .wcoins { position: relative; width: 82px; height: 58px; }
   #card .wcoins .ci { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
   #card .wcoins .ci:first-child { left: 0; top: 8px; } #card .wcoins .ci:last-child { left: 30px; top: 0; }
@@ -246,9 +252,12 @@
   :is(#card, #opts) .wbtn.go { background: linear-gradient(#5fce50, #2f9b33); color: #fff; border: 3px solid #1f6f24; box-shadow: 0 4px 0 #185a1c; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
   :is(#card, #opts) .wbtn:active, #card .wmach:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
   :is(#card, #opts) .wbtn:hover, #card .wmach:hover { filter: brightness(1.05); }
-  #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Kalam', cursive; font-size: 20px; line-height: 1.15;
-    color: #b3140f; border: 3px solid #b3140f; border-radius: 7px; padding: 1px 10px 0; background: rgba(255,235,220,.6);
+  #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; font-size: 25px; line-height: 1.1;
+    color: #fff; background: #c8161d; border-radius: 6px; padding: 1px 10px 0; text-transform: uppercase; letter-spacing: 1px; overflow: hidden;   /* letra de imprenta angosta, como la referencia */
+    box-shadow: 0 2px 3px rgba(0,0,0,.3);
     transform: translateX(-50%) rotate(-3deg); animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
+  /* como un sello de goma gastado (referencia del usuario): rojo lleno, letras blancas y raspaduras blancas encima */
+  #card .stamp::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='28' fill='white' opacity='.75'%3E%3Ccircle cx='0.0' cy='25.8' r='0.56'/%3E%3Ccircle cx='18.9' cy='20.4' r='0.78'/%3E%3Ccircle cx='29.6' cy='21.1' r='0.98'/%3E%3Ccircle cx='48.9' cy='19.2' r='0.87'/%3E%3Ccircle cx='73.5' cy='6.8' r='0.64'/%3E%3Ccircle cx='63.7' cy='19.5' r='0.35'/%3E%3Ccircle cx='61.6' cy='13.1' r='1.13'/%3E%3Ccircle cx='72.7' cy='3.4' r='0.76'/%3E%3Ccircle cx='83.1' cy='19.3' r='0.88'/%3E%3Ccircle cx='52.0' cy='25.5' r='1.12'/%3E%3Ccircle cx='33.5' cy='9.4' r='1.05'/%3E%3Ccircle cx='29.9' cy='4.3' r='0.57'/%3E%3Ccircle cx='38.6' cy='8.3' r='1.14'/%3E%3Ccircle cx='50.2' cy='20.4' r='1.09'/%3E%3Ccircle cx='5.3' cy='7.7' r='0.80'/%3E%3Ccircle cx='45.8' cy='11.8' r='0.47'/%3E%3Ccircle cx='81.8' cy='1.5' r='0.63'/%3E%3Ccircle cx='31.0' cy='18.6' r='1.13'/%3E%3Ccircle cx='46.3' cy='4.6' r='0.67'/%3E%3Ccircle cx='25.5' cy='10.2' r='0.68'/%3E%3Ccircle cx='29.9' cy='14.9' r='0.85'/%3E%3Ccircle cx='21.0' cy='25.4' r='0.71'/%3E%3Ccircle cx='77.7' cy='17.8' r='0.87'/%3E%3Ccircle cx='46.5' cy='14.1' r='0.92'/%3E%3Ccircle cx='84.6' cy='11.1' r='0.94'/%3E%3Ccircle cx='22.6' cy='16.4' r='0.62'/%3E%3Cpath d='M29.8 11.0l-8.7 3.3' stroke='white' stroke-width='0.47' stroke-linecap='round'/%3E%3Cpath d='M73.7 2.2l1.3 2.1' stroke='white' stroke-width='0.45' stroke-linecap='round'/%3E%3Cpath d='M89.7 6.2l-1.7 2.0' stroke='white' stroke-width='0.67' stroke-linecap='round'/%3E%3Cpath d='M53.4 3.9l-10.6 1.3' stroke='white' stroke-width='0.93' stroke-linecap='round'/%3E%3Cpath d='M79.7 25.4l-4.0 1.9' stroke='white' stroke-width='0.41' stroke-linecap='round'/%3E%3Cpath d='M22.3 2.1l8.6 0.0' stroke='white' stroke-width='0.54' stroke-linecap='round'/%3E%3Cpath d='M66.7 13.7l-2.9 2.1' stroke='white' stroke-width='0.93' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 90px 28px; }
   @keyframes stamp { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-3deg) scale(1); opacity: 1; } }
   @media (max-width: 480px) { #card .note b { font-size: 18px; } }
   /* cartel de inicio de nivel: etiqueta, nombre grande, la frase, tres tarjetitas (límite, ★★, ★★★) y lo que hay adentro */
@@ -3636,9 +3645,9 @@ function showWinCard() {
         <i class="wray l">${RAYS_SVG}</i><i class="wray r">${RAYS_SVG}</i>${stars}</div>
       <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
         ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>${say('Quesos', 'Cheese')}</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
-        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div>${record ? `<span class="stamp" style="animation-delay:1.75s">${say('¡Nuevo récord!', 'New record!')}</span>` : ''}</div>
+        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div><span class="wtag wobj${time <= G.star3 ? ' ok' : ''}">${say('Objetivo', 'Goal')} ${fmtMS(G.star3)}</span>${record && G.cheeseTotal ? `<span class="stamp" style="animation-delay:1.75s">${say('Nuevo récord', 'New record')}</span>` : ''}</div>
       </div>
-      <div class="wbox wreward"><span class="wtag">${say('Recompensa', 'Reward')}</span><i class="wray">${RAYS_SIDE_SVG}</i>
+      <div class="wbox wreward">${record && !G.cheeseTotal ? `<span class="stamp" style="animation-delay:1.75s">${say('Nuevo récord', 'New record')}</span>` : ''}<span class="wtag">${say('Recompensa', 'Reward')}</span><i class="wray">${RAYS_SIDE_SVG}</i>
         <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SIDE_SVG}</i></div>
       <div id="machSlot">${machButton()}</div>
       ${last ? `<p>${say('¡Completaste la Historia! Escapaste del laboratorio.', 'You finished the Story! You escaped the lab.')}</p>` : ''}
@@ -3884,6 +3893,8 @@ $btnLight.addEventListener('click', e => {
 });
 updateLightBtn();
 applyLangStatic();
+// la letra del sello del récord se baja de entrada (si no, la primera vez el sello salía con otra letra)
+try { document.fonts.load("25px 'Bebas Neue'", "NUEVO RÉCORD NEW"); } catch (_) {}
 
 
 // ---- joystick flotante (celular) ----
