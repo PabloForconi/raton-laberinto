@@ -287,12 +287,15 @@
   #lamp::before { content: '\200b'; }   /* una línea de texto invisible: así mide lo mismo de alto que el queso */
   #lamp.up { top: 64px; }   /* sin queso, va en su lugar (entre monedas, queso y batería queda el mismo espacio: 8 px) */
   #lamp.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
-  #lamp .bat { position: relative; display: flex; gap: 2px; margin-right: 5px; padding: 2px; border: 2.5px solid #2b2d31; border-radius: 5px; background: #3a3d42; }
-  #lamp .bat::after { content: ''; position: absolute; right: -6.5px; top: 50%; width: 3.5px; height: 40%; transform: translateY(-50%); background: #2b2d31; border-radius: 0 3px 3px 0; }
-  #lamp .bat i { width: .46em; height: .5em; border-radius: 2px; background: #25272b; }
-  #lamp .bat i.on { background: linear-gradient(#e9f56a, #b8d42a); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
-  #lamp .bat i.low { background: linear-gradient(#ffb15a, #f07a18); }
-  #lamp .bat i.crit { background: linear-gradient(#ff7a6a, #d8281a); }
+  /* pila del HUD, después de un diseño del usuario: un marco gris oscuro con el polo a la derecha y 4 celdas planas; las
+     prendidas van todas del mismo color según cuántas quedan (4 verde, 3 amarilla, 2 naranja, 1 roja) y las vacías, gris */
+  #lamp .bat { position: relative; display: flex; gap: 3px; margin-right: 6px; padding: 3px; border-radius: 5px; background: #4b4b4b; }
+  #lamp .bat::after { content: ''; position: absolute; right: -4px; top: 50%; width: 4px; height: 44%; transform: translateY(-50%); background: #4b4b4b; border-radius: 0 2px 2px 0; }
+  #lamp .bat i { width: .38em; height: .6em; border-radius: 2px; background: #333333; }
+  #lamp .bat[data-n="4"] i.on { background: #4fd832; }
+  #lamp .bat[data-n="3"] i.on { background: #d6e02a; }
+  #lamp .bat[data-n="2"] i.on { background: #f5a01e; }
+  #lamp .bat[data-n="1"] i.on { background: #e8382f; }
   #lamp .bat i.blink { opacity: .25; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
   #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
@@ -689,9 +692,9 @@ const RATS = [
   ['Chispita',    '#f07a1f', '#f6b37a', '#4a2a14', '#1d1e21', '#ffb000', '#e8761e'],
   ['Cacao',       '#5b3a24', '#b38763', '#1f1d1c', '#4a4f57', '#0d0b0a', '#7a5236'],
   ['Pinky',       '#f4c2d0', '#ef89c3', '#7a1834', '#1d1e21', '#ca1c8a', '#ef89c3'],
-  ['Cheddar',     '#f5c518', '#f08a1c', '#1f1d1c', '#4a4f57', '#ff0a1e', '#e6b40f'],
-  ['Radiactín',   '#5cff3a', '#b6ff3a', '#1d4a1f', '#1d1e21', '#ff0a1e', '#5cff3a'],
-  ['Musguito',    '#2f5a2c', '#5f9a4f', '#1f1d1c', '#4a4f57', '#ffd400', '#2f5a2c'],
+  ['Cheddar',     '#f5c518', '#f08a1c', '#1f1d1c', '#4a4f57', '#b62f3a', '#e6b40f'],
+  ['Radiactín',   '#5cff3a', '#b6ff3a', '#1d4a1f', '#1d1e21', '#e1ff00', '#5cff3a'],
+  ['Musguito',    '#2f5a2c', '#5f9a4f', '#1f1d1c', '#4a4f57', '#332b00', '#2f5a2c'],
   ['Voltio',      '#1f5fe0', '#8fd3f5', '#12285e', '#1d1e21', '#2ff3ff', '#1f5fe0'],
   ['Mordisquito', '#8a2be2', '#c9a3f0', '#1f1d1c', '#4a4f57', '#ff7fbf', '#8a2be2'],
   ['Fuego',       '#e01f1f', '#f27a6e', '#1f1d1c', '#4a4f57', '#ffd400', '#e01f1f'],
@@ -701,7 +704,7 @@ const RATS = [
   ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#4f4f4f'],
   ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#275a20', '#c1d268'],
   ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#fe9ae3', '#a8ba20'],
-  ['Dorada',      '#f0bf2a', '#f8d66a', '#3b2a05', '#c9a227', '#c8102e', '#f8d66a'],
+  ['Dorada',      '#f0bf2a', '#f8d66a', '#3b2a05', '#c9a227', '#ffdd00', '#f8d66a'],
 ];
 // Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada): 10 comunes, 6 infrecuentes, 3 raras y 1
 // legendaria (la Dorada). La máquina primero sortea la rareza (w: chance de cada una) y después una ratita de esa rareza
@@ -729,16 +732,17 @@ const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const mixC = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 const lum = h => { const [r, g, b] = hexRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
 // La ratita del laberinto usa los mismos colores que la de frente y la de costado (portraitOf): pelaje, oreja externa,
-// oreja interna, nariz, patas y cola. De RATS salen además los ojos, el arnés, la linterna y las manchas
+// oreja interna, nariz, patas y cola. De RATS salen además los ojos y las manchas. El arnés es el de la Albina para todas
+// y la linterna tiene sus propios colores fijos (el usuario no quiere que cambien por ratita): las columnas de arnés y
+// linterna de RATS ya no se usan
 const skinCache = {};
 function skinOf(i) {
   if (skinCache[i]) return skinCache[i];
-  const [name, , , harness, light, eyes, , spots] = RATS[i], P = portraitOf(i), fur = P.fur;
+  const [name, , , , , eyes, , spots] = RATS[i], harness = RATS[0][3], P = portraitOf(i), fur = P.fur;
   const shut = lum(fur) < 0.35 ? mixC(fur, '#ffffff', 0.5) : mixC(mixC(fur, '#000000', 0.55), eyes, 0.25);
   return skinCache[i] = { name, spots, harness, eyes, tail: P.tail, ear: P.ear,
     earIn: P.earDark, nose: P.nose, shine: P.shine, eyeShut: shut,
     eyeGlow: i === 0 ? hexRgb(eyes).join(',') : null,   // brillo rojo alrededor de los ojos: solo la Albina
-    light: [mixC(light, '#000000', 0.75), light, mixC(light, '#ffffff', 0.55)],
     fur, foot: hexRgb(P.paws) };   // colores planos (sin degradés), los mismos de la ratita de frente y de perfil
 }
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
@@ -1788,7 +1792,7 @@ function camTarget() {
 const $card = document.getElementById('card'), $hud = document.getElementById('hud');
 const $timer = document.getElementById('timer'), $level = document.getElementById('level');
 const $cheese = document.getElementById('cheese'), $cheeseN = document.getElementById('cheeseN');
-const $lamp = document.getElementById('lamp'), $lampCells = [...$lamp.querySelectorAll('i')];
+const $lamp = document.getElementById('lamp'), $lampBat = $lamp.querySelector('.bat'), $lampCells = [...$lamp.querySelectorAll('i')];
 const $coins = document.getElementById('coins'), $coinsN = document.getElementById('coinsN');
 document.getElementById('coinsIco').outerHTML = COIN_ICON;
 function updateCoins() { $coinsN.textContent = Wallet.coins; }
@@ -1965,21 +1969,21 @@ const PORTRAIT_COLORS = {
   1: { earLine: '#b57f4f', legLine: '#d0aa49' },   // Vainilla
   2: { ear: '#aadbf3', earDark: '#8eceec', earLine: '#7dbad9', nose: '#8fcbe8', paws: '#8fcbe8', tail: '#8fcbe8', legLine: '#8ec9e6' },   // Copito
   3: { earLine: '#af9592', legLine: '#808080' },   // Cenizón
-  4: { legLine: '#5c5c5c' },   // Sombrita
+  4: { legLine: '#5c5c5c', line: '#8a8a8b', fur: '#454545', tail: '#4a484c', paws: '#706c75' },   // Sombrita
   5: { earLine: '#d58d53', line: '#8f4f1e', legLine: '#f39b58' },   // Chispita
   6: { earLine: '#8d623f', line: '#aa8974', legLine: '#936343' },   // Cacao
-  7: { ear: '#ef89c3', earDark: '#da7ab1', earLine: '#ad5c8a', legLine: '#c28999' },   // Pinky
-  8: { earLine: '#bd701f', legLine: '#c7a529' },   // Cheddar
-  9: { earLine: '#9ddf2a', line: '#45a531', legLine: '#40df20' },   // Radiactín
+  7: { ear: '#f5b7da', earDark: '#f094c8', earLine: '#ad5c8a', legLine: '#c28999', nose: '#ef89c3', tail: '#ef89c3', paws: '#ef89c3' },   // Pinky
+  8: { earLine: '#bd701f', legLine: '#c7a529', earDark: '#e79236', nose: '#f08a1c', tail: '#f08a1c', paws: '#f08a1c', ear: '#ffab52' },   // Cheddar
+  9: { earLine: '#9ddf2a', line: '#45a531', legLine: '#40df20', nose: '#cefe7c' },   // Radiactín
   10: { legLine: '#578452' },   // Musguito
-  11: { fur: '#3b7af7', ear: '#8ad8ff', earDark: '#82c0df', earLine: '#537a8e', nose: '#8fd3f5', paws: '#8fd3f5', tail: '#8fd3f5', line: '#0f2d69', legLine: '#4d88ff' },   // Voltio
+  11: { fur: '#3b7af7', ear: '#8ad8ff', earDark: '#82c0df', earLine: '#528fad', nose: '#8fd3f5', paws: '#8fd3f5', tail: '#8fd3f5', line: '#1c4087', legLine: '#2d56a9' },   // Voltio
   14: { fur: '#6cdafe', ear: '#8ae2ff', earDark: '#69cae8', earLine: '#5badc8', nose: '#00bfff', paws: '#9ee7ff', tail: '#8fd8f0', line: '#165e5a', legLine: '#3fb3d9' },   // Burbuja
   15: { ear: '#d8c7ff', earDark: '#c4aaee', earLine: '#a88bda', nose: '#b79be6', paws: '#b79be6', tail: '#b79be6', line: '#7c67a8', legLine: '#c9adff' },   // Lila
   16: { fur: '#63081a', ear: '#63081a', earDark: '#a22040', earLine: '#812c40', nose: '#b0475f', paws: '#b0475f', tail: '#e63760', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Bordolín
   17: { fur: '#454545', ear: '#7a5c57', earDark: '#674b46', earLine: '#594440', nose: '#764841', paws: '#7a5c57', tail: '#cfa59f', line: '#86735f', legLine: '#3b2b1c' },   // Pandita
   18: { fur: '#8c9e33', ear: '#b0bf69', earDark: '#9ead53', earLine: '#7d8a3d', nose: '#c1d268', paws: '#bed062', tail: '#bfd454', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
-  19: { fur: '#650887', ear: '#772296', earDark: '#6a0d8c', earLine: '#5c047c', nose: '#6c3281', paws: '#6c3281', tail: '#4d2b5a', line: '#795e82', legLine: '#7d37c3', shine: '#ffd6e8' },   // Radium
-  20: { fur: '#f0bf2a', ear: '#f8d66a', earDark: '#e0a91c', earLine: '#a8790c', nose: '#f8d66a', paws: '#f8d66a', tail: '#e8b52a', line: '#8a6410', legLine: '#b8860b', shine: '#fff6cc' },   // Dorada (legendaria)
+  19: { fur: '#7b11a2', ear: '#772296', earDark: '#6a0d8c', earLine: '#5c047c', nose: '#a62ed1', paws: '#9453ac', tail: '#4d2b5a', line: '#b479c8', legLine: '#a348fe', shine: '#ffd6e8' },   // Radium
+  20: { fur: '#f0bf2a', ear: '#ffdd00', earDark: '#fec22a', earLine: '#dfa92a', nose: '#f8d66a', paws: '#ffdd00', tail: '#ffdd00', line: '#ad801f', legLine: '#ffe49e', shine: '#fff6cc' },   // Dorada (legendaria)
 };
 // Colores del retrato (y de la ratita de frente): se sacan de RATS, y PORTRAIT_COLORS puede pisar algunos o todos.
 // ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás y el interior de la oreja,
@@ -4451,18 +4455,39 @@ function drawGates(c, v, mask = false, list = G.items) {
     c.restore();
   }
 }
+// Pila del laberinto, después de un diseño del usuario: cuerpo naranja con tapas grises y franjas azul oscuro, el polo +
+// gris arriba y un rayo verde. Se dibuja en las coordenadas de la referencia (vertical, 340 × 750, el polo arriba)
+// llevadas a la pila acostada (el polo hacia +x); gira un poco según la pila y late suave
+const BAT_K = 28 / 703, BAT_X = y => (376.5 - y) * BAT_K, BAT_Y = x => (x - 169) * BAT_K;   // de la referencia a la pila acostada
+const BAT_BOLT = [[250, 162], [170, 386], [276, 386], [79, 638], [148, 432], [62, 432]];   // el rayo, en la referencia
+function batteryAt(c, it) { const p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph); c.translate(it.x, it.y); c.rotate(-0.5 + it.ph % 1); c.scale(p, p); }
 function drawBattery(c, it) {
-  const L = 26, Wd = 12, p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph);
-  c.save(); c.translate(it.x, it.y); c.rotate(-0.5 + it.ph % 1); c.scale(p, p);
-  c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(1.5, 3, L / 2 + 2, Wd / 2 + 1, 0, 0, Math.PI * 2); c.fill();
+  const k = BAT_K, X = BAT_X, Y = BAT_Y;
+  c.save(); batteryAt(c, it);
+  c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(1.5, 3, 15, 7, 0, 0, Math.PI * 2); c.fill();   // sombra
   const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
-  rr(L / 2 - 4, -Wd / 2, 4, Wd, 2); c.fillStyle = '#b9bec4'; c.fill();                       // punta de metal
-  c.fillStyle = '#d6dade'; c.fillRect(L / 2, -2.2, 2.2, 4.4);                                  // polo +
-  rr(-L / 2, -Wd / 2, L - 4, Wd, 3); c.fillStyle = '#9fd02a'; c.fill();                       // cuerpo
-  c.fillStyle = '#2b2d31'; c.fillRect(-L / 2, -Wd / 2, 6, Wd);                                 // fondo negro
-  c.fillStyle = '#2b2d31'; c.beginPath(); c.moveTo(2, -4); c.lineTo(-2, 0.5); c.lineTo(1, 0.5); c.lineTo(-1, 4.5); c.lineTo(4, -1); c.lineTo(1, -1); c.closePath(); c.fill();   // rayito
-  c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-L / 2 + 6, -Wd / 2 + 1.5, L - 12, 2);    // brillo
+  const box = (x0, x1, y0, y1, r, col) => { c.fillStyle = col; rr(X(y1), Y(x0), X(y0) - X(y1), Y(x1) - Y(x0), r); c.fill(); };
+  box(97, 240, 25, 90, 18 * k, '#a6a6a6');      // polo +
+  box(18, 320, 72, 728, 32 * k, '#c4c4c4');     // tapas grises (el cuerpo entero, redondeado)
+  box(18, 320, 122, 680, 0, '#fd5631');         // cuerpo naranja
+  for (const [y0, y1] of [[222, 256], [286, 516], [546, 580]]) box(18, 320, y0, y1, 0, '#213340');   // franjas
+  c.fillStyle = '#00ff00'; boltPath(c); c.fill();   // rayo
   c.restore();
+}
+function boltPath(c) { c.beginPath(); BAT_BOLT.forEach(([x, y], i) => i ? c.lineTo(BAT_X(y), BAT_Y(x)) : c.moveTo(BAT_X(y), BAT_Y(x))); c.closePath(); }
+// el rayo de las pilas brilla un poco aunque esté oscuro: se dibuja después de la oscuridad, con un halito verde que
+// late (con la linterna encima casi no cambia, es el mismo verde)
+function drawBatteryGlow(c, v) {
+  for (const it of G.items) {
+    if (it.type !== 'battery' || it.got || it.x < v.x0 - 30 || it.x > v.x1 + 30 || it.y < v.y0 - 30 || it.y > v.y1 + 30) continue;
+    const a = 0.5 + 0.12 * Math.sin(G.time * 4 + it.ph);
+    c.save(); batteryAt(c, it);
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, 11);
+    g.addColorStop(0, `rgba(60,255,60,${0.22 * a})`); g.addColorStop(1, 'rgba(60,255,60,0)');
+    c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(-11, -11, 22, 22);
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.fillStyle = '#00ff00'; boltPath(c); c.fill();
+    c.restore();
+  }
 }
 function drawCheese(c, it) {
   const ca = Math.cos(it.rot) * CHEESE_SCALE, sa = Math.sin(it.rot) * CHEESE_SCALE, s = 1 + CHEESE_H;
@@ -4742,37 +4767,41 @@ function drawMouse(c, alpha) {
     c.restore();
   }
   c.restore();
-  // linterna sobre el lomo: cuerpo gris azulado (cilindro, igual de ambos lados) con una barra de batería
-  // que muestra el tiempo que queda y se vacía hacia la cola. Es rígida: no se estira ni se aplasta con el torso
-  // (se deshace la escala alrededor de su centro; acompaña al lomo en posición pero mantiene su forma)
+  // linterna sobre el lomo, después de un diseño del usuario (visto de arriba, con el cabezal hacia el hocico): la lente
+  // clarita, el cabezal (con su parte de arriba más clara), el cuello que se angosta, el cuerpo con la perilla y la
+  // ventana de la batería, que muestra el tiempo que queda y se vacía hacia la cola, y la empuñadura más oscura. Se dibuja
+  // en las coordenadas del dibujo de referencia (vertical, 390 × 930, el cabezal arriba) llevadas al lomo. Es rígida: no
+  // se estira ni se aplasta con el torso (se deshace la escala alrededor de su centro; acompaña al lomo en posición)
   const FCX = -2.2;
   if (!bare) {
   c.save(); c.translate(FCX, 0); c.scale(1 / tsx, 1 / tsy); c.translate(-FCX, 0);
   const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
-  const FL = 4;   // medio ancho del cuerpo
-  const lg = c.createLinearGradient(0, -FL, 0, FL);
-  lg.addColorStop(0, S.light[0]); lg.addColorStop(0.24, S.light[1]); lg.addColorStop(0.5, S.light[2]);
-  lg.addColorStop(0.76, S.light[1]); lg.addColorStop(1, S.light[0]);
-  c.fillStyle = lg; rr(-13, -FL, 17, FL * 2, 1.6); c.fill();   // pasa la segunda tira del arnés
-  c.fillStyle = '#26282c'; c.fillRect(-12.2, -FL + 0.5, 0.9, FL * 2 - 1);   // tapa trasera
-  c.fillStyle = '#121316'; rr(-11.3, -2.1, 10.4, 4.2, 1); c.fill();        // marco de la barra
+  const k = 21.6 / 868, X = y => 8.6 - (y - 32) * k, Y = x => (x - 195) * k;   // de la referencia al lomo (la lente en x = 8.6)
+  const box = (x0, x1, y0, y1, r, col) => { c.fillStyle = col; rr(X(y1), Y(x0), X(y0) - X(y1), Y(x1) - Y(x0), r); c.fill(); };
+  box(66, 322, 300, 900, 0.3, '#333333');   // cuerpo
+  box(66, 322, 465, 790, 0, '#141414');     // empuñadura
+  box(66, 322, 300, 312, 0, '#151515');     // borde de arriba del cuerpo
+  box(66, 322, 885, 900, 0.3, '#151515');   // tapa de atrás
+  c.fillStyle = '#2e2e2e'; c.beginPath();   // cuello: baja recto del cabezal y se curva hasta el cuerpo
+  c.moveTo(X(205), Y(36)); c.lineTo(X(250), Y(36)); c.quadraticCurveTo(X(300), Y(36), X(300), Y(66));
+  c.lineTo(X(300), Y(322)); c.quadraticCurveTo(X(300), Y(355), X(250), Y(355)); c.lineTo(X(205), Y(355)); c.closePath(); c.fill();
+  box(28, 362, 45, 215, 0.6, '#4b4b4b');   // cabezal
+  box(28, 362, 45, 95, 0.6, '#676767');    // su parte de arriba, más clara
+  box(44, 348, 32, 47, 0.1, G.light > 0.2 ? '#fff4d2' : '#6b6450');   // lente (apagada cuando se apaga la linterna)
+  box(142, 250, 328, 386, (386 - 328) / 2 * k, '#151515');   // perilla de encendido
+  c.fillStyle = '#4b4b4b'; c.beginPath(); c.arc(X(357), Y(222), 24 * k, 0, Math.PI * 2); c.fill();
+  // la ventana de la batería: marco negro y la barra de siempre (amarilla, naranja con poco, roja al final), que se
+  // vacía hacia la cola
+  box(108, 285, 405, 852, 40 * k, '#000000');
+  box(120, 273, 418, 840, 30 * k, '#121316');
   const frac = isMenu() ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
   const blinkOut = G.state === 'play' && G.dark && G.timeLeft <= WARN_T && Math.sin(G.time * 14) < -0.3;
   if (frac > 0 && !blinkOut) {
+    const x0 = X(840), len = X(418) - x0, y0 = Y(120), wd = Y(273) - y0;
     c.fillStyle = frac > 0.25 ? '#e2ea3a' : frac > 0.1 ? '#f2b53a' : '#f0563a';
-    rr(-10.8, -1.6, 9.4 * frac, 3.2, 0.6); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-10.6, -1.35, Math.max(0, 9.4 * frac - 0.4), 0.55);   // brillo
+    rr(x0, y0, len * frac, wd, 30 * k); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(x0 + 0.2, y0 + 0.3, Math.max(0, len * frac - 0.4), 0.5);   // brillo
   }
-  for (const bx of [0.5, 2.6]) {   // botones
-    c.fillStyle = '#17181b'; rr(bx - 0.8, -1.4, 1.6, 2.8, 0.45); c.fill();
-    c.strokeStyle = 'rgba(190,205,210,0.55)'; c.lineWidth = 0.22; c.beginPath(); c.moveTo(bx, -0.6); c.lineTo(bx, 0.6); c.stroke();
-  }
-  c.fillStyle = '#3a3d42'; c.fillRect(3.4, -FL + 0.3, 0.6, FL * 2 - 0.6);   // anillo antes del cabezal
-  const hg = c.createLinearGradient(0, -4.2, 0, 4.2);   // cabezal: mismo volumen de cilindro que el cuerpo
-  hg.addColorStop(0, '#232529'); hg.addColorStop(0.5, '#a9adb4'); hg.addColorStop(1, '#232529');
-  c.fillStyle = hg; c.fillRect(4, -4.2, 3.4, 8.4);
-  c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(6.6, -4.2, 0.5, 8.4);   // borde del aro, un poco más claro
-  c.fillStyle = G.light > 0.2 ? '#fff4d2' : '#6b6450'; c.fillRect(7.4, -3.6, 1.2, 7.2);
   c.restore();   // fin de la linterna (rígida)
   }
   // cara (nariz, orejas, ojos, bigotes): gira entera con la cabeza
@@ -4894,6 +4923,7 @@ function render() {
 
     // 3) oscuridad total salvo lo que toca la luz
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lightCv, 0, 0); ctx.globalCompositeOperation = 'source-over';
+    if (G.dark && !menu) { ctx.save(); ctx.setTransform(...T6); drawBatteryGlow(ctx, v); ctx.restore(); }   // el rayo de las pilas, que brilla solo
   }
 
   // zona de pantalla alrededor del ratón (para dibujarlo aparte y para las paredes de encima)
@@ -4988,14 +5018,15 @@ function render() {
     $timer.classList.toggle('warn', G.lamp && G.timeLeft <= WARN_T && G.state === 'play');
     $cheese.classList.toggle('hidden', !G.cheeseTotal || ['won', 'lost'].includes(G.state));   // detrás del cartel de fin de nivel, no (ya está en el cartel)
     $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
-    // batería de la linterna: un bloque prendido por cada 15 s que quedan (en Desafío, por cada cuarto del tiempo del nivel) (el que se está gastando también); con el
-    // último bloque se pone naranja y en los últimos WARN_T s rojo y titila
+    // batería de la linterna: un bloque prendido por cada 15 s que quedan (en Desafío, por cada cuarto del tiempo del nivel;
+    // el que se está gastando también); el color de todos depende de cuántos quedan, y en los últimos WARN_T s titila
     $lamp.classList.toggle('hidden', !G.lamp || ['won', 'lost'].includes(G.state));
     $lamp.classList.toggle('up', !G.cheeseTotal);
     if (G.lamp) {
-      const n = Math.ceil(Math.max(0, G.timeLeft) / (G.lampBlock || LAMP_BLOCK) - 1e-6), crit = G.timeLeft <= WARN_T, low = n <= 1;
+      const n = Math.min(4, Math.ceil(Math.max(0, G.timeLeft) / (G.lampBlock || LAMP_BLOCK) - 1e-6)), crit = G.timeLeft <= WARN_T;
       const blink = crit && G.state === 'play' && Math.sin(G.time * 14) < -0.3;
-      $lampCells.forEach((el, k) => { el.className = k < n ? (crit ? 'on crit' : low ? 'on low' : 'on') + (blink && k === n - 1 ? ' blink' : '') : ''; });
+      $lampBat.dataset.n = n;
+      $lampCells.forEach((el, k) => { el.className = k < n ? 'on' + (blink && k === n - 1 ? ' blink' : '') : ''; });
     }
   }
   const showHint = G.state === 'play' && G.level <= 2;
@@ -5333,10 +5364,10 @@ function renderRatGallery() {
 const LIB = /libreria/i.test(location.search + location.hash);
 let libOn = false;
 const LIB_ORIG = { rats: RATS.map(r => r.slice()), port: JSON.parse(JSON.stringify(PORTRAIT_COLORS)) };
-// [campo, etiqueta]: claves de portraitOf, o 'r' + índice en RATS (ojos, arnés, linterna, manchas)
+// [campo, etiqueta]: claves de portraitOf, o 'r' + índice en RATS (ojos, manchas)
 const LIB_FIELDS = [['fur', 'Pelaje'], ['ear', 'Oreja externa'], ['earDark', 'Oreja interna (y la de atrás, de costado)'],
   ['earLine', 'Línea de la oreja'], ['nose', 'Nariz'], ['paws', 'Patas'], ['tail', 'Cola'], ['r5', 'Ojos'], ['shine', 'Brillo del ojo'],
-  ['line', 'Líneas de la cara'], ['legLine', 'Líneas de las patas'], ['r3', 'Arnés'], ['r4', 'Linterna'], ['r7', 'Manchas']];
+  ['line', 'Líneas de la cara'], ['legLine', 'Líneas de las patas'], ['r7', 'Manchas']];   // (sin arnés ni linterna: son iguales para todas)
 // los automáticos de portraitOf salen de otro color: al cambiar ese, se fijan antes con el valor que tenían, así cada
 // selector cambia solo lo suyo
 const LIB_DEPS = { fur: ['line', 'legLine'], ear: ['earDark', 'earLine', 'nose', 'paws', 'tail'], paws: ['tail'], line: ['legLine'] };
