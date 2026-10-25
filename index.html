@@ -1539,6 +1539,8 @@ function updateTail(dt) {
   const P = M.tail;
   // la cola no choca con el hueco de las puertas (pasa por abajo de la cortina detrás del cuerpo)
   const near = G.solids.filter(R => !R.door && R.x < M.x + 60 && R.x + R.w > M.x - 60 && R.y < M.y + 60 && R.y + R.h > M.y - 60);
+  // el eje gris de los molinetes cercanos: la cola pasa por debajo de las aspas pero choca con él como con una pared
+  const hubs = G.items.filter(it => it.type === 'spinner' && Math.abs(it.x - M.x) < 60 && Math.abs(it.y - M.y) < 60);
   // nacimiento de la cola: sobre el eje del cuerpo, pero si ahí hay una pared, se corre hacia el ratón hasta quedar
   // afuera, del lado del ratón (si no, el empuje de las paredes podía mandar la cola al otro lado)
   let root = TAIL_ROOT;
@@ -1578,6 +1580,14 @@ function updateTail(dt) {
           const l = x - R.x, rr = R.x + R.w - x, tp = y - R.y, b = R.y + R.h - y, m = Math.min(l, rr, tp, b);
           if (m === l) x = R.x - r; else if (m === rr) x = R.x + R.w + r; else if (m === tp) y = R.y - r; else y = R.y + R.h + r;
         }
+      }
+      for (const h of hubs) {
+        let ex = x - h.x, ey = y - h.y, e = Math.hypot(ex, ey);
+        const need = SPIN_HUB + r;
+        if (e >= need) continue;
+        hit = true;
+        if (e < 1e-6) { ex = P[i - 1][0] - h.x; ey = P[i - 1][1] - h.y; e = Math.hypot(ex, ey) || 1; }   // justo en el centro: sale hacia el tramo anterior
+        x = h.x + ex / e * need; y = h.y + ey / e * need;
       }
       if (!hit) break;
     }
@@ -4183,7 +4193,7 @@ const CHEESE_SCALE = 1.25;   // tamaño del queso
 // Molinete (niveles 29–40): cuatro aspas de cartón con puntas de cinta de peligro que giran sobre un eje de metal en un
 // cruce, con flechas de tiza en el piso que marcan el sentido (como la referencia del usuario). Son bajas: no tapan la luz
 // ni hacen sombra en las paredes. No atrapan: empujan a la rata (spinPush), hay que pasar en el hueco.
-const SPIN_ARM = 26, SPIN_HW = 3.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
+const SPIN_ARM = 26, SPIN_HW = 4.5, SPIN_HUB = 6.5, SPIN_SPEED = 2.1;   // largo de cada aspa, medio ancho, radio del eje, giro (rad/s: una vuelta cada 3 s)
 const SPIN_N = 2;   // cuántas aspas (eran 4; con 2, una barra, la rata se traba menos)
 const spinAng = it => it.a0 + it.dir * SPIN_SPEED * G.time;
 const SPIN_PUSH_MAX = 2.5;   // empujón máximo de un aspa por pasada (de a poco, nunca un salto)
@@ -4222,20 +4232,9 @@ function spinPush(cx, cy, r, k = 0) {
   }
   return [ox, oy];
 }
-function drawSpinner(c, it, armsOnly = false) {
+function drawSpinner(c, it) {   // (sin flechas en el piso: el usuario las sacó, ensuciaban)
   const a = spinAng(it);
   c.save(); c.translate(it.x, it.y);
-  if (!armsOnly) {
-  // flechas en el piso, alrededor, en el sentido del giro
-  c.strokeStyle = 'rgba(35,24,14,0.55)'; c.lineWidth = 1.8; c.lineCap = 'round'; c.lineJoin = 'round';   // el marrón de los textos escritos en el piso
-  const R = 29;   // las flechas, donde estaban con las aspas largas: separadas de las aspas cortas, así no se empastan
-  for (const q of [0, 2]) {   // dos flechas, una de cada lado (eran cuatro, con las cuatro aspas)
-    const m0 = q * Math.PI / 2 + Math.PI / 4 - 0.27, m1 = m0 + 0.54, e = it.dir > 0 ? m1 : m0;
-    c.beginPath(); c.arc(0, 0, R, m0, m1); c.stroke();
-    const ex = Math.cos(e) * R, ey = Math.sin(e) * R, tx = -Math.sin(e) * it.dir, ty = Math.cos(e) * it.dir, rx = Math.cos(e), ry = Math.sin(e);
-    c.beginPath(); c.moveTo(ex - tx * 4 + rx * 3, ey - ty * 4 + ry * 3); c.lineTo(ex, ey); c.lineTo(ex - tx * 4 - rx * 3, ey - ty * 4 - ry * 3); c.stroke();
-  }
-  }
   c.rotate(a);
   // sombra de las aspas en el piso
   c.fillStyle = 'rgba(0,0,0,0.28)';
@@ -4245,13 +4244,9 @@ function drawSpinner(c, it, armsOnly = false) {
     c.fillStyle = '#b8894f'; c.fillRect(0, -SPIN_HW, SPIN_ARM, SPIN_HW * 2);              // cartón
     c.fillStyle = 'rgba(255,240,210,0.25)'; c.fillRect(0, -SPIN_HW, SPIN_ARM, 1.2);         // canto con luz
     c.fillStyle = '#8a6234'; c.fillRect(0, SPIN_HW - 1.2, SPIN_ARM, 1.2);                   // canto oscuro
-    // punta con cinta de peligro amarilla y negra
-    const L0 = SPIN_ARM - 8;
-    c.save(); c.beginPath(); c.rect(L0, -SPIN_HW, 8, SPIN_HW * 2); c.clip();
-    c.fillStyle = '#efc12a'; c.fillRect(L0, -SPIN_HW, 8, SPIN_HW * 2);
-    c.fillStyle = '#1c1b18';
-    for (let k = -1; k < 4; k++) { c.beginPath(); const x0 = L0 + k * 3.4; c.moveTo(x0, SPIN_HW); c.lineTo(x0 + 1.6, SPIN_HW); c.lineTo(x0 + 1.6 + SPIN_HW * 2, -SPIN_HW); c.lineTo(x0 + SPIN_HW * 2, -SPIN_HW); c.closePath(); c.fill(); }
-    c.restore();
+    // punta: tres franjas de lado a lado, amarilla, negra y amarilla
+    const L0 = SPIN_ARM - 8, bw = 8 / 3;
+    ['#efc12a', '#1c1b18', '#efc12a'].forEach((col, k) => { c.fillStyle = col; c.fillRect(L0 + k * bw, -SPIN_HW, bw + (k < 2 ? 0.05 : 0), SPIN_HW * 2); });
     c.strokeStyle = 'rgba(40,24,8,0.6)'; c.lineWidth = 0.6; c.strokeRect(0, -SPIN_HW, SPIN_ARM, SPIN_HW * 2);
     c.restore();
   }
@@ -4538,7 +4533,7 @@ function drawMouse(c, alpha) {
         c.moveTo(x0 + nx, y0 + ny); c.lineTo(x1 + nx, y1 + ny); c.lineTo(x1 - nx, y1 - ny); c.lineTo(x0 - nx, y0 - ny); c.closePath();
         c.moveTo(x1 + r, y1); c.arc(x1, y1, r, 0, Math.PI * 2);
       }
-      c.clip(); drawSpinner(c, it, true); c.restore();
+      c.clip(); drawSpinner(c, it); c.restore();
     }
   }
   c.translate(M.x, M.y); c.rotate(M.a);
