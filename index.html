@@ -645,6 +645,7 @@ const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de t
 // recargan un bloque. En los demás la luz del laberinto está prendida, el reloj corre libre y no se pierde por tiempo.
 const DARK_LEVELS = [5, 9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40];
 const LAMP_MAX = 60, LAMP_BLOCK = 15;
+const WARN_T = 15;   // los últimos segundos de pila: sirena, tics, pila roja que titila y linterna que parpadea (antes 10)
 const BAT_EVERY = 45;   // una pila (que llena la batería) cada ~45 s del tiempo que daba el nivel, repartidas por el camino
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
 // cuando se apaga, se apaga)
@@ -3768,7 +3769,7 @@ function update(dt) {
     G.elapsed += dt;
     if (G.dark) G.timeLeft -= dt;   // con la luz prendida no se gasta: no hay derrota por tiempo
     const s = Math.ceil(G.timeLeft);
-    if (G.dark && G.timeLeft <= 10 && s !== G.lastTick && s > 0) { G.lastTick = s; Snd.tick(s <= 5); }
+    if (G.dark && G.timeLeft <= WARN_T && s !== G.lastTick && s > 0) { G.lastTick = s; Snd.tick(s <= 5); }
     G.onT += dt;
     // encendido con parpadeo + leve oscilación del foco
     G.light = G.onT < 0.35 ? (Math.random() < 0.55 ? 1 : 0.15) : 0.96 + 0.04 * Math.sin(G.time * 13) * Math.sin(G.time * 7.3);
@@ -3810,11 +3811,11 @@ function update(dt) {
   G.prints = G.prints.filter(p => p.t < PRINT_LIFE);
 
   Music.tick(dt);
-  // trampas cerrándose, migas de queso y sirena de los últimos 10 segundos
+  // trampas cerrándose, migas de queso y sirena de los últimos WARN_T segundos
   for (const it of G.items) if (it.type === 'trap' && it.closed) it.t = Math.min(1, it.t + dt / 0.15);
   for (const p of G.fx) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   G.fx = G.fx.filter(p => p.t < p.life);
-  const sirenOn = (G.state === 'play' || G.state === 'paused') && G.dark && G.timeLeft <= 10;
+  const sirenOn = (G.state === 'play' || G.state === 'paused') && G.dark && G.timeLeft <= WARN_T;
   G.siren += clamp((sirenOn ? 1 : 0) - G.siren, -dt / 0.5, dt / 0.5);
   // "Uuuuh" de la sirena, una vez por vuelta: arranca un poco antes para que el pico coincida con el haz pasando
   // por encima de la rata (el haz gira a G.time·π, una vuelta cada 2 s)
@@ -4482,7 +4483,7 @@ function drawFloorItems(c, v) {
   }
 }
 
-// Sirena de los últimos 10 segundos: todo se tiñe de rojo y un haz rojo gira desde el techo
+// Sirena de los últimos WARN_T segundos: todo se tiñe de rojo y un haz rojo gira desde el techo
 // (no lo cortan las paredes), dejando ver por un instante zonas lejos de la linterna
 function drawSiren(l, T6) {
   const S = G.siren, w = lightCv.width, h = lightCv.height;
@@ -4662,7 +4663,7 @@ function drawMouse(c, alpha) {
   c.fillStyle = '#26282c'; c.fillRect(-12.2, -FL + 0.5, 0.9, FL * 2 - 1);   // tapa trasera
   c.fillStyle = '#121316'; rr(-11.3, -2.1, 10.4, 4.2, 1); c.fill();        // marco de la barra
   const frac = isMenu() ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
-  const blinkOut = G.state === 'play' && G.dark && G.timeLeft <= 10 && Math.sin(G.time * 14) < -0.3;
+  const blinkOut = G.state === 'play' && G.dark && G.timeLeft <= WARN_T && Math.sin(G.time * 14) < -0.3;
   if (frac > 0 && !blinkOut) {
     c.fillStyle = frac > 0.25 ? '#e2ea3a' : frac > 0.1 ? '#f2b53a' : '#f0563a';
     rr(-10.8, -1.6, 9.4 * frac, 3.2, 0.6); c.fill();
@@ -4890,15 +4891,15 @@ function render() {
     // El reloj sube (lo que vas tardando), igual que los resultados y los objetivos; el límite se ve en la batería de la
     // linterna y en la sirena
     $timer.textContent = fmtMS(G.elapsed);
-    $timer.classList.toggle('warn', G.lamp && G.timeLeft <= 10 && G.state === 'play');
+    $timer.classList.toggle('warn', G.lamp && G.timeLeft <= WARN_T && G.state === 'play');
     $cheese.classList.toggle('hidden', !G.cheeseTotal || ['won', 'lost'].includes(G.state));   // detrás del cartel de fin de nivel, no (ya está en el cartel)
     $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
     // batería de la linterna: un bloque prendido por cada 15 s que quedan (el que se está gastando también); con el
-    // último bloque se pone naranja y en los últimos 10 s rojo y titila
+    // último bloque se pone naranja y en los últimos WARN_T s rojo y titila
     $lamp.classList.toggle('hidden', !G.lamp || ['won', 'lost'].includes(G.state));
     $lamp.classList.toggle('up', !G.cheeseTotal);
     if (G.lamp) {
-      const n = Math.ceil(Math.max(0, G.timeLeft) / LAMP_BLOCK - 1e-6), crit = G.timeLeft <= 10, low = n <= 1;
+      const n = Math.ceil(Math.max(0, G.timeLeft) / LAMP_BLOCK - 1e-6), crit = G.timeLeft <= WARN_T, low = n <= 1;
       const blink = crit && G.state === 'play' && Math.sin(G.time * 14) < -0.3;
       $lampCells.forEach((el, k) => { el.className = k < n ? (crit ? 'on crit' : low ? 'on low' : 'on') + (blink && k === n - 1 ? ' blink' : '') : ''; });
     }
