@@ -560,83 +560,83 @@ function timeFor(n, pathCells) {
 const LEVELS = [
   { name: 'Primeros pasos', seed: 1101, size: [10, 6], loops: 0.03,
     intro: 'Encontrá la salida antes del tiempo objetivo.' },
-  { name: 'Olor a queso', seed: 1202, size: [10, 6], loops: 0.03, cheese: 1,
+  { name: 'Olor a queso', seed: 1254, size: [10, 6], loops: 0.03, cheese: 1,
     intro: 'Hay un queso escondido. Agarralo y escapá a tiempo.' },
-  { name: 'Gruyère', seed: 1303, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
+  { name: 'Gruyère', seed: 1368, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
     intro: 'Más agujeros que queso... y más quesos que antes.' },
   { name: 'Pegote', seed: 1404, size: [11, 7], loops: 0.03, sticky: 2, cheese: 2,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un rato. Si podés, rodealas.' },
   { name: 'Patas pegajosas', seed: 1505, size: [11, 7], loops: 0.03, sticky: 3, cheese: 3, cheeseGoal: 2,
     intro: 'Pegamento y unos quesitos. A veces el queso está del otro lado del pegote.' },
-  { name: 'La trampera', seed: 1606, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
+  { name: 'La trampera', seed: 1970, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
-  { name: 'Callejones', seed: 1707, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
+  { name: 'Callejones', seed: 1967, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
     intro: 'Callejones sin salida con trampas, y pegote en los pasillos.' },
-  { name: 'Puertas', seed: 1808, size: [13, 7], loops: 0.01, cheese: 2, doors: 2,
+  { name: 'Puertas', seed: 6618, size: [13, 7], loops: 0.01, cheese: 2, doors: 2,
     intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado no se abren.' },
-  { name: 'Atajos', seed: 1909, size: [13, 8], loops: 0.01, traps: 3, cheese: 3, cheeseGoal: 2, doors: 2,
+  { name: 'Atajos', seed: 2143, size: [13, 8], loops: 0.01, traps: 3, cheese: 3, cheeseGoal: 2, doors: 2,
     intro: 'Las puertas son atajos hacia la salida. Encontralas.' },
-  { name: 'Molinete', seed: 2010, size: [13, 8], loops: 0.03, cheese: 2, spinners: 2,
+  { name: 'Molinete', seed: 2062, size: [13, 8], loops: 0.03, cheese: 2, spinners: 2,
     intro: 'En algunos cruces hay molinetes que giran. Esperá el hueco y pasá; si un aspa te agarra, te empuja.' },
-  { name: 'Aspas', seed: 2111, size: [14, 8], loops: 0.03, sticky: 2, cheese: 3, cheeseGoal: 2, spinners: 3,
+  { name: 'Aspas', seed: 2228, size: [14, 8], loops: 0.03, sticky: 2, cheese: 3, cheeseGoal: 2, spinners: 3,
     intro: 'Más molinetes, y pegote cerca. Medí el tiempo.' },
-  { name: 'Compuerta', seed: 2212, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
+  { name: 'Compuerta', seed: 2537, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
     intro: 'Hay compuertas que se abren y se cierran. Pasá cuando están abiertas.' },
-  { name: 'Abre y cierra', seed: 2313, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
+  { name: 'Abre y cierra', seed: 2937, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
     intro: 'Compuertas en los pasillos y trampas en los callejones.' },
   { name: 'Picada', seed: 2414, size: [15, 9], loops: 0.03, cheese: 4, cheeseGoal: 3, spinners: 2, gates: 2,
     intro: 'Compuertas y molinetes en el mismo laberinto.' },
-  { name: 'Engrudo', seed: 2515, size: [15, 9], loops: 0.02, sticky: 4, cheese: 4, cheeseGoal: 3, doors: 2,
+  { name: 'Engrudo', seed: 2723, size: [15, 9], loops: 0.02, sticky: 4, cheese: 4, cheeseGoal: 3, doors: 2,
     intro: 'Pegote en el camino y puertas para atajar.' },
-  { name: 'Cebo', seed: 2616, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
+  { name: 'Cebo', seed: 2941, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
     intro: 'Hay quesos de verdad... y quesos de cebo en las trampas.' },
-  { name: 'Tabla de quesos', seed: 2717, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
+  { name: 'Tabla de quesos', seed: 2756, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
     intro: 'Una tabla entera para picar, entre pegote y compuertas.' },
-  { name: 'Clic', seed: 2818, size: [16, 9], loops: 0.02, traps: 6, cheese: 4, cheeseGoal: 3, doors: 3,
+  { name: 'Clic', seed: 3572, size: [16, 9], loops: 0.02, traps: 6, cheese: 4, cheeseGoal: 3, doors: 3,
     intro: 'Mirá bien antes de meterte en un pasillo.' },
-  { name: 'Remolino', seed: 2919, size: [16, 10], loops: 0.03, sticky: 4, cheese: 5, cheeseGoal: 4, spinners: 3,
+  { name: 'Remolino', seed: 3023, size: [16, 10], loops: 0.03, sticky: 4, cheese: 5, cheeseGoal: 4, spinners: 3,
     intro: 'Si te pegás, el aspa no te espera.' },
-  { name: 'Peligro dulce', seed: 3020, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
+  { name: 'Peligro dulce', seed: 3046, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
     intro: 'Trampas, pegote y compuertas.' },
-  { name: 'Ida sin vuelta', seed: 3121, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
+  { name: 'Ida sin vuelta', seed: 3602, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
     intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
   { name: 'Campo minado', seed: 3222, size: [18, 10], loops: 0.03, traps: 8, cheese: 5, cheeseGoal: 4, gates: 3,
     intro: 'Muchas trampas. Paso a paso.' },
-  { name: 'Mermelada', seed: 3323, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
+  { name: 'Mermelada', seed: 3479, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
     intro: 'Todo pegajoso. Elegí bien por dónde pasar.' },
-  { name: 'Ventilador', seed: 3424, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
+  { name: 'Ventilador', seed: 3827, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
     intro: 'Molinetes en los cruces y trampas en los callejones.' },
-  { name: 'Puerta giratoria', seed: 3525, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
+  { name: 'Puerta giratoria', seed: 6840, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
     intro: 'Puertas, compuertas y pegote. Pensá el recorrido.' },
-  { name: 'Ratonera', seed: 3626, size: [19, 11], loops: 0.03, traps: 10, cheese: 6, cheeseGoal: 5, spinners: 3,
+  { name: 'Ratonera', seed: 3704, size: [19, 11], loops: 0.03, traps: 10, cheese: 6, cheeseGoal: 5, spinners: 3,
     intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
-  { name: 'Pantano', seed: 3727, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
+  { name: 'Pantano', seed: 6730, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
     intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
-  { name: 'Laberinto de puertas', seed: 3828, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
+  { name: 'Laberinto de puertas', seed: 4920, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
     intro: 'Planeá el recorrido para no dejar quesos atrás.' },
   { name: 'Licuadora', seed: 3929, size: [20, 12], loops: 0.03, sticky: 5, cheese: 6, cheeseGoal: 5, spinners: 5, gates: 3,
     intro: 'Todo gira, se abre y se cierra.' },
-  { name: 'Combo', seed: 4030, size: [20, 12], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 2,
+  { name: 'Combo', seed: 4862, size: [20, 12], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 2,
     intro: 'Todo lo que aprendiste, junto.' },
-  { name: 'Hora pico', seed: 4131, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
+  { name: 'Hora pico', seed: 5782, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
     intro: 'El laboratorio está lleno de cosas. Y el tiempo corre.' },
-  { name: 'Laboratorio', seed: 4232, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
+  { name: 'Laboratorio', seed: 14372, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
     intro: 'Un piso entero del laboratorio para escapar.' },
-  { name: 'Experimento', seed: 4333, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
+  { name: 'Experimento', seed: 9520, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
     intro: 'Te están mirando. Demostrales lo que sabés.' },
-  { name: 'Sótano', seed: 4434, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
+  { name: 'Sótano', seed: 10440, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
     intro: 'Más trampas y menos pasillos que se crucen.' },
-  { name: 'Depósito', seed: 4535, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Depósito', seed: 6225, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Cajas y cajas de cartón. Y en algún lado, la salida.' },
-  { name: 'Contrarreloj', seed: 4636, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Contrarreloj', seed: 9682, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Muchos caminos posibles. Elegí rápido.' },
-  { name: 'Laberinto mayor', seed: 4737, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
+  { name: 'Laberinto mayor', seed: 14305, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
     intro: 'El más grande hasta ahora.' },
-  { name: 'Pegatrampas', seed: 4838, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Pegatrampas', seed: 7958, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Pegamento por todos lados y trampas en cada callejón.' },
-  { name: 'Casi libre', seed: 8915, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'Casi libre', seed: 15272, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'Ya se huele el aire de afuera.' },
-  { name: 'La gran fuga', seed: 7732, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'La gran fuga', seed: 48251, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
@@ -646,7 +646,7 @@ const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de t
 const DARK_LEVELS = [5, 9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40];
 const LAMP_MAX = 60, LAMP_BLOCK = 15;
 const WARN_T = 15;   // los últimos segundos de pila: sirena, tics, pila roja que titila y linterna que parpadea (antes 10)
-const BAT_EVERY = 45;   // una pila (que llena la batería) cada ~45 s del tiempo que daba el nivel, repartidas por el camino
+const BAT_CELLS = 26;   // pilas: como mucho tantas celdas de camino entre una y otra (~20 s a paso normal)
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
 // cuando se apaga, se apaga)
 const ROOM_AMBIENT = 0.85, DARK_AMBIENT = 0.1;
@@ -974,6 +974,33 @@ function bfs(m, c0, r0) {
   }
   return dist;
 }
+// El camino más corto con los atajos de las puertas (de A a B, de un solo sentido), y qué tan lejos queda cada punto de
+// él: len (como pathLen), onPath(x, y) (la celda está en un camino más corto sin puertas) y detour(x, y) (celdas de ida y
+// vuelta para ir hasta ahí desde el camino)
+function routeInfo(m, items) {
+  const { W, H } = m, ix = (x, y) => Math.floor(y / C) * W + Math.floor(x / C);
+  const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), best = dE[m.exitRow * W];
+  const doors = items.filter(it => it.type === 'door').map(d => [ix(d.wx - d.dx * C / 2, d.wy - d.dy * C / 2), ix(d.wx + d.dx * C / 2, d.wy + d.dy * C / 2)]);
+  let len = best;
+  if (doors.length) {   // BFS con las puertas como pasos de un solo sentido
+    const dist = new Int32Array(W * H).fill(-1), q = [m.entRow * W + W - 1]; dist[q[0]] = 0;
+    for (let qi = 0; qi < q.length; qi++) {
+      const k = q[qi], c = k % W, r = (k - c) / W, d = dist[k];
+      const go = nk => { if (dist[nk] < 0) { dist[nk] = d + 1; q.push(nk); } };
+      if (c > 0 && !m.vW[c][r]) go(k - 1);
+      if (c < W - 1 && !m.vW[c + 1][r]) go(k + 1);
+      if (r > 0 && !m.hW[r][c]) go(k - W);
+      if (r < H - 1 && !m.hW[r + 1][c]) go(k + W);
+      for (const [a, b] of doors) if (a === k) go(b);
+    }
+    len = dist[m.exitRow * W];
+  }
+  return {
+    len: len < 0 ? W * H : len + 3, plain: best + 3,
+    onPath: (x, y) => { const k = ix(x, y); return dE[k] + dX[k] === best; },
+    detour: (x, y) => { const k = ix(x, y); return dE[k] < 0 ? 0 : dE[k] + dX[k] - best; },
+  };
+}
 // Largo del camino más corto, contando el corral de inicio y el umbral de salida
 function pathLen(m) {
   const d = bfs(m, m.W - 1, m.entRow)[m.exitRow * m.W];
@@ -1087,13 +1114,19 @@ function placeItems(L, m, rng) {
     const ok = segs.filter(s => !special(...s.a) && !special(...s.b) && dX[idx(...s.a)] >= 0);
     ok.forEach(s => { const i = idx(...s.a); s.key = rng() * (1 + 3 * (1 - dX[i] / maxX)) * (onPath(i) ? 1.5 : 1); });
     ok.sort((p, q) => q.key - p.key);
-    const chosen = [];
-    for (const s of ok) {
-      if (chosen.length >= L.sticky) break;
-      const busy = used.concat(...chosen.map(q => [q.a, q.b]));
-      if (busy.some(u => Math.abs(u[0] - s.a[0]) + Math.abs(u[1] - s.a[1]) < 2 || Math.abs(u[0] - s.b[0]) + Math.abs(u[1] - s.b[1]) < 2)) continue;
-      chosen.push(s);
-    }
+    // al menos la mitad en el camino más corto (si no, casi no molestaba: quedaba en pasillos por los que no se pasa)
+    const chosen = [], onSeg = s => onPath(idx(...s.a)) && onPath(idx(...s.b));
+    const take = (list, upto) => {
+      for (const s of list) {
+        if (chosen.length >= upto) break;
+        if (chosen.includes(s)) continue;
+        const busy = used.concat(...chosen.map(q => [q.a, q.b]));
+        if (busy.some(u => Math.abs(u[0] - s.a[0]) + Math.abs(u[1] - s.a[1]) < 2 || Math.abs(u[0] - s.b[0]) + Math.abs(u[1] - s.b[1]) < 2)) continue;
+        chosen.push(s);
+      }
+    };
+    take(ok.filter(onSeg), Math.ceil(L.sticky / 2));
+    take(ok, L.sticky);
     for (const s of chosen) {
       const x = (s.a[0] + s.b[0] + 1) / 2 * C, y = (s.a[1] + s.b[1] + 1) / 2 * C;   // centro del tramo de dos celdas
       const w = s.vert ? TRAY_W : TRAY_L, h = s.vert ? TRAY_L : TRAY_W;
@@ -1103,7 +1136,10 @@ function placeItems(L, m, rng) {
   }
   // Quesos: preferentemente fuera del camino más corto (para que haya que desviarse), separados entre sí
   if (L.cheese) {
-    const free = cells.filter(([c, r]) => !special(c, r) && dE[idx(c, r)] >= 0 && !used.some(u => u[0] === c && u[1] === r));
+    // el desvío (ida y vuelta desde el camino) tiene un tope según el largo del camino, así la estrella de los quesos cuesta
+    // parecido en todos los niveles (antes había quesos a 80 celdas y otros al lado del camino)
+    const maxDet = Math.max(6, Math.min(36, Math.round(best * 0.25))), det = i => dE[i] + dX[i] - best;
+    const free = cells.filter(([c, r]) => !special(c, r) && dE[idx(c, r)] >= 0 && det(idx(c, r)) <= maxDet && !used.some(u => u[0] === c && u[1] === r));
     const off = shuffle(free.filter(([c, r]) => !onPath(idx(c, r)))), on = shuffle(free.filter(([c, r]) => onPath(idx(c, r))));
     let chosen = pick(off, L.cheese, 4, used);
     if (chosen.length < L.cheese) chosen = chosen.concat(pick(off.concat(on), L.cheese - chosen.length, 2, used.concat(chosen)));
@@ -1181,22 +1217,55 @@ function placeItems(L, m, rng) {
 // tiene N monedas en total (budget): sirve para juntar, pero rinde ir más lejos. Usan su propio rng, así no cambian
 // dónde caen los otros items. No van en la entrada, la salida ni encima de otro item.
 const COIN_DETOUR_S = 2.5;   // en los tesoros: una moneda por cada tantos segundos de desvío (de 3 a 5)
-// Pilas de los niveles a oscuras: n repartidas parejo a lo largo del camino más corto (si el lugar está ocupado, la
-// celda libre más cercana del camino), así siguiéndolo siempre alcanza la linterna
-function placeBatteries(m, items, n) {
-  const { W, H } = m, out = [];
-  const dE = bfs(m, W - 1, m.entRow), dX = bfs(m, 0, m.exitRow), D = dE[m.exitRow * W];
-  const path = [];
-  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (dE[r * W + c] >= 0 && dE[r * W + c] + dX[r * W + c] === D) path.push([c, r, dE[r * W + c]]);
-  path.sort((p, q) => p[2] - q[2]);
+// Pilas de los niveles a oscuras: repartidas parejo a lo largo del camino más corto, una cada BAT_CELLS celdas como
+// mucho (si el lugar está ocupado, la celda libre más cercana del camino); y también a lo largo del camino con los
+// atajos de las puertas, donde entre dos pilas queden más de BAT_CELLS celdas (si no, tomando el atajo se salteaban
+// las pilas del camino largo y podían quedar casi 60 s sin ninguna)
+function placeBatteries(m, items) {
+  const { W, H } = m, out = [], ix = (x, y) => Math.floor(y / C) * W + Math.floor(x / C);
+  const doors = items.filter(it => it.type === 'door').map(d => [ix(d.wx - d.dx * C / 2, d.wy - d.dy * C / 2), ix(d.wx + d.dx * C / 2, d.wy + d.dy * C / 2)]);
+  const dist = (start, useDoors, rev) => {   // BFS por el laberinto; con las puertas como pasos de un solo sentido (al revés desde la salida)
+    const d = new Int32Array(W * H).fill(-1), q = [start]; d[start] = 0;
+    for (let qi = 0; qi < q.length; qi++) {
+      const k = q[qi], c = k % W, r = (k - c) / W, v = d[k];
+      const go = nk => { if (d[nk] < 0) { d[nk] = v + 1; q.push(nk); } };
+      if (c > 0 && !m.vW[c][r]) go(k - 1);
+      if (c < W - 1 && !m.vW[c + 1][r]) go(k + 1);
+      if (r > 0 && !m.hW[r][c]) go(k - W);
+      if (r < H - 1 && !m.hW[r + 1][c]) go(k + W);
+      if (useDoors) for (const [a, b] of doors) { if (!rev && a === k) go(b); if (rev && b === k) go(a); }
+    }
+    return d;
+  };
+  const s0 = m.entRow * W + W - 1, e0 = m.exitRow * W;
+  const route = useDoors => {   // las celdas de un camino más corto, en orden desde la entrada
+    const dS = dist(s0, useDoors, false), dT = dist(e0, useDoors, true), tot = dS[e0], cells = [];
+    for (let k = 0; k < W * H; k++) if (dS[k] >= 0 && dS[k] + dT[k] === tot) cells.push(k);
+    return cells.sort((a, b) => dS[a] - dS[b]);
+  };
   const busy = (x, y) => items.concat(out).some(it => Math.hypot((it.x ?? it.wx) - x, (it.y ?? it.wy) - y) < C * 0.75);
-  for (let k = 1; k <= n; k++) {
-    const want = Math.round(k * (path.length - 1) / (n + 1));
+  for (const path of doors.length ? [route(false), route(true)] : [route(false)]) {
+    // dónde ya hay pilas en este camino (las del camino largo que también están en el de los atajos)
+    const marks = [0, ...out.map(b => path.indexOf(ix(b.x, b.y))).filter(p => p >= 0).sort((a, b) => a - b), path.length - 1];
+    for (let g = 1; g < marks.length; g++) {
+      const a = marks[g - 1], b = marks[g], n = Math.ceil((b - a) / BAT_CELLS) - 1;
+      for (let k = 1; k <= n; k++) {
+        const want = a + Math.round(k * (b - a) / (n + 1));
+        for (let j = 0; j < path.length; j++) {
+          const p = want + (j % 2 ? -1 : 1) * Math.ceil(j / 2);
+          if (p < 1 || p > path.length - 2) continue;
+          const x = (path[p] % W + 0.5) * C, y = (Math.floor(path[p] / W) + 0.5) * C;
+          if (!busy(x, y)) { out.push({ type: 'battery', x, y, got: false, ph: out.length * 1.7 }); break; }
+        }
+      }
+    }
+  }
+  if (!out.length) {   // camino corto: igual una pila a mitad de camino (para que se conozcan)
+    const path = route(false);
     for (let j = 0; j < path.length; j++) {
-      const idx = want + (j % 2 ? -1 : 1) * Math.ceil(j / 2);
-      if (idx < 1 || idx > path.length - 2) continue;
-      const x = (path[idx][0] + 0.5) * C, y = (path[idx][1] + 0.5) * C;
-      if (!busy(x, y)) { out.push({ type: 'battery', x, y, got: false, ph: k * 1.7 }); break; }
+      const p = (path.length >> 1) + (j % 2 ? -1 : 1) * Math.ceil(j / 2); if (p < 1 || p > path.length - 2) continue;
+      const x = (path[p] % W + 0.5) * C, y = (Math.floor(path[p] / W) + 0.5) * C;
+      if (!busy(x, y)) { out.push({ type: 'battery', x, y, got: false, ph: 0 }); break; }
     }
   }
   return out;
@@ -1643,8 +1712,8 @@ function buildMaze(W, H, seed, loopFrac) {
 // Desafío: niveles infinitos al azar (la semilla de la partida cambia cada vez)
 // Tiempos de las estrellas (los dos modos): desde el camino ideal (el más corto, a velocidad máxima) con un margen, más
 // el extra por quesos y pegamento. ★★ por debajo de star2 y ★★★ por debajo de star3 (y con todos los quesos)
-function starTimes(extra) {
-  const ideal = pathLen(G.maze) * C / SPEED, niceT = x => x < 20 ? Math.ceil(x) : Math.ceil(x / 5) * 5;
+function starTimes(extra, len = pathLen(G.maze)) {
+  const ideal = len * C / SPEED, niceT = x => x < 20 ? Math.ceil(x) : Math.ceil(x / 5) * 5;
   G.star2 = Math.min(niceT(ideal * 1.8 + extra * 1.3 + 3), G.timeLimit - 5);   // (+3 y +2 fijos: las vueltas cuestan, sobre todo en laberintos chicos)
   G.star3 = Math.min(niceT(ideal * 1.3 + extra + 2), G.star2 - 5);
 }
@@ -1674,14 +1743,19 @@ function loadStory(i) {
   G.holeRects = G.solids.filter(R => !R.door);   // paredes con los agujeros de las puertas (la luz pasa con la cortina levantada)
   const nCheese = G.items.filter(it => it.type === 'cheese').length;
   G.cheeseTotal = Math.min(nCheese, L.cheeseGoal || nCheese);   // cuántos hay que juntar (puede haber más dando vueltas)
-  // tiempo: el del nivel 5 de Desafío más un extra por desvíos (quesos) y por lentitud (pegamento)
-  const extra = G.cheeseTotal * 6 + (L.sticky || 0) * 5 + (L.spinners || 0) * 3 + (L.gates || 0) * 2;   // (esperar el hueco de un molinete, ~3 s)   // cruzar una bandeja con las 4 patas adentro lleva ~4 s
-  G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, pathLen(G.maze)) + extra) / 5) * 5;
-  starTimes(extra);
+  // tiempo: el del nivel 5 de Desafío sobre el camino ideal (con los atajos de las puertas), más lo que cuesta lo que está
+  // EN el camino (cruzar una bandeja de pegamento ~5 s, esperar el hueco de un molinete ~3 s, una compuerta ~2 s) y el
+  // desvío real hasta los quesos que hay que juntar (los más cercanos); lo que queda fuera del camino no suma
+  const R = routeInfo(G.maze, G.items), onP = it => R.onPath(it.x + (it.w || 0) / 2, it.y + (it.h || 0) / 2);
+  const nOn = t => G.items.filter(it => it.type === t && onP(it)).length;
+  const det = G.items.filter(it => it.type === 'cheese').map(it => R.detour(it.x, it.y)).sort((a, b) => a - b).slice(0, G.cheeseTotal).reduce((a, b) => a + b, 0);
+  const extra = Math.round(det * C / SPEED * 1.3 + G.cheeseTotal + nOn('sticky') * 5 + nOn('spinner') * 3 + nOn('gate') * 2);
+  G.timeLimit = L.time || Math.ceil((timeFor(STORY_VIEW, R.len) + extra) / 5) * 5;
+  starTimes(extra, R.len);
   // a oscuras: la linterna arranca con LAMP_MAX segundos y hay pilas en el camino para que alcance el tiempo de antes
   G.dark = G.lamp = DARK_LEVELS.includes(i + 1); G.lampBlock = LAMP_BLOCK;
   if (G.dark) {
-    const bats = placeBatteries(G.maze, G.items, Math.max(1, Math.ceil(G.timeLimit / BAT_EVERY) - 1));
+    const bats = placeBatteries(G.maze, G.items);
     G.items = G.items.filter(it => it.type !== 'coin').concat(bats, G.items.filter(it => it.type === 'coin'));
     G.timeLimit = LAMP_MAX;
   }
