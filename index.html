@@ -412,7 +412,7 @@
   @keyframes optsBgIn { from { background: rgba(0,0,0,0); } }
   @keyframes optsBgOut { to { background: rgba(0,0,0,0); } }
   #opts .box > .wtitle { margin-top: -30px; padding: 12px 34px 10px; }
-  #opts .orows { margin: 18px 2px 18px; padding: 6px 16px; text-align: left; }
+  #opts .orows { margin: 18px 2px 18px; padding: 6px 18px 10px 16px; text-align: left; }
   #opts .opt { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; font: 23px/1.1 'Kalam', cursive; }
   #opts .opt + .opt { border-top: 2px dashed rgba(90,60,30,.3); }
   #opts .opt span { display: flex; align-items: center; gap: 12px; }
@@ -422,6 +422,13 @@
   #opts .tog::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #e2d6b8;
     box-shadow: 0 2px 2px rgba(0,0,0,.35); transition: left .15s; }
   #opts .tog.on { background: #6f9e3c; } #opts .tog.on::after { left: 29px; }
+  /* el idioma: dos banderitas; la elegida entera y con un borde, la otra apagada */
+  #opts .flags { gap: 8px; }
+  #opts .flag { width: 42px; height: 30px; padding: 0; border: 0; border-radius: 6px; overflow: hidden; cursor: pointer; background: none;
+    box-shadow: 0 2px 2px rgba(0,0,0,.3); opacity: .45; filter: saturate(.5); -webkit-tap-highlight-color: transparent;
+    transition: opacity .15s, filter .15s, transform .15s; }
+  #opts .flag svg { display: block; width: 100%; height: 100%; }
+  #opts .flag.on { opacity: 1; filter: none; outline: 3px solid #6f9e3c; outline-offset: 1px; transform: scale(1.06); }
   :is(#card, #opts) .wbtns.home { grid-template-columns: 66px 1fr; }   /* el botón cuadrado (casita o niveles) y el principal a lo ancho */
   :is(#card, #opts) .wbtns.three { grid-template-columns: 62px 1fr 1.25fr; gap: 10px; }
   #opts .wbtns.pause { grid-template-columns: 66px 66px 1fr; gap: 10px; }   /* pausa: casita, reiniciar y Reanudar */
@@ -523,6 +530,15 @@
 <div id="screen"></div>
 
 <script>
+// Idioma (el usuario pidió poder pasar a inglés desde las opciones, con una banderita de Argentina y una de Estados
+// Unidos): 'es' o 'en', guardado en el navegador; la primera vez sale del idioma del navegador. say(es, en) devuelve el
+// texto en el idioma elegido (las pantallas de prueba, la galería y la librería de colores quedan en castellano)
+const Lang = {
+  cur: (() => { try { const v = localStorage.getItem('raton.lang'); if (v === 'es' || v === 'en') return v; } catch (_) {} return /^es\b/i.test(navigator.language || 'es') ? 'es' : 'en'; })(),
+  set(l) { this.cur = l; try { localStorage.setItem('raton.lang', l); } catch (_) {} document.documentElement.lang = l; },
+};
+const say = (es, en) => Lang.cur === 'en' ? en : es;
+document.documentElement.lang = Lang.cur;
 'use strict';
 // ===================== CONSTANTES (tuneables) =====================
 const C = 64;              // tamaño de celda (unidades de mundo)
@@ -565,87 +581,88 @@ function timeFor(n, pathCells) {
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos), traps / sticky / cheese /
 // doors / spinners / gates (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional).
 const LEVELS = [
-  { name: 'Primeros pasos', seed: 1101, size: [10, 6], loops: 0.03,
+  { name: 'Primeros pasos', en: 'First Steps', seed: 1101, size: [10, 6], loops: 0.03,
     intro: 'Encontrá la salida antes del tiempo objetivo.' },
-  { name: 'Olor a queso', seed: 1254, size: [10, 6], loops: 0.03, cheese: 1,
+  { name: 'Olor a queso', en: 'Smells Like Cheese', seed: 1254, size: [10, 6], loops: 0.03, cheese: 1,
     intro: 'Hay un queso escondido. Agarralo y escapá a tiempo.' },
-  { name: 'Gruyère', seed: 1368, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
+  { name: 'Gruyère', en: 'Gruyère', seed: 1368, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
     intro: 'Más agujeros que queso... y más quesos que antes.' },
-  { name: 'Pegote', seed: 1404, size: [11, 7], loops: 0.03, sticky: 2, cheese: 2,
+  { name: 'Pegote', en: 'Sticky Mess', seed: 1404, size: [11, 7], loops: 0.03, sticky: 2, cheese: 2,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un rato. Si podés, rodealas.' },
-  { name: 'Patas pegajosas', seed: 1505, size: [11, 7], loops: 0.03, sticky: 3, cheese: 3, cheeseGoal: 2,
+  { name: 'Patas pegajosas', en: 'Sticky Paws', seed: 1505, size: [11, 7], loops: 0.03, sticky: 3, cheese: 3, cheeseGoal: 2,
     intro: 'Pegamento y unos quesitos. A veces el queso está del otro lado del pegote.' },
-  { name: 'La trampera', seed: 1970, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
+  { name: 'La trampera', en: 'Snap Trap', seed: 1970, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
-  { name: 'Callejones', seed: 1967, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
+  { name: 'Callejones', en: 'Dead Ends', seed: 1967, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
     intro: 'Callejones sin salida con trampas, y pegote en los pasillos.' },
-  { name: 'Puertas', seed: 6618, size: [13, 7], loops: 0.01, cheese: 2, doors: 2,
+  { name: 'Puertas', en: 'Doors', seed: 6618, size: [13, 7], loops: 0.01, cheese: 2, doors: 2,
     intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado no se abren.' },
-  { name: 'Atajos', seed: 2143, size: [13, 8], loops: 0.01, traps: 3, cheese: 3, cheeseGoal: 2, doors: 2,
+  { name: 'Atajos', en: 'Shortcuts', seed: 2143, size: [13, 8], loops: 0.01, traps: 3, cheese: 3, cheeseGoal: 2, doors: 2,
     intro: 'Las puertas son atajos hacia la salida. Encontralas.' },
-  { name: 'Molinete', seed: 2062, size: [13, 8], loops: 0.03, cheese: 2, spinners: 2,
+  { name: 'Molinete', en: 'Turnstile', seed: 2062, size: [13, 8], loops: 0.03, cheese: 2, spinners: 2,
     intro: 'En algunos cruces hay molinetes que giran. Esperá el hueco y pasá; si un aspa te agarra, te empuja.' },
-  { name: 'Aspas', seed: 2228, size: [14, 8], loops: 0.03, sticky: 2, cheese: 3, cheeseGoal: 2, spinners: 3,
+  { name: 'Aspas', en: 'Blades', seed: 2228, size: [14, 8], loops: 0.03, sticky: 2, cheese: 3, cheeseGoal: 2, spinners: 3,
     intro: 'Más molinetes, y pegote cerca. Medí el tiempo.' },
-  { name: 'Compuerta', seed: 2537, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
+  { name: 'Compuerta', en: 'The Gate', seed: 2537, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
     intro: 'Hay compuertas que se abren y se cierran. Pasá cuando están abiertas.' },
-  { name: 'Abre y cierra', seed: 2937, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
+  { name: 'Abre y cierra', en: 'Open and Shut', seed: 2937, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
     intro: 'Compuertas en los pasillos y trampas en los callejones.' },
-  { name: 'Picada', seed: 2414, size: [15, 9], loops: 0.03, cheese: 4, cheeseGoal: 3, spinners: 2, gates: 2,
+  { name: 'Picada', en: 'Snack Platter', seed: 2414, size: [15, 9], loops: 0.03, cheese: 4, cheeseGoal: 3, spinners: 2, gates: 2,
     intro: 'Compuertas y molinetes en el mismo laberinto.' },
-  { name: 'Engrudo', seed: 2723, size: [15, 9], loops: 0.02, sticky: 4, cheese: 4, cheeseGoal: 3, doors: 2,
+  { name: 'Engrudo', en: 'Paste', seed: 2723, size: [15, 9], loops: 0.02, sticky: 4, cheese: 4, cheeseGoal: 3, doors: 2,
     intro: 'Pegote en el camino y puertas para atajar.' },
-  { name: 'Cebo', seed: 2941, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
+  { name: 'Cebo', en: 'Bait', seed: 2941, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
     intro: 'Hay quesos de verdad... y quesos de cebo en las trampas.' },
-  { name: 'Tabla de quesos', seed: 2756, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
+  { name: 'Tabla de quesos', en: 'Cheese Board', seed: 2756, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
     intro: 'Una tabla entera para picar, entre pegote y compuertas.' },
-  { name: 'Clic', seed: 3572, size: [16, 9], loops: 0.02, traps: 6, cheese: 4, cheeseGoal: 3, doors: 3,
+  { name: 'Clic', en: 'Click', seed: 3572, size: [16, 9], loops: 0.02, traps: 6, cheese: 4, cheeseGoal: 3, doors: 3,
     intro: 'Mirá bien antes de meterte en un pasillo.' },
-  { name: 'Remolino', seed: 3023, size: [16, 10], loops: 0.03, sticky: 4, cheese: 5, cheeseGoal: 4, spinners: 3,
+  { name: 'Remolino', en: 'Whirlpool', seed: 3023, size: [16, 10], loops: 0.03, sticky: 4, cheese: 5, cheeseGoal: 4, spinners: 3,
     intro: 'Si te pegás, el aspa no te espera.' },
-  { name: 'Peligro dulce', seed: 3046, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
+  { name: 'Peligro dulce', en: 'Sweet Danger', seed: 3046, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
     intro: 'Trampas, pegote y compuertas.' },
-  { name: 'Ida sin vuelta', seed: 3602, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
+  { name: 'Ida sin vuelta', en: 'One-Way Trip', seed: 3602, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
     intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
-  { name: 'Campo minado', seed: 3222, size: [18, 10], loops: 0.03, traps: 8, cheese: 5, cheeseGoal: 4, gates: 3,
+  { name: 'Campo minado', en: 'Minefield', seed: 3222, size: [18, 10], loops: 0.03, traps: 8, cheese: 5, cheeseGoal: 4, gates: 3,
     intro: 'Muchas trampas. Paso a paso.' },
-  { name: 'Mermelada', seed: 3479, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
+  { name: 'Mermelada', en: 'Jam', seed: 3479, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
     intro: 'Todo pegajoso. Elegí bien por dónde pasar.' },
-  { name: 'Ventilador', seed: 3827, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
+  { name: 'Ventilador', en: 'Fan', seed: 3827, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
     intro: 'Molinetes en los cruces y trampas en los callejones.' },
-  { name: 'Puerta giratoria', seed: 6840, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
+  { name: 'Puerta giratoria', en: 'Revolving Door', seed: 6840, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
     intro: 'Puertas, compuertas y pegote. Pensá el recorrido.' },
-  { name: 'Ratonera', seed: 3704, size: [19, 11], loops: 0.03, traps: 10, cheese: 6, cheeseGoal: 5, spinners: 3,
+  { name: 'Ratonera', en: 'Mousetrap', seed: 3704, size: [19, 11], loops: 0.03, traps: 10, cheese: 6, cheeseGoal: 5, spinners: 3,
     intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
-  { name: 'Pantano', seed: 6730, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
+  { name: 'Pantano', en: 'Swamp', seed: 6730, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
     intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
-  { name: 'Laberinto de puertas', seed: 4920, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
+  { name: 'Laberinto de puertas', en: 'Maze of Doors', seed: 4920, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
     intro: 'Planeá el recorrido para no dejar quesos atrás.' },
-  { name: 'Licuadora', seed: 3929, size: [20, 12], loops: 0.03, sticky: 5, cheese: 6, cheeseGoal: 5, spinners: 5, gates: 3,
+  { name: 'Licuadora', en: 'Blender', seed: 3929, size: [20, 12], loops: 0.03, sticky: 5, cheese: 6, cheeseGoal: 5, spinners: 5, gates: 3,
     intro: 'Todo gira, se abre y se cierra.' },
-  { name: 'Combo', seed: 4862, size: [20, 12], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 2,
+  { name: 'Combo', en: 'Combo', seed: 4862, size: [20, 12], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 2,
     intro: 'Todo lo que aprendiste, junto.' },
-  { name: 'Hora pico', seed: 5782, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
+  { name: 'Hora pico', en: 'Rush Hour', seed: 5782, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
     intro: 'El laboratorio está lleno de cosas. Y el tiempo corre.' },
-  { name: 'Laboratorio', seed: 14372, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
+  { name: 'Laboratorio', en: 'Laboratory', seed: 14372, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
     intro: 'Un piso entero del laboratorio para escapar.' },
-  { name: 'Experimento', seed: 9520, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
+  { name: 'Experimento', en: 'Experiment', seed: 9520, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
     intro: 'Te están mirando. Demostrales lo que sabés.' },
-  { name: 'Sótano', seed: 10440, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
+  { name: 'Sótano', en: 'Basement', seed: 10440, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
     intro: 'Más trampas y menos pasillos que se crucen.' },
-  { name: 'Depósito', seed: 6225, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Depósito', en: 'Storeroom', seed: 6225, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Cajas y cajas de cartón. Y en algún lado, la salida.' },
-  { name: 'Contrarreloj', seed: 9682, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Contrarreloj', en: 'Against the Clock', seed: 9682, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Muchos caminos posibles. Elegí rápido.' },
-  { name: 'Laberinto mayor', seed: 14305, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
+  { name: 'Laberinto mayor', en: 'The Big Maze', seed: 14305, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
     intro: 'El más grande hasta ahora.' },
-  { name: 'Pegatrampas', seed: 7958, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Pegatrampas', en: 'Glue Traps', seed: 7958, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Pegamento por todos lados y trampas en cada callejón.' },
-  { name: 'Casi libre', seed: 15272, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'Casi libre', en: 'Almost Free', seed: 15272, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'Ya se huele el aire de afuera.' },
-  { name: 'La gran fuga', seed: 48251, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'La gran fuga', en: 'The Great Escape', seed: 48251, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
+const lvName = L => say(L.name, L.en);   // el nombre del nivel en el idioma elegido
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
 // Niveles a oscuras de Historia (el 30%, repartidos; los que presentan una mecánica van con luz para aprenderla viendo):
 // en esos la linterna tiene una pila de LAMP_MAX segundos en bloques de LAMP_BLOCK, y en el laberinto hay pilas que
@@ -714,13 +731,17 @@ const RATS = [
   ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#fe9ae3', '#a8ba20'],
   ['Dorada',      '#f0bf2a', '#f8d66a', '#3b2a05', '#c9a227', '#ffdd00', '#f8d66a'],
 ];
+// sus nombres en inglés (en el mismo orden) y el nombre en el idioma elegido
+const RAT_EN = ['Albie', 'Vanilla', 'Flake', 'Ashy', 'Shadow', 'Sparky', 'Cocoa', 'Pinky', 'Cheddar', 'Nuke', 'Mossy', 'Volt',
+  'Nibbles', 'Blaze', 'Bubbles', 'Lilac', 'Merlot', 'Panda', 'Wasabi', 'Radium', 'Goldie'];
+const ratName = i => say(RATS[i][0], RAT_EN[i]);
 // Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada): 10 comunes, 6 infrecuentes, 3 raras y 1
 // legendaria (la Dorada). La máquina primero sortea la rareza (w: chance de cada una) y después una ratita de esa rareza
 const RARITY = {
-  comun:      { name: 'Común',       color: '#e6dcc4', w: 0.62 },
-  infrecuente:{ name: 'Infrecuente', color: '#86d67a', w: 0.26 },
-  rara:       { name: 'Rara',        color: '#6fb8ff', w: 0.105 },
-  legendaria: { name: 'Legendaria',  color: '#ffcc33', w: 0.015 },
+  comun:      { name: 'Común',       en: 'Common',    color: '#e6dcc4', w: 0.62 },
+  infrecuente:{ name: 'Infrecuente', en: 'Uncommon',  color: '#86d67a', w: 0.26 },
+  rara:       { name: 'Rara',        en: 'Rare',      color: '#6fb8ff', w: 0.105 },
+  legendaria: { name: 'Legendaria',  en: 'Legendary', color: '#ffcc33', w: 0.015 },
 };
 const RAT_RARITY = [null, 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'rara', 'comun',
   'infrecuente', 'infrecuente', 'infrecuente', 'infrecuente', 'comun', 'rara', 'rara', 'infrecuente', 'infrecuente', 'legendaria'];
@@ -1858,12 +1879,12 @@ function showTitle() {
   // portada: logo, controles (la etiqueta amarilla "Controles" y las teclas, WASD / flechas, sin más texto: el usuario lo
   // pidió así; en pantallas táctiles, el dedo) y los botones
   const ctl = isTouch
-    ? `<span class="finger">☝</span><span>Arrastrá el dedo</span>`
+    ? `<span class="finger">☝</span><span>${say('Arrastrá el dedo', 'Drag your finger')}</span>`
     : `<span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="sl">/</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span>`;
   card(`<div class="win wmenu"><img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
-    <div class="wbox wctl"><span class="wtag">Controles</span><div class="ctl">${ctl}</div></div>
-    <div class="wbtns"><button class="wbtn go" data-act="story">${PLAY_SVG}Historia</button><button class="wbtn yl" data-act="challenge">Desafío</button></div>
-    <div class="wbtns"><button class="wbtn re" data-act="ratitas">Bioterio</button><button class="wbtn re" data-act="machine">Máquina <span class="wprice">${COIN_SPIN} ${COIN_ICON}</span></button></div>
+    <div class="wbox wctl"><span class="wtag">${say('Controles', 'Controls')}</span><div class="ctl">${ctl}</div></div>
+    <div class="wbtns"><button class="wbtn go" data-act="story">${PLAY_SVG}${say('Historia', 'Story')}</button><button class="wbtn yl" data-act="challenge">${say('Desafío', 'Challenge')}</button></div>
+    <div class="wbtns"><button class="wbtn re" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button><button class="wbtn re" data-act="machine">${say('Máquina', 'Machine')} <span class="wprice">${COIN_SPIN} ${COIN_ICON}</span></button></div>
     </div>`, { kind: 'title' });   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
@@ -1875,11 +1896,11 @@ function showSelect() {
   const btns = LEVELS.map((L, i) => {
     const locked = !UNLOCK_ALL && i + 1 > d.unlocked, st = d.stars[i] || 0;
     return `<button class="lvl${DARK_LEVELS.includes(i + 1) ? ' dark' : ''}" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
-      <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
+      <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? say('bloqueado', 'locked') : lvName(L)}</small></button>`;
   }).join('');
-  card(`<div class="win wsel"><div class="wtitle"><b>Niveles</b></div>
+  card(`<div class="win wsel"><div class="wtitle"><b>${say('Niveles', 'Levels')}</b></div>
     <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div>
-    <div class="wbtns home"><button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button><button class="wbtn re" data-act="ratitas">Bioterio</button></div></div>`, { kind: 'select' });   // adentro del cartel (como en los demás): la casita a la portada y el Bioterio para elegir la ratita antes de jugar (ESPACIO sigue jugando el último desbloqueado)
+    <div class="wbtns home"><button class="wbtn re sq" data-act="menu" aria-label="${say('Portada', 'Home')}">${ICONS.home}</button><button class="wbtn re" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button></div></div>`, { kind: 'select' });   // adentro del cartel (como en los demás): la casita a la portada y el Bioterio para elegir la ratita antes de jugar (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
 }
 
@@ -1889,8 +1910,8 @@ function showSelect() {
 const $scr = document.getElementById('screen');
 let scrTimer = 0;
 const screenBackBtn = () => G.state === 'select'
-  ? `<button class="cbtn home" data-act="back" aria-label="Niveles">${LEVELS_SVG}</button>`
-  : `<button class="cbtn home" data-act="back" aria-label="Portada">${ICONS.home}</button>`;
+  ? `<button class="cbtn home" data-act="back" aria-label="${say('Niveles', 'Levels')}">${LEVELS_SVG}</button>`
+  : `<button class="cbtn home" data-act="back" aria-label="${say('Portada', 'Home')}">${ICONS.home}</button>`;
 function openScreen(html) {   // aparece de una (la entrada la hace el fundido a negro, fadeTo)
   clearTimeout(scrTimer);
   if (!$scr.classList.contains('open')) Snd.cardIn();
@@ -1953,7 +1974,7 @@ function showRatitas(from) {
       <canvas width="${CAGE_W}" height="${CAGE_H}" data-rat="${i}"></canvas></button>`).join('')).join('');
   openScreen(`<div class="rack"><div class="bandtop"></div><div class="rackin"><div class="bgrack">${cells}</div>
       <div class="biohead" aria-hidden="true" style="visibility:hidden"><h2 class="stitle">BIOTERIO</h2></div></div></div>
-    <div class="bandbot"></div><div class="sbtns bionav">${screenBackBtn()}<button class="cbtn" data-act="machine">Máquina · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de abajo, al lado de Máquina
+    <div class="bandbot"></div><div class="sbtns bionav">${screenBackBtn()}<button class="cbtn" data-act="machine">${say('Máquina', 'Machine')} · ${COIN_SPIN} ${COIN_ICON}</button></div>`, from);   // volver: la casita de abajo, al lado de Máquina
   updateButtons(); layoutRack();
   cageAnimLoop();
 }
@@ -2231,7 +2252,7 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(lx + 2, lyy + 2, lw, lh);
   g.fillStyle = sel ? '#ffe17a' : '#fbf8ee'; g.fillRect(lx, lyy, lw, lh);
   if (owned) {   // el nombre en mayúsculas; la jaula vacía lleva la etiqueta en blanco
-    const name = RATS[i][0].toUpperCase();
+    const name = ratName(i).toUpperCase();
     let fs = h * 0.084; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`;
     while (g.measureText(name).width > lw * 0.86 && fs > 6) { fs -= 0.5; g.font = `${fs}px 'Special Elite', 'Courier New', monospace`; }
     // centrado de verdad, con la altura real de las letras (en mayúsculas no hay nada por debajo de la línea)
@@ -2388,7 +2409,7 @@ function showMachine(from) {
     <canvas id="gachaFx2"></canvas>
     <p id="gachaRes">${gachaHint()}</p>
     <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>
-    <div class="sbtns" id="gachaNav">${screenBackBtn()}<button class="cbtn" data-act="ratitas">Bioterio</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio (con la casita a la izquierda)
+    <div class="sbtns" id="gachaNav">${screenBackBtn()}<button class="cbtn" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio (con la casita a la izquierda)
   updateButtons(); placeScreenBg();
   cancelAnimationFrame(Gacha.raf);
   let last = performance.now();
@@ -2404,10 +2425,10 @@ function showMachine(from) {
 }
 function gachaHint() {
   return Wallet.coins >= COIN_SPIN ? ''   // el precio ya está en el botón Activar
-    : `Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para activarla. Juntalas en los laberintos.`;
+    : say(`Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para activarla. Juntalas en los laberintos.`, `You need <b>${COIN_SPIN - Wallet.coins}</b> more ${COIN_ICON} to start it. Collect them in the mazes.`);
 }
 function gachaButtons(after) {
-  const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? 'Otra vez' : 'Activar'} · ${COIN_SPIN} ${COIN_ICON}</button>`;
+  const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? say('Otra vez', 'Again') : say('Activar', 'Start')} · ${COIN_SPIN} ${COIN_ICON}</button>`;
   return spin;   // solo Activar / Otra vez, en el mismo lugar; Bioterio va abajo de todo (#gachaNav)
 }
 function gachaSpin() {
@@ -2623,7 +2644,6 @@ function gachaUpdate(dt) {
   P.conf = P.conf.filter(f => f.y < 330);
 }
 function gachaResult() {
-  const name = RATS[Gacha.pick][0];
   if (Gacha.dup) { Wallet.add(COIN_DUP); Snd.coin(); }
   else Snd.win();
   // el nombre (y si es nueva o repetida) se dibuja en el canvas, debajo de la ratita (drawGacha)
@@ -3012,8 +3032,8 @@ function drawGacha(g, n) {
     // oscuro para leerse sobre los rayos
     const pop = k => clamp((t - TXT_AT[k]) / 0.3, 0, 1);
     if (pop(0) > 0) {
-      const name = P.dup ? RATS[P.pick][0] : `¡${RATS[P.pick][0]}!`;
-      const sub = P.dup ? ['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`] : ['¡Ratita nueva!'];
+      const name = P.dup ? ratName(P.pick) : say(`¡${ratName(P.pick)}!`, `${ratName(P.pick)}!`);
+      const sub = P.dup ? say(['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`], ['You already have it,', `so you get ${COIN_DUP} coin${COIN_DUP === 1 ? '' : 's'} back`]) : [say('¡Ratita nueva!', 'New rat!')];
       const txt = (ty, k, fn) => {
         const na = pop(k); if (na <= 0) return;
         const s = 0.7 + 0.3 * (1 + 2.7 * Math.pow(na - 1, 3) + 1.7 * Math.pow(na - 1, 2));   // crece y se pasa un poquito
@@ -3027,7 +3047,7 @@ function drawGacha(g, n) {
         g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
       });
       const rar = RARITY[RAT_RARITY[P.pick]];   // la rareza entre paréntesis y de su color (con la letra del aviso, como pidió el usuario)
-      if (rar) txt(RAR_Y, 1, () => { const rt = `(${rar.name.toUpperCase()})`; g.font = "10px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
+      if (rar) txt(RAR_Y, 1, () => { const rt = `(${say(rar.name, rar.en).toUpperCase()})`; g.font = "10px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
       txt(SUB_Y, 2, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
         g.font = "11px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.textBaseline = 'middle';
         const one = sub.join(' '), room = (innerWidth - 32) / ((P.geo ? P.geo.r.width : g.canvas.clientWidth) / 300) / TXT;   // ancho de pantalla, en las unidades del texto
@@ -3424,15 +3444,15 @@ function showIntro() {
   // "Objetivo" con lo que pide la tercera estrella (los quesos y el tiempo) y el botón para jugar
   const cheeseIcon = document.querySelector('#cheese svg').outerHTML;
   card(`<div class="win">
-      <div class="wtitle"><b>${L ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${L ? L.name : `Laberinto ${m.W} × ${m.H}`}</span></div>
+      <div class="wtitle"><b>${L ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${L ? lvName(L) : `${say('Laberinto', 'Maze')} ${m.W} × ${m.H}`}</span></div>
       <div class="wbox wgoal"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
-        <h3 class="whead">Objetivo</h3>
+        <h3 class="whead">${say('Objetivo', 'Goal')}</h3>
         <div class="wgrid${G.cheeseTotal ? '' : ' solo'}">
-          ${G.cheeseTotal ? `<div class="wg q">${cheeseIcon}<div><span class="num">${G.cheeseTotal}</span><small>Queso${G.cheeseTotal > 1 ? 's' : ''}</small></div></div>` : ''}
-          <div class="wg">${WATCH_SVG}<div><span class="num">${fmtMS(G.star3)}</span><small>Tiempo</small></div></div>
+          ${G.cheeseTotal ? `<div class="wg q">${cheeseIcon}<div><span class="num">${G.cheeseTotal}</span><small>${say(`Queso${G.cheeseTotal > 1 ? 's' : ''}`, 'Cheese')}</small></div></div>` : ''}
+          <div class="wg">${WATCH_SVG}<div><span class="num">${fmtMS(G.star3)}</span><small>${say('Tiempo', 'Time')}</small></div></div>
         </div>
       </div>
-      <div class="wbtns home intro">${exitBtn()}<button class="wbtn go wplay" data-act="start">${PLAY_SVG}Jugar</button></div>   <!-- la grilla vuelve a Niveles (en Desafío, la casita a la portada) -->
+      <div class="wbtns home intro">${exitBtn()}<button class="wbtn go wplay" data-act="start">${PLAY_SVG}${say('Jugar', 'Play')}</button></div>   <!-- la grilla vuelve a Niveles (en Desafío, la casita a la portada) -->
     </div>`, { kind: 'intro' });
   G.iris = 0; G.irisTarget = 0;
   pop($level); pop($timer);
@@ -3501,8 +3521,8 @@ const DEAD_LAMP_SVG = `<svg viewBox="0 0 64 64"><g transform="rotate(-25 32 32)"
 const LEVELS_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="3" width="5" height="5" rx="1.2"/><rect x="16" y="3" width="5" height="5" rx="1.2"/><rect x="3" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16" y="9.5" width="5" height="5" rx="1.2"/><rect x="3" y="16" width="5" height="5" rx="1.2"/><rect x="9.5" y="16" width="5" height="5" rx="1.2"/><rect x="16" y="16" width="5" height="5" rx="1.2"/></svg>`;
 // el botón cuadrado de papel para salir del cartel: a los niveles en Historia, a la portada en Desafío
 const exitBtn = () => G.mode === 'story'
-  ? `<button class="wbtn re sq" data-act="levels" aria-label="Niveles">${LEVELS_SVG}</button>`
-  : `<button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button>`;
+  ? `<button class="wbtn re sq" data-act="levels" aria-label="${say('Niveles', 'Levels')}">${LEVELS_SVG}</button>`
+  : `<button class="wbtn re sq" data-act="menu" aria-label="${say('Portada', 'Home')}">${ICONS.home}</button>`;
 const PLAY_SVG = `<svg viewBox="0 0 32 32"><path d="M9 5 L27 16 L9 27 Z" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="2" stroke-linejoin="round"/></svg>`;
 // la bolita del botón de la máquina: una cápsula como las de la pecera, dibujada una vez
 let capImg = null;
@@ -3518,7 +3538,7 @@ function capsuleImg() {
 function machButton() {
   const ok = Wallet.coins >= COIN_SPIN;
   return `<button class="wmach${ok ? '' : ' short'}" data-act="machine"><img src="${capsuleImg()}" alt="">
-    <span>${ok ? '¡Activá<br>la máquina!' : `Te faltan ${COIN_SPIN - Wallet.coins}<br>para la máquina`}</span>
+    <span>${ok ? say('¡Activá<br>la máquina!', 'Start<br>the machine!') : say(`Te faltan ${COIN_SPIN - Wallet.coins}<br>para la máquina`, `${COIN_SPIN - Wallet.coins} more<br>for the machine`)}</span>
     <span class="pill">${COIN_ICON}${ok ? COIN_SPIN : `${Wallet.coins}/${COIN_SPIN}`}</span><i class="chev">›</i></button>`;
 }
 // en pantallas bajas (celular, PC apaisada) el cartel entero se achica para entrar sin tapar los botones de arriba
@@ -3610,19 +3630,19 @@ function showWinCard() {
     const cheeseIco = document.querySelector('#cheese svg').outerHTML;
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
     const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k])).join('');
-    card(`<div class="win">
-      <div class="wtitle"><b>${story ? 'Nivel' : 'Desafío'} ${G.level}</b><span>¡Completado!</span></div>
+    G.winBuild = () => card(`<div class="win">
+      <div class="wtitle"><b>${story ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${say('¡Completado!', 'Complete!')}</span></div>
       <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         <i class="wray l">${RAYS_SVG}</i><i class="wray r">${RAYS_SVG}</i>${stars}</div>
       <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
-        ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>Quesos</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
-        <div class="wbox wstat">${WATCH_SVG}<div><h3>Tiempo</h3><span class="num">${fmtMS(time)}</span></div>${record ? '<span class="stamp" style="animation-delay:1.75s">¡Nuevo récord!</span>' : ''}</div>
+        ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>${say('Quesos', 'Cheese')}</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
+        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div>${record ? `<span class="stamp" style="animation-delay:1.75s">${say('¡Nuevo récord!', 'New record!')}</span>` : ''}</div>
       </div>
-      <div class="wbox wreward"><span class="wtag">Recompensa</span><i class="wray">${RAYS_SIDE_SVG}</i>
+      <div class="wbox wreward"><span class="wtag">${say('Recompensa', 'Reward')}</span><i class="wray">${RAYS_SIDE_SVG}</i>
         <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SIDE_SVG}</i></div>
       <div id="machSlot">${machButton()}</div>
-      ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
-      <div class="wbtns ${last ? 'home' : 'three'}">${exitBtn()}<button class="wbtn re" data-act="retry">${RETRY_SVG}Repetir</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}Siguiente</button>`}</div>
+      ${last ? `<p>${say('¡Completaste la Historia! Escapaste del laboratorio.', 'You finished the Story! You escaped the lab.')}</p>` : ''}
+      <div class="wbtns ${last ? 'home' : 'three'}">${exitBtn()}<button class="wbtn re" data-act="retry">${RETRY_SVG}${say('Repetir', 'Replay')}</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}${say('Siguiente', 'Next')}</button>`}</div>
     </div>`, { kind: 'win',
       // los quesos, el tiempo y la recompensa cuentan desde 0, con un tic (o un tintineo de moneda) cada tanto
       counters: [
@@ -3631,7 +3651,8 @@ function showWinCard() {
         { sel: '.wreward .num', fmt: 'plus', to: G.runCoins, at: 1.45, dur: 0.5, gap: 0.1, snd: () => Snd.coin() }],
       // cada estrella suena al caer (más aguda la siguiente); el récord, con un golpe y un temblorcito
       cues: STAR_AT.slice(0, st).map((d, k) => [d + 0.3, () => Snd.star(k)]).concat(record ? [[1.85, () => {
-        Snd.thunk(); const w = $card.querySelector('.win'); if (w) { w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 350); } }]] : []) });   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
+        Snd.thunk(); const w = $card.querySelector('.win'); if (w) { w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 350); } }]] : []) });
+    G.winBuild();   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
     updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
   }
 }
@@ -3646,13 +3667,13 @@ function lost() {
   // el botón de la máquina y Reintentar (verde)
   const trap = G.dieReason === 'trap';
   card(`<div class="win">
-      <div class="wtitle lose"><b>${G.mode === 'story' ? 'Nivel' : 'Desafío'} ${G.level}</b><span>${trap ? '¡Atrapado!' : G.lamp ? '¡Sin pila!' : '¡Se acabó el tiempo!'}</span></div>
+      <div class="wtitle lose"><b>${G.mode === 'story' ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${trap ? say('¡Atrapado!', 'Trapped!') : G.lamp ? say('¡Sin pila!', 'Out of battery!') : say('¡Se acabó el tiempo!', 'Time\'s up!')}</span></div>
       <div class="wbox wlose${trap ? '' : ' lamp'}"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         ${trap ? TRAP_SVG : DEAD_LAMP_SVG}
-        <div><b>${trap ? 'La trampa se cerró.' : 'La linterna se apagó.'}</b><span>Volvés a la entrada del mismo laberinto.</span></div>
+        <div><b>${trap ? say('La trampa se cerró.', 'The trap snapped shut.') : say('La linterna se apagó.', 'The flashlight went out.')}</b><span>${say('Volvés a la entrada del mismo laberinto.', 'Back to the start of the same maze.')}</span></div>
       </div>
       <div id="machSlot">${machButton()}</div>
-      <div class="wbtns home">${exitBtn()}<button class="wbtn go" data-act="retry">${RETRY_SVG}Reintentar</button></div>
+      <div class="wbtns home">${exitBtn()}<button class="wbtn go" data-act="retry">${RETRY_SVG}${say('Reintentar', 'Retry')}</button></div>
     </div>`, { kind: 'lose' });
   updateButtons();
 }
@@ -3668,19 +3689,52 @@ const optsOpen = () => !$opts.classList.contains('hidden') && !$opts.classList.c
 let optsT = 0;
 function renderOpts() {
   const paused = G.state === 'paused', box = $opts.querySelector('.box');
-  if (box && box.dataset.paused === String(paused)) {   // ya está armado: solo se mueven los switches (sin rehacer el cartel)
+  if (box && box.dataset.paused === String(paused) && box.dataset.lang === Lang.cur) {   // ya está armado: solo se mueven los switches (sin rehacer el cartel)
     $opts.querySelector('[data-o="music"]').classList.toggle('on', !Music.muted);
     $opts.querySelector('[data-o="sound"]').classList.toggle('on', !Snd.muted);
+    $opts.querySelectorAll('.flag').forEach(b => b.classList.toggle('on', b.dataset.o === 'lang-' + Lang.cur));
     return;
   }
-  $opts.innerHTML = `<div class="box" data-paused="${paused}"><div class="wtitle"><b>${paused ? 'Pausa' : 'Opciones'}</b></div>
+  $opts.innerHTML = `<div class="box" data-paused="${paused}" data-lang="${Lang.cur}"><div class="wtitle"><b>${paused ? say('Pausa', 'Pause') : say('Opciones', 'Options')}</b></div>
     <div class="wbox orows"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
-      <div class="opt"><span>${ICONS.music} Música</span><button class="tog${Music.muted ? '' : ' on'}" data-o="music" aria-label="Música"></button></div>
-      <div class="opt"><span>${ICONS.sound} Sonido</span><button class="tog${Snd.muted ? '' : ' on'}" data-o="sound" aria-label="Sonido"></button></div>
+      <div class="opt"><span>${ICONS.music} ${say('Música', 'Music')}</span><button class="tog${Music.muted ? '' : ' on'}" data-o="music" aria-label="${say('Música', 'Music')}"></button></div>
+      <div class="opt"><span>${ICONS.sound} ${say('Sonido', 'Sound')}</span><button class="tog${Snd.muted ? '' : ' on'}" data-o="sound" aria-label="${say('Sonido', 'Sound')}"></button></div>
+      <div class="opt"><span>${ICONS.lang} ${say('Idioma', 'Language')}</span><span class="flags"><button class="flag${Lang.cur === 'es' ? ' on' : ''}" data-o="lang-es" aria-label="Español">${FLAG_AR}</button><button class="flag${Lang.cur === 'en' ? ' on' : ''}" data-o="lang-en" aria-label="English">${FLAG_US}</button></span></div>
     </div>
     <div class="wbtns ${paused ? 'pause' : 'one'}">${paused
-      ? `<button class="wbtn re" data-o="home" title="Salir al menú (Q)" aria-label="Salir al menú">${ICONS.home}</button><button class="wbtn re" data-o="retry" title="Reiniciar el nivel" aria-label="Reiniciar el nivel">${RETRY_SVG}</button><button class="wbtn go" data-o="resume">${PLAY_SVG}Reanudar</button>`
-      : '<button class="wbtn re" data-o="close">Cerrar</button>'}</div></div>`;
+      ? `<button class="wbtn re" data-o="home" title="${say('Salir al menú (Q)', 'Main menu (Q)')}" aria-label="${say('Salir al menú', 'Main menu')}">${ICONS.home}</button><button class="wbtn re" data-o="retry" title="${say('Reiniciar el nivel', 'Restart level')}" aria-label="${say('Reiniciar el nivel', 'Restart level')}">${RETRY_SVG}</button><button class="wbtn go" data-o="resume">${PLAY_SVG}${say('Reanudar', 'Resume')}</button>`
+      : `<button class="wbtn re" data-o="close">${say('Cerrar', 'Close')}</button>`}</div></div>`;
+}
+// Textos fijos del HTML (títulos de los botones y los carteles de ayuda) en el idioma elegido
+function applyLangStatic() {
+  $btnGear.title = say('Pausa y opciones (P)', 'Pause and options (P)');
+  $btnBack.title = say('Niveles', 'Levels'); $btnBack.setAttribute('aria-label', $btnBack.title);
+  $btnLight.title = say('Luz general para probar (no cambia la linterna)', 'Test light for the whole maze (the flashlight does not change)');
+  $hint.innerHTML = say('<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> música · <kbd>F</kbd> efectos ·<kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)',
+    '<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> move ·<kbd>P</kbd> pause · <kbd>M</kbd> music · <kbd>F</kbd> effects ·<kbd>R</kbd> restart · <kbd>N</kbd> skip level (debug)');
+  $hintTouch.textContent = say('Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir', 'Put your finger anywhere and drag toward where you want to go');
+}
+// Al cambiar de idioma se rehace lo que está a la vista: las opciones, el cartel de atrás (el de resultados sin volver a
+// guardar el nivel) y los botones del Bioterio y la Máquina
+function relang() {
+  applyLangStatic(); renderOpts(); updateLightBtn();
+  const st = G.state;
+  if (st === 'title') showTitle(); else if (st === 'select') showSelect(); else if (st === 'intro') showIntro();
+  else if (st === 'lost') lost(); else if (st === 'won' && G.winCard && G.winBuild) G.winBuild();
+  if (G.screen) {
+    const back = $scr.querySelector('.cbtn.home'); if (back) back.outerHTML = screenBackBtn();
+    if (G.screen === 'ratitas') {
+      const b = $scr.querySelector('.bionav [data-act="machine"]'); if (b) b.innerHTML = `${say('Máquina', 'Machine')} · ${COIN_SPIN} ${COIN_ICON}`;
+      $scr.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // los nombres de las jaulas
+    } else {
+      const b = $scr.querySelector('#gachaNav [data-act="ratitas"]'); if (b) b.textContent = say('Bioterio', 'Vivarium');
+      if (['idle', 'reveal'].includes(Gacha.phase)) {   // (mientras anda no hay textos ni botón)
+        document.getElementById('gachaBtns').innerHTML = gachaButtons(Gacha.phase === 'reveal');
+        if (Gacha.phase === 'idle') document.getElementById('gachaRes').innerHTML = gachaHint();
+      }
+    }
+  }
+  updateButtons();
 }
 function openOpts() { clearTimeout(optsT); $opts.classList.remove('closing'); $opts.innerHTML = ''; renderOpts(); animIn($opts.querySelector('.box'), { kind: 'opts' }, false); $opts.classList.remove('hidden'); Snd.click(); }
 function closeOpts() {   // con su animación de salida; después se esconde
@@ -3695,6 +3749,7 @@ $opts.addEventListener('click', e => {
   if (!b) { if (G.state !== 'paused') closeOpts(); return; }   // tocar afuera cierra las opciones (la pausa no, para no seguir sin querer)
   if (o === 'music') { Music.toggle(); renderOpts(); updateButtons(); }
   else if (o === 'sound') { Snd.toggle(); renderOpts(); updateButtons(); }
+  else if (o === 'lang-es' || o === 'lang-en') { if (Lang.cur !== o.slice(5)) { Lang.set(o.slice(5)); relang(); } }
   else if (o === 'resume') togglePause();
   else if (o === 'close') closeOpts();
   else if (o === 'home') { closeOpts(); act('menu'); }
@@ -3761,7 +3816,13 @@ function actNow(a, el) {
 }
 
 // ---- botones de sonido / pausa ----
+// banderitas del idioma (sencillas): Argentina (celeste, blanca y celeste, con el sol) y Estados Unidos (franjas y el
+// cuadro azul, sin las estrellas una por una)
+const FLAG_AR = '<svg viewBox="0 0 36 24"><rect width="36" height="24" fill="#fff"/><rect width="36" height="8" fill="#74acdf"/><rect y="16" width="36" height="8" fill="#74acdf"/><circle cx="18" cy="12" r="2.6" fill="#f6b40e" stroke="#85340a" stroke-width=".5"/></svg>';
+const FLAG_US = '<svg viewBox="0 0 36 24"><rect width="36" height="24" fill="#fff"/>' + [0, 2, 4, 6, 8, 10, 12].map(k => `<rect y="${k * 24 / 13}" width="36" height="${24 / 13}" fill="#b22234"/>`).join('')
+  + '<rect width="15.5" height="12.9" fill="#3c3b6e"/>' + [[2.6, 2.4], [6.4, 2.4], [10.2, 2.4], [4.5, 5], [8.3, 5], [12.1, 5], [2.6, 7.6], [6.4, 7.6], [10.2, 7.6], [4.5, 10.2], [8.3, 10.2], [12.1, 10.2]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".75" fill="#fff"/>`).join('') + '</svg>';
 const ICONS = {
+  lang: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9S9.4 5.5 12 3z"/></svg>',
   sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   muted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
@@ -3814,7 +3875,7 @@ const DEBUG_AMBIENT = 0.7;
 let debugLight = (() => { try { return localStorage.getItem('raton.debugLight') === '1'; } catch (_) { return false; } })();
 const $btnLight = document.getElementById('btnLight');
 function updateLightBtn() {
-  $btnLight.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" ${debugLight ? 'fill="#f7c531"' : ''}/></svg>Luz ${debugLight ? 'ON' : 'OFF'}`;
+  $btnLight.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" ${debugLight ? 'fill="#f7c531"' : ''}/></svg>${say('Luz', 'Light')} ${debugLight ? 'ON' : 'OFF'}`;
   $btnLight.classList.toggle('on', debugLight);
 }
 $btnLight.addEventListener('click', e => {
@@ -3822,6 +3883,7 @@ $btnLight.addEventListener('click', e => {
   try { localStorage.setItem('raton.debugLight', debugLight ? '1' : '0'); } catch (_) {}
 });
 updateLightBtn();
+applyLangStatic();
 
 
 // ---- joystick flotante (celular) ----
@@ -5222,7 +5284,7 @@ function render() {
 
   // HUD
   if (!isMenu()) {
-    $level.textContent = 'NIVEL ' + G.level;
+    $level.textContent = say('NIVEL ', 'LEVEL ') + G.level;
     // El reloj sube (lo que vas tardando), igual que los resultados y los objetivos; el límite se ve en la batería de la
     // linterna y en la sirena
     $timer.textContent = fmtMS(G.elapsed);
