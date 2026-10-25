@@ -2303,14 +2303,15 @@ function cageAnimLoop() {
 //   reveal las dos mitades salen disparadas y en el mismo momento la ratita salta del keyframe 1 (bolita) al
 //          keyframe 2 (pose normal) dando un giro; rayos de luz, destellos y papelitos
 const GACHA_STAGES = ['wake', 'run', 'clack', 'door', 'launch', 'hover', 'reveal'];
-// clack dura lo que tardan en bajar las cápsulas de la pecera (~1,4 s) más una pausita antes de que se abra la puerta
-const GACHA_T = { wake: 0.7, run: 3.4, clack: 1.75, door: 2.3, launch: 0.85, hover: 0.36 };
+// clack es más corto que lo que tardan en bajar las cápsulas de la pecera (~1,4 s): la puerta empieza a abrirse mientras
+// se terminan de acomodar (el usuario la quiso antes, tres veces)
+const GACHA_T = { wake: 0.7, run: 3.4, clack: 0.8, door: 2.8, launch: 0.85, hover: 1.3 };
 const RETURN_T = 0.25;   // con "Otra vez": en cuánto se va el laboratorio y vuelven la máquina y su fondo (s)
-// en 'door': la puerta sube en DOOR_OPEN_T (despacito); la rampa arranca casi junto con ella y baja mientras la puerta
+// en 'door': la puerta sube en DOOR_OPEN_T (despacito; más lenta desde que el usuario lo pidió); la rampa arranca casi junto con ella y baja mientras la puerta
 // se abre (así se ve bajar la cápsula; antes llegaba escondida detrás de la puerta y después frenaba tan despacio que
 // parecía quieta): arranca suave, llega abajo con un poco de velocidad (RAMP_FROM → RAMP_HIT) y hace un rebotito para
 // arriba, suave y no muy rápido (RAMP_BOUNCE de alto, en RAMP_BT s), y uno chiquitito más
-const DOOR_OPEN_T = 1.5, RAMP_FROM = 0.15, RAMP_HIT = 1.45, RAMP_BOUNCE = 0.04, RAMP_BT = 0.36;   // (rebote sutil, como pidió el usuario)
+const DOOR_OPEN_T = 2, RAMP_FROM = 0.15, RAMP_HIT = 1.95, RAMP_BOUNCE = 0.04, RAMP_BT = 0.36;   // (rebote sutil, como pidió el usuario)
 function rampAt(t) {   // 0 arriba → 1 abajo
   if (t < RAMP_HIT) { const u = clamp((t - RAMP_FROM) / (RAMP_HIT - RAMP_FROM), 0, 1); return u * u * (2 - u); }
   const s = t - RAMP_HIT, b2 = RAMP_BT * 0.55;
@@ -2443,12 +2444,7 @@ function gachaStage(id) {
   else if (id === 'door') Snd.hiss(DOOR_OPEN_T);
   else if (id === 'launch') machBgDark(true);
   else if (id === 'reveal') {
-    Snd.popOpen(); gachaResult();
-    for (let k = 0; k < 90; k++) {   // papelitos
-      const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 230;
-      P.conf.push({ x: capC()[0], y: capC()[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v - 90, r: Math.random() * 6, vr: (Math.random() - 0.5) * 14,
-        w: 4 + Math.random() * 4, h: 2 + Math.random() * 2.5, col: CAP_COLORS[k % CAP_COLORS.length] });
-    }
+    Snd.popOpen(); gachaResult();   // (sin papelitos: el usuario los sacó; P.conf queda vacío)
   }
   if (P.onStage) P.onStage(id);
   updateButtons();   // la flechita de volver solo con la máquina quieta o con el premio
@@ -2466,27 +2462,25 @@ function gachaCaps() {
   }
   return Gacha.caps;
 }
-// Cae una cápsula: las de más abajo se van por el fondo (se esconden detrás de la base) y las demás bajan suave a ocupar
-// los lugares más bajos, así se ve que el nivel de la pila baja una fila
+// Cae una cápsula: se va UNA sola, la de abajo más cerca del hueco del medio (se esconde detrás de la base), como la que
+// sale por la puerta, y las demás bajan un poco a acomodarse (lo pidió el usuario: antes se iba una fila entera y la
+// pila bajaba demasiado): la que estaba justo arriba del hueco baja a ocuparlo y las otras se hunden menos cuanto más
+// lejos del hueco están, así la pila se hunde en el medio y los costados casi no bajan
 function capsDrop() {
   const caps = gachaCaps().filter(c => !c.gone);
   if (caps.length <= 9) return;
-  const byY = caps.slice().sort((a, b) => b.y - a.y), out = CAP_ROWS[0][1] - CAP_ROWS[0][0];   // se va una fila entera
-  const gone = byY.slice(0, out);
-  gone.forEach(c => { c.gone = true; c.hy = 980; c.hx += (572 - c.hx) * 0.3; });
-  // las que quedan bajan fila por fila: las más bajas ocupan la fila de abajo (ordenadas de izquierda a derecha), las
-  // siguientes la de arriba, y así; nunca se cruzan. No arrancan todas juntas: primero las que estaban pegadas al hueco
-  // que dejaron las que se fueron, y después las demás, cuanto más lejos del hueco más tarde (como una pila de verdad)
-  const hx = gone.reduce((a, c) => a + c.x, 0) / gone.length, hy = gone.reduce((a, c) => a + c.y, 0) / gone.length;
-  let stay = byY.slice(out);
-  for (const row of CAP_ROWS.slice().reverse()) {
-    const sl = MACHINE_CAPS.slice(row[0], row[1]).sort((a, b) => a[0] - b[0]);
-    const take = stay.splice(0, sl.length).sort((a, b) => a.x - b.x);
-    take.forEach((c, k) => {
-      c.th = sl[k];
-      c.wait = 0.03 + Math.max(0, Math.hypot(c.x - hx, c.y - hy) - 110) / 300 * 0.6;
-    });
-    if (!stay.length) break;
+  const H = [572, 787], gone = caps.reduce((m, c) => Math.hypot(c.x - H[0], c.y - H[1]) < Math.hypot(m.x - H[0], m.y - H[1]) ? c : m);
+  gone.gone = true; gone.hy = 980; gone.hx += (572 - gone.hx) * 0.3;
+  const hx = gone.x, hy = gone.y, stay = caps.filter(c => c !== gone);
+  // la que cae al hueco: la más cercana de las de arriba
+  const up = stay.filter(c => c.y < hy - 20), fill = up.length && up.reduce((m, c) => Math.hypot(c.x - hx, c.y - hy) < Math.hypot(m.x - hx, m.y - hy) ? c : m);
+  const fo = fill ? [fill.x, fill.y] : [hx, hy];   // y las de arriba de esa se corren a medias al lugar que dejó
+  for (const c of stay) {
+    const d = Math.hypot(c.x - hx, c.y - hy), w = Math.exp(-d * d / (2 * 170 * 170));
+    const d2 = Math.hypot(c.x - fo[0], c.y - fo[1]), w2 = fill && c.y < fo[1] - 20 ? 0.5 * Math.exp(-d2 * d2 / (2 * 120 * 120)) : 0;
+    c.th = c === fill ? [hx, hy] : [c.x + (hx - c.x) * 0.12 * w + (fo[0] - c.x) * w2, Math.min(790, c.y + (c.y < hy ? 45 : 12) * w + (fo[1] - c.y) * w2)];
+    // no arrancan todas juntas: primero las pegadas al hueco y después las demás, cuanto más lejos más tarde
+    c.wait = 0.03 + Math.max(0, d - 110) / 300 * 0.6;
   }
 }
 function capsPhysics(dt, I) {
@@ -2606,19 +2600,24 @@ function gachaUpdate(dt) {
     const blink = ph => clamp(0.5 + 1.8 * Math.cos(P.clock * Math.PI * 2 * TUBE_HZ + ph), 0, 1), dep = 0.7 * Math.min(1, 0.4 + I);
     on('beacon', 1, 6); L.tubeL = 1 - dep * (1 - blink(0)); L.tubeR = 1 - dep * (1 - blink(Math.PI)); on('inner', 0.85 + 0.15 * fl(), 3);
   } else if (P.phase === 'clack') { L.tubeL = L.tubeR = 1; on('beacon', 0.3, 0.9); on('inner', 1, 6); }
-  else if (P.phase === 'door') { on('door', 1, 4); on('beacon', 0.3, 0.9); }   // la baliza se sigue apagando despacio
+  else if (P.phase === 'door') { on('door', 1, 4); on('beacon', 0.3, 0.9); }
+  else if (P.phase === 'hover') {   // la cápsula traquetea en cada golpe de la sacudida
+    const ph = capShake(P.t)[3], prev = capShake(Math.max(0, P.t - dt))[3];
+    if (ph > 0 && Math.floor(ph / Math.PI) !== Math.floor(prev / Math.PI)) Snd.rattle();
+  }   // la baliza se sigue apagando despacio
   if (dur && P.t >= dur) gachaStage(GACHA_STAGES[GACHA_STAGES.indexOf(P.phase) + 1]);
-  if (P.phase === 'reveal' && P.t < 1.6 && Math.random() < dt * 22) {   // destellos alrededor de la ratita
+  // destellos alrededor de la ratita: blancos, y mientras se apagan suben muy despacio (lo pidió el usuario)
+  if (P.phase === 'reveal' && P.t < 1.6 && Math.random() < dt * 22) {
     const a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 70;
-    P.spark.push({ x: 150 + Math.cos(a) * r, y: 150 + Math.sin(a) * r * 0.8, t: 0, life: 0.5 + Math.random() * 0.6, s: 4 + Math.random() * 6,
-      col: ['#ffffff', '#fff3a0', '#9ff0ff', '#ffc4e8'][Math.floor(Math.random() * 4)] });
+    P.spark.push({ x: 150 + Math.cos(a) * r, y: 150 + Math.sin(a) * r * 0.8, t: 0, life: 1.6 + Math.random() * 1.2, s: 4 + Math.random() * 6,
+      vy: -(6 + Math.random() * 8), col: '#ffffff' });
   }
   // el laboratorio aparece a medida que se apagan las líneas cinéticas; con "Otra vez" se va suave junto con la vuelta
   // de la máquina
   if (P.phase === 'reveal') { const o = 1 - clamp((P.t - SPEED_HOLD) / SPEED_FADE, 0, 1); P.labA = 1 - o * o * (3 - 2 * o); }
   else P.labA = Math.max(0, (P.labA || 0) - dt / RETURN_T);
   const lab = $scr.querySelector('.labbg'); if (lab) lab.style.opacity = P.labA.toFixed(3);
-  for (const s of P.spark) s.t += dt;
+  for (const s of P.spark) { s.t += dt; s.y += s.vy * dt; }
   P.spark = P.spark.filter(s => s.t < s.life);
   for (const f of P.conf) { f.vy += 320 * dt; f.vx *= 1 - dt * 0.8; f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.vr * dt; }
   P.conf = P.conf.filter(f => f.y < 330);
@@ -2639,7 +2638,15 @@ const CAP_Y = 198;   // (donde estaba; ahora va en el centro de la pantalla: cap
 const capC = () => { const geo = Gacha.geo || gachaGeo(); return geo && geo.cc ? geo.cc : [150, CAP_Y]; };
 // La cápsula sale de la máquina y crece solo hasta CAP_R (el tamaño del cuadro 21 del video que el usuario eligió),
 // apenas más grande que la ratita hecha bolita, y se abre así: ya no llega más grande y se aprieta antes de abrirse
-const CAP_R = 47 * 0.9, CAP_SQUEEZE = 0.16;   // (un 10% más chica que el cuadro 21, como pidió el usuario después)   // CAP_SQUEEZE: en ese último tramo de 'hover' deja de flotar, quieta para abrirse (s)
+const CAP_R = 47 * 0.9;   // (un 10% más chica que el cuadro 21, como pidió el usuario después)
+// Antes de abrirse, la cápsula se sacude como la máquina (el usuario lo pidió): queda quieta un instante y desde CAP_SHAKE0 se
+// mece y da saltitos cada vez más rápido y más fuerte hasta que se abre de golpe; cada golpe traquetea (Snd.rattle)
+const CAP_SHAKE0 = 0.3;
+function capShake(t) {   // [corrimiento x, salto, giro, fase de los golpes] en el instante t de hover
+  const T = GACHA_T.hover - CAP_SHAKE0, u = clamp((t - CAP_SHAKE0) / T, 0, 1); if (u <= 0) return [0, 0, 0, 0];
+  const tt = u * T, ph = Math.PI * 2 * (5 * tt + 5 * tt * tt / T), a = u * u * (3 - 2 * u);   // de 5 a 15 golpes por segundo
+  return [6 * a * Math.sin(ph), -7 * a * Math.abs(Math.sin(ph)), 0.2 * a * Math.sin(ph + 0.6), ph];
+}
 function prizeCapsule(t) {
   const [dx, dy] = MACHINE_DOOR, ease = p => p * p * (3 - 2 * p);
   if (Gacha.phase === 'launch') {
@@ -2647,12 +2654,14 @@ function prizeCapsule(t) {
     const x0 = 150 + (dx - 150) * recedeScale(t), y0 = 150 + (dy - 150) * recedeScale(t);   // la compuerta, donde quedó la máquina al retroceder
     const [ccx, ccy] = capC();
     let y = y0 + (ccy - y0) * e - Math.sin(pa * Math.PI) * 70;                   // salto en arco hacia adelante
-    if (p > 0.72) y = ccy - Math.sin((p - 0.72) / 0.28 * Math.PI) * 16;            // un rebotecito en el aire
+    // un rebotecito en el aire que termina frenando (antes llegaba bajando rápido y paraba en seco al quedarse quieta)
+    if (p > 0.72) { const q = (p - 0.72) / 0.28; y = ccy - Math.sin(q * Math.PI) * (1 - q) * 27; }
     return [x0 + (ccx - x0) * e, y, PRIZE_R * MS + (CAP_R - PRIZE_R * MS) * ease(clamp(p / 0.85, 0, 1)), (1 - e) * 2.4 + Math.sin(p * 12) * 0.08 * (1 - p)];
   }
-  const sq = clamp((t - (GACHA_T.hover - CAP_SQUEEZE)) / CAP_SQUEEZE, 0, 1);   // antes de abrirse se queda quieta
-  const [ccx, ccy] = capC();
-  return [ccx, ccy + Math.sin(Gacha.clock * 4) * 3 * (1 - sq), CAP_R, Math.sin(Gacha.clock * 3) * 0.05 * (1 - sq)];
+  // (ya no flota al llegar: el vaivén arrancaba en cualquier punto, así que la cápsula daba un saltito y un giro al llegar,
+  // y se cortaba de golpe justo antes de sacudirse; el usuario lo vio raro. Queda quieta hasta que empieza la sacudida)
+  const [ccx, ccy] = capC(), [shx, shy, shr] = capShake(t);
+  return [ccx + shx, ccy + shy, CAP_R, shr];
 }
 const MACHINE_RECEDE = 1;   // cuánto se achica la máquina cuando la cápsula viene al frente (1 = no se va para atrás)
 const MACHINE_FADE = 0.25;  // en cuánto se apaga la máquina cuando sale la cápsula
@@ -2785,18 +2794,23 @@ const SALTO_FR = [
 function drawRatJump(c, cx, cy, size, i, t) {
   const fr = clamp(t / JUMP.dt, 0, JUMP.n - 1), k0 = Math.floor(fr), k1 = Math.min(JUMP.n - 1, k0 + 1), w = fr - k0;
   const F = SALTO_FR[k0].map((v, j) => j === 24 ? (w < 0.5 ? v : SALTO_FR[k1][j]) : lerp(v, SALTO_FR[k1][j], w));
-  const S = skinOf(i), P = portraitOf(i), ink = P.line;
+  // la bolita sale toda blanca de la cápsula y para el cuadro 8 ya tiene sus colores (lo pidió el usuario)
+  const wht = 1 - (u => u * u * (3 - 2 * u))(clamp((fr - 4) / 3, 0, 1));   // (blanca hasta el cuadro 5)
+  const white = o => wht <= 0 ? o : Object.fromEntries(Object.entries(o).map(([q, v]) => [q, typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? mixC(v, '#ffffff', wht) : v]));
+  const S = white(skinOf(i)), P = white(portraitOf(i)), ink = P.line;
   const [eDx, eY, eRx, eRy, nY, nRx, nRy, aDx, aY, aRx, aRy, iDx, iDy, iR, hDx, hY, hMaj, hMin, hAng, fDx, fY, fMaj, fMin, fAng, , bcY, kY, kRx, kRy, bSx, bSy, bBy] = F;
   const T = q => [590 + (q[0] - 590) * bSx, bBy - (1092 - q[1]) * bSy];   // la panza de la sentada, estirada y corrida
   const k = size / 935;
   c.save(); c.translate(cx, cy); c.scale(k, k); c.translate(-590, -FRONT_CY[0]);
   c.lineCap = 'round'; c.lineJoin = 'round';
   // cola: la de la sentada (con su vaivén), pegada al mismo punto de la panza; crece desde la base mientras se despliega.
-  // Antes de apoyar sale un poco más arriba y se acomoda en su lugar hasta el cuadro 17 (lo pidió el usuario)
+  // Cuando deja de ser bolita sale de atrás del cuerpo y bastante más arriba; en el cuadro 14 sale del costado, a la
+  // altura de las manitos, y para el 16 baja hasta abajo de la anca (donde lo marcó el usuario); hasta el 18 el rulo es
+  // más bajo y para el 22 ya tiene su altura
   {
-    const up = 70 * (1 - (u => u * u * (3 - 2 * u))(clamp((fr - 13) / 3, 0, 1)));
-    const [bx, by] = T([850, 1040 - up]);
-    frontTail(c, P, t, 0, 0, bx - 850, by - 1040, clamp((fr - 5) / 9, 0, 1));
+    const sm = u => u * u * (3 - 2 * u), e1 = sm(clamp((fr - 5) / 8, 0, 1)), e2 = sm(clamp((fr - 13) / 2, 0, 1));
+    const up = 190 * (1 - e2), [bx, by] = T([850 - lerp(lerp(200, 65, e1), 0, e2), 1040 - up]);
+    frontTail(c, P, t, 0, 0, bx - 850, by - 1040, clamp((fr - 5) / 9, 0, 1), lerp(0.68, 1, sm(clamp((fr - 17) / 4, 0, 1))));
   }
   // orejas (detrás del cuerpo): las mismas, con su interior y el arco
   for (const sd of [-1, 1]) {
@@ -2894,11 +2908,11 @@ const REV_END = (JUMP.n - 1) * JUMP.dt;      // desde acá queda la ratita senta
 // (1092 − 624: del centro del cuerpo de la sentada, FRONT_CY[0], al piso; FRONT_CY se declara más abajo)
 const KF2_FLOOR = 132 + (1092 - 624) * 154 / 935, KF2_SIZE = 154 * 0.85;
 const TRAVEL = JUMP.contact * JUMP.dt, KF2 = { x: 150, y: KF2_FLOOR - (1092 - 624) * KF2_SIZE / 935, size: KF2_SIZE };
-// Sombra de la ratita sobre la mesada, como la de la máquina (una elipse chata, negra al 30%): aparece de transparente
-// cuando apoya las patas (TRAVEL) y su ancho sigue a las patas (se abre al aplastarse en el aterrizaje y se acomoda)
-const RAT_SHADOW_IN = 0.2;   // en cuánto aparece (s)
+// Sombra de la ratita sobre la mesada, como la de la máquina (una elipse chata, negra al 30%): aparece de transparente a
+// la par que se esfuman las líneas cinéticas y aparece el laboratorio (lo pidió el usuario; antes aparecía al apoyar las
+// patas) y su ancho sigue a las patas
 function drawRatShadow(g, t) {
-  const a = clamp((t - TRAVEL + 0.02) / RAT_SHADOW_IN, 0, 1); if (a <= 0) return;
+  const o = 1 - clamp((t - SPEED_HOLD) / SPEED_FADE, 0, 1), a = 1 - o * o * (3 - 2 * o); if (a <= 0) return;   // (como Gacha.labA)
   let span = 244 + 110;   // de la ratita sentada: del centro al borde de afuera de la pata
   if (t < REV_END) {
     const fr = clamp(t / JUMP.dt, 0, JUMP.n - 1), k0 = Math.floor(fr), k1 = Math.min(JUMP.n - 1, k0 + 1), w = fr - k0;
@@ -2993,25 +3007,28 @@ function drawGacha(g, n) {
     // (el nombre, a la misma distancia de la cabeza que cuando la ratita era más grande)
     const NAME_Y = 46 + (KF2.y - 132) + (160 - FRONT_CY[0]) * (KF2.size - 154) / 935 - 16,   // (y un poco más arriba, como pidió el usuario)
       RAR_Y = 233, TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
-    // el nombre debajo de la ratita: aparece con un saltito cuando aterriza; con borde oscuro para leerse sobre los rayos
-    const na = clamp((t - TRAVEL) / 0.3, 0, 1);
-    if (na > 0) {
+    // los textos aparecen con un saltito, a destiempo (lo pidió el usuario): el nombre apenas después de que aterriza, y la
+    // rareza y después el aviso cuando ya se ve el laboratorio (TXT_AT, segundos desde que se abre la cápsula); con borde
+    // oscuro para leerse sobre los rayos
+    const pop = k => clamp((t - TXT_AT[k]) / 0.3, 0, 1);
+    if (pop(0) > 0) {
       const name = P.dup ? RATS[P.pick][0] : `¡${RATS[P.pick][0]}!`;
       const sub = P.dup ? ['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`] : ['¡Ratita nueva!'];
-      const s = 0.7 + 0.3 * (1 + 2.7 * Math.pow(na - 1, 3) + 1.7 * Math.pow(na - 1, 2));   // crece y se pasa un poquito
-      const txt = (ty, fn) => {
+      const txt = (ty, k, fn) => {
+        const na = pop(k); if (na <= 0) return;
+        const s = 0.7 + 0.3 * (1 + 2.7 * Math.pow(na - 1, 3) + 1.7 * Math.pow(na - 1, 2));   // crece y se pasa un poquito
         g.save(); g.globalAlpha = na; g.translate(150, ty); g.scale(s * TXT, s * TXT);
         g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = '#140c05';
         fn(); g.restore();
       };
-      txt(NAME_Y, () => {
+      txt(NAME_Y, 0, () => {
         g.font = "26px 'Kalam', cursive";
         g.lineWidth = 6; g.strokeText(name, 0, 0);
         g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
       });
-      const rar = RARITY[RAT_RARITY[P.pick]];   // la rareza entre paréntesis y de su color
-      if (rar) txt(RAR_Y, () => { const rt = `(${rar.name.toUpperCase()})`; g.font = "12px 'Kalam', cursive"; g.lineWidth = 4; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
-      txt(SUB_Y, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
+      const rar = RARITY[RAT_RARITY[P.pick]];   // la rareza entre paréntesis y de su color (con la letra del aviso, como pidió el usuario)
+      if (rar) txt(RAR_Y, 1, () => { const rt = `(${rar.name.toUpperCase()})`; g.font = "10px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.strokeText(rt, 0, 0); g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
+      txt(SUB_Y, 2, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
         g.font = "11px 'Special Elite', 'Courier New', monospace"; g.lineWidth = 3.5; g.textBaseline = 'middle';
         const one = sub.join(' '), room = (innerWidth - 32) / ((P.geo ? P.geo.r.width : g.canvas.clientWidth) / 300) / TXT;   // ancho de pantalla, en las unidades del texto
         const lines = g.measureText(one).width <= room ? [one] : sub;
@@ -3031,7 +3048,8 @@ function drawGacha(g, n) {
     const [CX, CY] = capC(), a = 1 - t / 0.3, fl = g.createRadialGradient(CX, CY, 0, CX, CY, 60 + 150 * (1 - a));
     fl.addColorStop(0, `rgba(255,252,235,${0.9 * a})`); fl.addColorStop(1, 'rgba(255,252,235,0)');
     g.fillStyle = fl; g.fillRect(0, 0, 300, 300);
-  }  for (const s of P.spark) {   // destellos: estrellitas de cuatro puntas que crecen y se apagan
+  }
+  for (const s of P.spark) {   // destellos: estrellitas de cuatro puntas que crecen y se apagan
     const k = Math.sin(Math.PI * s.t / s.life), r = s.s * k;
     g.save(); g.translate(s.x, s.y); g.rotate(s.t * 2); g.fillStyle = s.col; g.globalAlpha = k;
     g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(0, 0, r, 0); g.quadraticCurveTo(0, 0, 0, r); g.quadraticCurveTo(0, 0, -r, 0); g.quadraticCurveTo(0, 0, 0, -r); g.fill();
@@ -3106,7 +3124,10 @@ function buildSpeedLines(FR) {
   w2.fill();
   P.raysKey = FR;
 }
-const SPEED_HOLD = 2.4, SPEED_FADE = 1.4;   // las líneas cinéticas del premio: cuánto quedan y cuánto tardan en apagarse (s)
+const SPEED_HOLD = 1.9, SPEED_FADE = 1.4;
+// cuándo aparecen el nombre (apenas después de que aterriza), la rareza y el aviso (con el laboratorio ya a la vista), en
+// segundos desde que se abre la cápsula
+const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1, SPEED_HOLD + SPEED_FADE + 0.45];   // las líneas cinéticas del premio: cuánto quedan y cuánto tardan en apagarse (s)
 // a prueba: la imagen bg_cinetica_01 del usuario (img/fondo-cinetica.jpg) en vez de los rayos dibujados (false = dibujados)
 const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg';
 // la imagen es de 1920 px: se achica una sola vez a SPEED_IMG_PX en un canvas aparte, así cada cuadro gira una textura
@@ -3165,7 +3186,6 @@ const MACHINE_CAPS = [
   [339, 707], [455, 685], [572, 667], [689, 677], [805, 700],
   [450, 787], [572, 780], [694, 787],
 ];
-const CAP_ROWS = [[0, 3], [3, 7], [7, 12], [12, 15]];   // índices de cada fila en MACHINE_CAPS
 const CAP_TOP = 496, CAP_MIN = 110;   // techo de los centros y distancia mínima entre cápsulas
 function drawMachine(g) {
   const P = Gacha, t = P.clock, L = P.L, shaking = P.phase === 'run';
@@ -5330,8 +5350,9 @@ function handShake(t, i, sd, land = -1) {
   return sd * 0.45 * Math.sin(p * Math.PI * 2 * 4) * Math.pow(1 - p, 1.5) * Math.min(1, p * 8);
 }
 // Cola de la ratita de frente (sentada → bolita con u), compartida por la pose (drawRatFrontPose) y el salto del premio
-// (drawRatJump): dx, dy la corren entera y grow es cuánto se ve de largo desde la base (0 a 1)
-function frontTail(c, P, t, u, tailB = 0, dx = 0, dy = 0, grow = 1) {
+// (drawRatJump): dx, dy la corren entera, grow es cuánto se ve de largo desde la base (0 a 1) y sy achata el rulo hacia
+// su base (1 es su altura)
+function frontTail(c, P, t, u, tailB = 0, dx = 0, dy = 0, grow = 1, sy = 1) {
   const m = (a, b) => lerp(a, b, u), m2 = (a, b) => lerp2(a, b, u);
   if (grow <= 0) return;
   c.save(); c.translate(dx, dy);
@@ -5346,9 +5367,9 @@ function frontTail(c, P, t, u, tailB = 0, dx = 0, dy = 0, grow = 1) {
     c.beginPath(); c.moveTo(...L1[0]); L1.forEach(q => c.lineTo(...q)); c.arc(end[0], end[1], tip, ea + Math.PI / 2, ea - Math.PI / 2, true);
     for (let n = L2.length - 1; n >= 0; n--) c.lineTo(...L2[n]); c.closePath(); c.fill();
   };
-  // (un poco más levantada que antes, como pidió el usuario)
-  const segs = [[[850, 1040], [1060, 1012], [1190, 918 + tailB * 0.3], [1176, 800 + tailB * 0.6]],
-    [[1176, 800 + tailB * 0.6], [1159, 710 + tailB * 0.8], [1066, 662 + tailB], [962, 653 + tailB]]];
+  // (más levantada que antes, como pidió el usuario dos veces: el rulo sube, la parte del piso queda igual)
+  const segs = [[[850, 1040], [1060, 1004], [1190, 850 + tailB * 0.3], [1176, 720 + tailB * 0.6]],
+    [[1176, 720 + tailB * 0.6], [1159, 620 + tailB * 0.8], [1066, 568 + tailB], [962, 558 + tailB]]];
   const bz = (q, v) => { const w = 1 - v; return [0, 1].map(kk => w * w * w * q[0][kk] + 3 * w * w * v * q[1][kk] + 3 * w * v * v * q[2][kk] + v * v * v * q[3][kk]); };
   const rest = [];
   for (let n = 0; n <= 40; n++) { const v = n / 40, sg = v < 0.5 ? 0 : 1; rest.push(bz(segs[sg], sg ? v * 2 - 1 : v * 2)); }
@@ -5365,6 +5386,7 @@ function frontTail(c, P, t, u, tailB = 0, dx = 0, dy = 0, grow = 1) {
       sit.push([sit[n][0] + dx * cs - dy * sn, sit[n][1] + dx * sn + dy * cs]);
     }
   } else sit.push(...rest.slice(1));
+  if (sy !== 1) sit.forEach(p => { p[1] = 1040 - (1040 - p[1]) * sy; });
   const tp = sit.map((p, n) => {
     const an = 0.25 + n / 40 * 2.2, ball = [BALL_C[0] + Math.cos(an) * 322, BALL_C[1] + Math.sin(an) * 318];
     return m2(p, ball);
