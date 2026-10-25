@@ -186,8 +186,13 @@
   /* portada con el formato nuevo: sin cartel de título (el logo es el título) */
   #card .wmenu { margin-top: 0; padding-top: 22px; }   /* aire de cartón arriba del logo, que no quede pegado al borde */
   #card .wmenu .logo { margin: 0 auto 26px; }   /* arriba, con el doble de aire hasta los controles que de los controles a Historia */
-  #card .wctl { margin: 4px 2px 16px; padding: 4px 12px; }
-  #card .wctl .ctl { margin: 0 auto; border: 0; }
+  #card .wctl { margin: 10px 2px 16px; padding: 20px 12px 8px; }
+  #card .wctl .ctl { margin: 0 auto; border: 0; gap: 14px; padding: 8px 0 6px; }
+  #card .wctl .keys { gap: 6px; }
+  #card .wctl kbd { min-width: 30px; padding: 4px 7px 3px; font: 19px/1.2 'Special Elite', monospace; background: #f3ead6; border: 2px solid #4a3220; border-bottom-width: 4px; border-radius: 6px; }
+  #card .wctl .sl { font: 28px/1 'Kalam', cursive; color: #8a5a2b; }
+  #card .wctl .ctl span:last-child:not(.keys) { font-size: 16px; }
+  @media (max-width: 420px) { #card .wctl kbd { min-width: 24px; padding: 3px 5px 2px; font-size: 16px; } #card .wctl .keys { gap: 4px; } #card .wctl .ctl { gap: 8px; } }
   #card .wmenu .wbtns { grid-template-columns: 1fr 1fr; margin-top: 12px; }
   #card .wmenu .wbtns + .wbtns .wbtn { height: 54px; font-size: 21px; }
   #card .wbtn.yl { background: linear-gradient(#ffdc45, #f4b00e); color: #2b1a0b; border: 3px solid #b77d06; box-shadow: 0 4px 0 #8f5f05; }
@@ -288,14 +293,10 @@
   #lamp.up { top: 64px; }   /* sin queso, va en su lugar (entre monedas, queso y batería queda el mismo espacio: 8 px) */
   #lamp.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   /* pila del HUD, después de un diseño del usuario: un marco gris oscuro con el polo a la derecha y 4 celdas planas; las
-     prendidas van todas del mismo color según cuántas quedan (4 verde, 3 amarilla, 2 naranja, 1 roja) y las vacías, gris */
+     prendidas van todas del mismo color según cuántas quedan (LAMP_COLORS: 4 verde, 3 amarilla, 2 naranja, 1 roja) y las vacías, gris */
   #lamp .bat { position: relative; display: flex; gap: 3px; margin-right: 6px; padding: 3px; border-radius: 5px; background: #4b4b4b; }
   #lamp .bat::after { content: ''; position: absolute; right: -4px; top: 50%; width: 4px; height: 44%; transform: translateY(-50%); background: #4b4b4b; border-radius: 0 2px 2px 0; }
   #lamp .bat i { width: .38em; height: .6em; border-radius: 2px; background: #333333; }
-  #lamp .bat[data-n="4"] i.on { background: #4fd832; }
-  #lamp .bat[data-n="3"] i.on { background: #d6e02a; }
-  #lamp .bat[data-n="2"] i.on { background: #f5a01e; }
-  #lamp .bat[data-n="1"] i.on { background: #e8382f; }
   #lamp .bat i.blink { opacity: .25; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
   #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
@@ -648,6 +649,10 @@ const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de t
 // recargan un bloque. En los demás la luz del laberinto está prendida, el reloj corre libre y no se pierde por tiempo.
 const DARK_LEVELS = [5, 9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40];
 const LAMP_MAX = 60, LAMP_BLOCK = 15;
+// colores de la pila según cuántos bloques quedan (1 a 4): la del HUD, la barra de la linterna del lomo, el rayo de las
+// pilas del laberinto y sus chispitas usan el mismo verde (el usuario pidió unificarlos)
+const LAMP_COLORS = ['#e8382f', '#f5a01e', '#d6e02a', '#4fd832'], BAT_GREEN = LAMP_COLORS[3];
+const lampBlocks = () => isMenu() ? 4 : Math.max(0, Math.min(4, Math.ceil(Math.max(0, G.timeLeft) / (G.lampBlock || LAMP_BLOCK) - 1e-6)));
 const WARN_T = 15;   // los últimos segundos de pila: sirena, tics, pila roja que titila y linterna que parpadea (antes 10)
 const BAT_CELLS = 26;   // pilas: como mucho tantas celdas de camino entre una y otra (~20 s a paso normal)
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
@@ -1792,7 +1797,7 @@ function camTarget() {
 const $card = document.getElementById('card'), $hud = document.getElementById('hud');
 const $timer = document.getElementById('timer'), $level = document.getElementById('level');
 const $cheese = document.getElementById('cheese'), $cheeseN = document.getElementById('cheeseN');
-const $lamp = document.getElementById('lamp'), $lampBat = $lamp.querySelector('.bat'), $lampCells = [...$lamp.querySelectorAll('i')];
+const $lamp = document.getElementById('lamp'), $lampCells = [...$lamp.querySelectorAll('i')];
 const $coins = document.getElementById('coins'), $coinsN = document.getElementById('coinsN');
 document.getElementById('coinsIco').outerHTML = COIN_ICON;
 function updateCoins() { $coinsN.textContent = Wallet.coins; }
@@ -1847,13 +1852,13 @@ function titleBackground() {
 function showTitle() {
   titleBackground();
   G.state = 'title';
-  // portada: logo, la historia en tres renglones, controles, los dos modos (botones + qué es cada uno) y atajos
-  const keys = isTouch
-    ? `<span class="finger">☝</span>`
-    : `<span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>`;
-  const how = isTouch ? 'arrastrá el dedo para moverte: <br>el ratón gira hacia donde apuntás' : 'moverte: el ratón gira <br>hacia donde apuntás';
+  // portada: logo, controles (la etiqueta amarilla "Controles" y las teclas, WASD / flechas, sin más texto: el usuario lo
+  // pidió así; en pantallas táctiles, el dedo) y los botones
+  const ctl = isTouch
+    ? `<span class="finger">☝</span><span>Arrastrá el dedo</span>`
+    : `<span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="sl">/</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span>`;
   card(`<div class="win wmenu"><img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
-    <div class="wbox wctl"><div class="ctl">${keys}<span>${how}</span></div></div>
+    <div class="wbox wctl"><span class="wtag">Controles</span><div class="ctl">${ctl}</div></div>
     <div class="wbtns"><button class="wbtn go" data-act="story">${PLAY_SVG}Historia</button><button class="wbtn yl" data-act="challenge">Desafío</button></div>
     <div class="wbtns"><button class="wbtn re" data-act="ratitas">Bioterio</button><button class="wbtn re" data-act="machine">Máquina <span class="wprice">${COIN_SPIN} ${COIN_ICON}</span></button></div>
     </div>`, { kind: 'title' });   // (las teclas 1 y 2 siguen andando, sin el cartelito)
@@ -2373,6 +2378,7 @@ function showMachine(from) {
   G.screen = 'machine'; Gacha.phase = 'idle'; Gacha.t = 0; Gacha.conf = []; Gacha.spark = []; Gacha.caps = null; Gacha.level = 0;   // al volver, la cúpula está llena otra vez
   // y nada de lo del premio anterior: el laboratorio quedaba prendido y se veía desvanecerse sobre la máquina al volver
   Gacha.labA = 0; Gacha.shakeA = 0; Gacha.geo = null; Gacha.fx2Used = false;
+  if (!jumpCache[0]) jumpFrame(0, 0);   // decodifica la imagen del salto ahora (bajo el fundido): la primera vez tardaba ~40 ms
   openScreen(`<div class="scrbg"></div><div class="labbg"></div><canvas id="gachaFx"></canvas>
     <h2 class="stitle up" aria-hidden="true" style="visibility:hidden">MÁQUINA</h2><!-- sin título (el usuario lo sacó): queda invisible para que la máquina y la franja de arriba no se muevan -->
     <canvas id="gachaCv" width="900" height="900"></canvas>
@@ -2417,13 +2423,16 @@ function gachaSpin() {
   Gacha.conf = []; Gacha.spark = [];
   Gacha.beaconOn = false;
   document.getElementById('gachaRes').textContent = '';   // sin textos mientras anda: así la máquina no se corre
-  document.getElementById('gachaBtns').innerHTML = ''; updateButtons();   // mientras anda, sin flechita
+  // el botón se esconde pero sigue ocupando su lugar (si se sacaba, la fila quedaba 8 px más baja y la máquina, que está
+  // centrada con ella, se corría 4 px justo al tocar Activar)
+  document.querySelectorAll('#gachaBtns > *').forEach(b => { b.style.visibility = 'hidden'; b.style.animation = 'none'; }); updateButtons();   // mientras anda, sin flechita
   gachaStage('wake');
 }
 // Empieza una etapa: sonidos y efectos de arranque, y aviso al juego
 function gachaStage(id) {
   const P = Gacha; P.phase = id; P.t = 0; P.tick = 0;
   if (id === 'wake') Snd.powerUp();
+  else if (id === 'run') { if (P.mach) P.mach.ph = 0; }   // el vaivén del motor arranca desde abajo (si seguía de la vuelta anterior, la base saltaba de golpe)
   else if (id === 'clack') {
     Snd.clack();
     // cayó la cápsula premiada adentro: el montón de la pecera baja un nivel (se va la fila de arriba; quedan al menos dos)
@@ -2571,6 +2580,7 @@ function gachaUpdate(dt) {
   P.t += dt; P.clock += dt;
   const on = (k, v, speed = 6) => { L[k] += (v - L[k]) * Math.min(1, dt * speed); };
   machinePhysics(dt);
+  if (P.pick != null && ['wake', 'run', 'clack', 'door', 'launch', 'hover'].includes(P.phase)) jumpPrepaint(P.pick);
   const mm = P.mach, I = mm.I;
   capsPhysics(dt, I * mm.cpl * 0.7);   // las cápsulas se mueven cuando se mueve la pecera
   // pulso de la pantallita: la velocidad sigue al motor pero suavizada (acelera y frena de a poco, nunca de golpe) y la
@@ -2736,7 +2746,17 @@ function jumpFrame(pick, k) {
     d[p] = B[0] + (A[0] - B[0]) * t; d[p + 1] = B[1] + (A[1] - B[1]) * t; d[p + 2] = B[2] + (A[2] - B[2]) * t; d[p + 3] = al;
   }
   x.putImageData(im, 0, 0);
-  return cache[k] = c;
+  // se copia a un canvas común: el de willReadFrequently vive en la CPU y dibujarlo en cada cuadro era más lento
+  const out = document.createElement('canvas'); out.width = JUMP.fw; out.height = JUMP.fh; out.getContext('2d').drawImage(c, 0, 0);
+  return cache[k] = out;
+}
+// Pinta por adelantado los cuadros del salto de la ratita que va a salir, de a uno por cuadro mientras la máquina anda
+// (pintarlos recién al abrirse la cápsula, 25 en menos de un segundo, trababa la animación en el celular)
+function jumpPrepaint(pick) {
+  if (Gacha.clock - (Gacha.prepT || -9) < 0.12) return;   // uno cada 0,12 s: así no se nota mientras se sacude
+  Gacha.prepT = Gacha.clock;
+  const cache = jumpCache[pick] || [];
+  for (let k = 0; k < JUMP.n; k++) if (!cache[k]) { jumpFrame(pick, k); return; }
 }
 const REV_SLOW = 1, REV_CAP_FRONT = 0.06;   // ritmo de las mitades de la cápsula · hasta cuándo van delante de la ratita
 const REV_END = (JUMP.n - 1) * JUMP.dt;      // desde acá queda la ratita del juego sola
@@ -3803,7 +3823,7 @@ function updateItems() {
         G.faltT = 0; G.onT = 0.2;   // la linterna da un chispazo al recargar
         for (let k = 0; k < 10; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
-          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.2 });
+          G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.2, rgb: hexRgb(BAT_GREEN).join(','), r: 2 });   // del verde de la pila
         }
       }
     } else if (it.type === 'cheese' && !it.got) {
@@ -4471,7 +4491,7 @@ function drawBattery(c, it) {
   box(18, 320, 72, 728, 32 * k, '#c4c4c4');     // tapas grises (el cuerpo entero, redondeado)
   box(18, 320, 122, 680, 0, '#fd5631');         // cuerpo naranja
   for (const [y0, y1] of [[222, 256], [286, 516], [546, 580]]) box(18, 320, y0, y1, 0, '#213340');   // franjas
-  c.fillStyle = '#00ff00'; boltPath(c); c.fill();   // rayo
+  c.fillStyle = BAT_GREEN; boltPath(c); c.fill();   // rayo
   c.restore();
 }
 function boltPath(c) { c.beginPath(); BAT_BOLT.forEach(([x, y], i) => i ? c.lineTo(BAT_X(y), BAT_Y(x)) : c.moveTo(BAT_X(y), BAT_Y(x))); c.closePath(); }
@@ -4483,9 +4503,9 @@ function drawBatteryGlow(c, v) {
     const a = 0.5 + 0.12 * Math.sin(G.time * 4 + it.ph);
     c.save(); batteryAt(c, it);
     const g = c.createRadialGradient(0, 0, 0, 0, 0, 11);
-    g.addColorStop(0, `rgba(60,255,60,${0.22 * a})`); g.addColorStop(1, 'rgba(60,255,60,0)');
+    const [r0, g0, b0] = hexRgb(BAT_GREEN); g.addColorStop(0, `rgba(${r0},${g0},${b0},${0.3 * a})`); g.addColorStop(1, `rgba(${r0},${g0},${b0},0)`);
     c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(-11, -11, 22, 22);
-    c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.fillStyle = '#00ff00'; boltPath(c); c.fill();
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.fillStyle = BAT_GREEN; boltPath(c); c.fill();
     c.restore();
   }
 }
@@ -4790,15 +4810,15 @@ function drawMouse(c, alpha) {
   box(44, 348, 32, 47, 0.1, G.light > 0.2 ? '#fff4d2' : '#6b6450');   // lente (apagada cuando se apaga la linterna)
   box(142, 250, 328, 386, (386 - 328) / 2 * k, '#151515');   // perilla de encendido
   c.fillStyle = '#4b4b4b'; c.beginPath(); c.arc(X(357), Y(222), 24 * k, 0, Math.PI * 2); c.fill();
-  // la ventana de la batería: marco negro y la barra de siempre (amarilla, naranja con poco, roja al final), que se
-  // vacía hacia la cola
+  // la ventana de la batería: marco negro y la barra, que se vacía hacia la cola, del color de la pila del HUD (verde,
+  // amarilla, naranja y roja según los bloques que quedan)
   box(108, 285, 405, 852, 40 * k, '#000000');
   box(120, 273, 418, 840, 30 * k, '#121316');
   const frac = isMenu() ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
   const blinkOut = G.state === 'play' && G.dark && G.timeLeft <= WARN_T && Math.sin(G.time * 14) < -0.3;
   if (frac > 0 && !blinkOut) {
     const x0 = X(840), len = X(418) - x0, y0 = Y(120), wd = Y(273) - y0;
-    c.fillStyle = frac > 0.25 ? '#e2ea3a' : frac > 0.1 ? '#f2b53a' : '#f0563a';
+    c.fillStyle = LAMP_COLORS[Math.max(1, lampBlocks()) - 1];   // los mismos colores que la pila del HUD
     rr(x0, y0, len * frac, wd, 30 * k); c.fill();
     c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(x0 + 0.2, y0 + 0.3, Math.max(0, len * frac - 0.4), 0.5);   // brillo
   }
@@ -4959,8 +4979,8 @@ function render() {
       ctx.fillStyle = `rgba(255,255,255,${k})`; ctx.fillRect(-sz / 2, -sz / 2, sz, sz); ctx.restore();
       continue;
     }
-    ctx.fillStyle = `rgba(245, 205, 80, ${k})`;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(${p.rgb || '245, 205, 80'}, ${k})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r || 1.6, 0, Math.PI * 2); ctx.fill();
   }
 
   // 5) las paredes son más altas que el ratón: se vuelven a dibujar encima, solo en la zona alrededor de él. Solo los
@@ -5023,10 +5043,9 @@ function render() {
     $lamp.classList.toggle('hidden', !G.lamp || ['won', 'lost'].includes(G.state));
     $lamp.classList.toggle('up', !G.cheeseTotal);
     if (G.lamp) {
-      const n = Math.min(4, Math.ceil(Math.max(0, G.timeLeft) / (G.lampBlock || LAMP_BLOCK) - 1e-6)), crit = G.timeLeft <= WARN_T;
+      const n = lampBlocks(), crit = G.timeLeft <= WARN_T;
       const blink = crit && G.state === 'play' && Math.sin(G.time * 14) < -0.3;
-      $lampBat.dataset.n = n;
-      $lampCells.forEach((el, k) => { el.className = k < n ? 'on' + (blink && k === n - 1 ? ' blink' : '') : ''; });
+      $lampCells.forEach((el, k) => { el.className = k < n ? 'on' + (blink && k === n - 1 ? ' blink' : '') : ''; el.style.background = k < n ? LAMP_COLORS[n - 1] : ''; });
     }
   }
   const showHint = G.state === 'play' && G.level <= 2;
