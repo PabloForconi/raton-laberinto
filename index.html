@@ -366,17 +366,15 @@
   /* la máquina grande y un poco más abajo; el espacio que sobra se reparte arriba de ella y antes del botón Bioterio */
   #gachaCv { display: block; width: min(calc(100vh - 230px), 100vw); aspect-ratio: 1; flex: 0 0 auto; margin-top: auto; }
   #gachaNav { margin-top: auto; }
-  #gachaBtns { min-height: 48px;   /* aunque esté vacío (mientras anda) ocupa lo mismo: la máquina no se corre */
+  #gachaBtns { min-height: 48px; margin-top: 8px;   /* aunque esté vacío (mientras anda) ocupa lo mismo: la máquina no se corre (el margen reemplaza el hueco del texto de "te faltan monedas", que ya no está: sin monedas el botón Activar se ve apagado, y el usuario prefirió eso) */
     /* subido (sin mover nada más) hasta justo debajo del borde de la mesada, como marcó el usuario; la mesada termina
        6,3 unidades antes del pie del canvas de la máquina, que mide min(100vh - 230px, 100vw) = 300 unidades */
     top: calc(-9px - 0.021 * min(100vh - 230px, 100vw)); }
-  #gachaRes:empty { min-height: 0; }   /* sin texto (en reposo) el botón Activar queda justo debajo de la máquina */
   /* luz de la baliza: un canvas a pantalla completa detrás del título, el texto y los botones */
   #gachaFx, #gachaFx2 { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
   #gachaFx2 { z-index: 2; }   /* la capa de adelante: ahí va la ratita del premio, así no la corta el borde del canvas */
   #screen .inner > :not(#gachaFx):not(#gachaFx2) { position: relative; z-index: 1; }
-  #screen .inner > .stitle, #gachaRes, #gachaBtns, #gachaNav { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
-  #gachaRes { min-height: 2.8em; margin: 0; font-size: 16px; text-shadow: 0 0 6px #000, 0 2px 4px #000, 0 0 14px rgba(0,0,0,0.8); }
+  #screen .inner > .stitle, #gachaBtns, #gachaNav { z-index: 3; }   /* los textos y botones quedan arriba de la luz */
   .gname { font-family: 'Kalam', cursive; font-size: 30px; color: #f6e7bf; }
   .cbtn:disabled { opacity: .5; cursor: default; }
   /* portada */
@@ -715,8 +713,8 @@ const Story = {
 // de 5 a 13; los niveles 1 a 3 dan 18), o sea hasta 15 giros, uno cada 2 o 3 niveles, y el primero después del nivel 3;
 // juntar las 20 ratitas lleva unos 100 giros (~1200 monedas con lo que devuelven las repetidas), así que el resto sale
 // del Desafío (el nivel N da N monedas)
-const COIN_PRICE = 20;
-const COIN_SPIN = COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
+const COIN_PRICE = 20, FREE_SPIN = false;   // FREE_SPIN: true para probar la máquina gratis; false = cobra COIN_PRICE
+const COIN_SPIN = FREE_SPIN ? 0 : COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
@@ -2423,7 +2421,6 @@ function showMachine(from) {
     <h2 class="stitle up" aria-hidden="true" style="visibility:hidden">MÁQUINA</h2><!-- sin título (el usuario lo sacó): queda invisible para que la máquina y la franja de arriba no se muevan -->
     <canvas id="gachaCv" width="900" height="900"></canvas>
     <canvas id="gachaFx2"></canvas>
-    <p id="gachaRes">${gachaHint()}</p>
     <div class="sbtns" id="gachaBtns">${gachaButtons(false)}</div>
     <div class="sbtns" id="gachaNav">${screenBackBtn()}<button class="cbtn" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button></div>`, from);   // abajo, donde está el botón Máquina en el Bioterio (con la casita a la izquierda)
   updateButtons(); placeScreenBg();
@@ -2438,10 +2435,6 @@ function showMachine(from) {
     if (cv2) { drawGachaFx(cv2); drawGacha(cv2.getContext('2d'), cv2.width); }
   };
   Gacha.raf = requestAnimationFrame(step);
-}
-function gachaHint() {
-  return Wallet.coins >= COIN_SPIN ? ''   // el precio ya está en el botón Activar
-    : say(`Te faltan <b>${COIN_SPIN - Wallet.coins}</b> ${COIN_ICON} para activarla. Juntalas en los laberintos.`, `You need <b>${COIN_SPIN - Wallet.coins}</b> more ${COIN_ICON} to start it. Collect them in the mazes.`);
 }
 function gachaButtons(after) {
   const spin = `<button class="cbtn" data-act="spin" ${Wallet.coins >= COIN_SPIN ? '' : 'disabled'}>${after ? say('Otra vez', 'Again') : say('Activar', 'Start')} · ${COIN_SPIN} ${COIN_ICON}</button>`;
@@ -2462,7 +2455,6 @@ function gachaSpin() {
   if (Gacha.reappear) { Gacha.caps = null; Object.assign(Gacha.L, { beacon: 0.12, tubeL: 0.15, tubeR: 0.15, inner: 0.3, door: 0 }); machBgDark(false); }
   Gacha.conf = []; Gacha.spark = [];
   Gacha.beaconOn = false;
-  document.getElementById('gachaRes').textContent = '';   // sin textos mientras anda: así la máquina no se corre
   // el botón se esconde pero sigue ocupando su lugar (si se sacaba, la fila quedaba 8 px más baja y la máquina, que está
   // centrada con ella, se corría 4 px justo al tocar Activar)
   document.querySelectorAll('#gachaBtns > *').forEach(b => { b.style.visibility = 'hidden'; b.style.animation = 'none'; }); updateButtons();   // mientras anda, sin flechita
@@ -2790,7 +2782,7 @@ function drawGachaFx(gcv) {
 const JUMP = { n: 36, dt: 1 / 30, contact: 16 };   // cuadros · segundos por cuadro · el cuadro en que apoya las patas
 // JUMP_SLOW: cuánto más lento va el salto en el aire, de la bolita hasta que apoya las patas (el aterrizaje y el rebote
 // siguen a su velocidad). 1 es el salto de antes, que el usuario quiso conservar al pedir probar uno más lento
-const JUMP_SLOW = 1.35;
+const JUMP_SLOW = 1.18;   // (el usuario probó 1,35 y lo quiso un poco más rápido, sin llegar al de antes)
 const JUMP_AIR = JUMP.contact * JUMP.dt * JUMP_SLOW;   // lo que dura en el aire (s)
 const jumpFr = t => clamp(t < JUMP_AIR ? t / (JUMP.dt * JUMP_SLOW) : JUMP.contact + (t - JUMP_AIR) / JUMP.dt, 0, JUMP.n - 1);   // el cuadro en el instante t
 const SALTO_FR = [
@@ -3750,7 +3742,6 @@ function relang() {
       const b = $scr.querySelector('#gachaNav [data-act="ratitas"]'); if (b) b.textContent = say('Bioterio', 'Vivarium');
       if (['idle', 'reveal'].includes(Gacha.phase)) {   // (mientras anda no hay textos ni botón)
         document.getElementById('gachaBtns').innerHTML = gachaButtons(Gacha.phase === 'reveal');
-        if (Gacha.phase === 'idle') document.getElementById('gachaRes').innerHTML = gachaHint();
       }
     }
   }
@@ -4365,9 +4356,9 @@ function drawFloor(c, v) {
   // salida e inicio pintados en el piso
   c.save(); c.translate(C * 0.5, (m.exitRow + 0.5) * C);
   c.fillStyle = 'rgba(150,20,16,0.85)'; c.font = `13px 'Kalam', cursive`;
-  c.fillText('SALIDA', 2, -10); c.font = `22px 'Kalam', cursive`; c.fillText('←', 0, 10); c.restore();
+  c.fillText(say('SALIDA', 'EXIT'), 2, -10); c.font = `22px 'Kalam', cursive`; c.fillText('←', 0, 10); c.restore();
   c.save(); c.translate((m.W + 0.5) * C, (m.entRow + 0.5) * C + 18); c.rotate(-0.08);
-  c.fillStyle = 'rgba(30,20,12,0.55)'; c.font = `10px 'Kalam', cursive`; c.fillText('INICIO', 0, 0); c.restore();
+  c.fillStyle = 'rgba(30,20,12,0.55)'; c.font = `10px 'Kalam', cursive`; c.fillText(say('INICIO', 'START'), 0, 0); c.restore();
   drawStartTape(c, Wp, m.entRow * C + T / 2 - 2, C - T + 4);
   drawStartTape(c, 0, m.exitRow * C + T / 2 - 2, C - T + 4, 0, true);   // la llegada, a cuadros
   // sombras de contacto al pie de las paredes
