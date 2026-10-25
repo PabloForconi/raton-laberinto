@@ -634,9 +634,9 @@ const LEVELS = [
     intro: 'El más grande hasta ahora.' },
   { name: 'Pegatrampas', seed: 4838, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Pegamento por todos lados y trampas en cada callejón.' },
-  { name: 'Casi libre', seed: 4939, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'Casi libre', seed: 8915, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'Ya se huele el aire de afuera.' },
-  { name: 'La gran fuga', seed: 5040, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'La gran fuga', seed: 7732, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const STORY_VIEW = 5;   // los niveles de Historia usan el zoom y el factor de tiempo del nivel 5 de Desafío
@@ -770,7 +770,10 @@ const Snd = {
   ctx: null, master: null, noiseBuf: null,
   muted: (() => { try { return localStorage.getItem('raton.muted') === '1'; } catch (_) { return false; } })(),
   init() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    // en iPhone, con el teléfono en silencio, Web Audio (todos los efectos) no suena aunque la música sí: se pide la
+    // sesión de audio de reproducción, como un video (Safari 17+); si no existe, no pasa nada
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (_) {}
+    if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {}); return; }   // (también 'interrupted', en iPhone)
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const ctx = this.ctx = new AC();
     this.master = ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.8; this.master.connect(ctx.destination);
@@ -898,6 +901,8 @@ const Snd = {
   star(k = 0) { const f = [784, 988, 1175][k] || 1175; this.tone(f, f * 1.5, 0.12, 'triangle', 0.16); this.tone(f * 2, f * 2, 0.18, 'sine', 0.06, 0.06); },
   cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
+  gateLand() { this.tone(110, 55, 0.14, 'sine', 0.22); this.noise(0.07, 450, 0.8, 0.18, 'lowpass'); this.noise(0.03, 380, 0.8, 0.06, 'lowpass', 0.16); },   // la compuerta toca abajo y rebota blandito
+  tap() { this.noise(0.03, 1400, 1.2, 0.22); this.tone(520, 380, 0.05, 'triangle', 0.05); },   // tocar un botón de cartón
   battery() { this.tone(330, 660, 0.12, 'square', 0.06); this.tone(660, 1320, 0.16, 'square', 0.05, 0.1); this.tone(1320, 1320, 0.1, 'triangle', 0.12, 0.24); },
   flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
   flapShut(v = 1) { this.noise(0.05, 650, 0.9, 0.3 * v, 'lowpass'); this.tone(190, 95, 0.07, 'sine', 0.16 * v); },   // la cortina golpea el marco
@@ -1870,7 +1875,7 @@ function pickRat(i) {
   if (!Skins.has(i)) return;
   Skins.data.sel = i; Skins.save(); Snd.click();
   $scr.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // el cartel de la elegida se pinta de amarillo
-  const cv = $scr.querySelector(`canvas[data-rat="${i}"]`); if (cv) cagePokes.set(cv, -WAG_DELAY);   // y le sacude la colita (un instante después)
+  const cv = $scr.querySelector(`canvas[data-rat="${i}"]`); if (cv) { cagePokes.set(cv, -WAG_DELAY); setTimeout(() => Snd.squeak(), WAG_DELAY * 1000); }   // y le sacude la colita (un instante después)
 }
 // Retrato de una ratita de perfil (mirando a la izquierda), agachada, sin arnés ni linterna: para la galería, la grilla
 // de ratitas y la máquina. Estilo plano como la referencia: cabeza en cuña baja (el hocico casi toca el piso), oreja de
@@ -3403,6 +3408,7 @@ function closeOpts() {   // con su animación de salida; después se esconde
 $opts.addEventListener('click', e => {
   e.stopPropagation(); Snd.init();
   const b = e.target.closest('[data-o]'), o = b && b.dataset.o;
+  if (b && o !== 'home' && o !== 'retry') Snd.tap();   // (casita y reiniciar suenan en act)
   if (!b) { if (G.state !== 'paused') closeOpts(); return; }   // tocar afuera cierra las opciones (la pausa no, para no seguir sin querer)
   if (o === 'music') { Music.toggle(); renderOpts(); updateButtons(); }
   else if (o === 'sound') { Snd.toggle(); renderOpts(); updateButtons(); }
@@ -3440,7 +3446,7 @@ function fadeTo(fn) {
 // Botones de los carteles (data-act); los que cambian de pantalla pasan por el fundido
 const FADE_ACTS = ['story', 'challenge', 'level', 'next', 'levels', 'back', 'menu', 'ratitas', 'machine', 'use'];
 function act(a, el) {
-  Snd.init();
+  Snd.init(); if (a !== 'start') Snd.tap();   // (Jugar ya tiene su click)
   if (a === 'story' || a === 'challenge') firstGesture();   // la música tiene que arrancar en el mismo toque
   if (FADE_ACTS.includes(a)) fadeTo(() => actNow(a, el)); else actNow(a, el);
 }
@@ -3796,7 +3802,9 @@ function update(dt) {
     G.light *= 1 - exitDarkness();
     updateItems();
     for (const it of G.items) if (it.type === 'gate') {   // "clac" cuando una compuerta cercana empieza a bajar
-      const w = gateState(it).warn; if (w && !it.warned && Math.hypot(M.x - it.x, M.y - it.y) < C * 5) Snd.gate(); it.warned = w;
+      const w = gateState(it).warn, near = Math.hypot(M.x - it.x, M.y - it.y) < C * 5; if (w && !it.warned && near) Snd.gate(); it.warned = w;
+      const gt = ((G.time + it.ph) % GATE_CYCLE + GATE_CYCLE) % GATE_CYCLE, down = GATE_OPEN + GATE_MOVE;   // "tac" al tocar abajo
+      if (it.prevT != null && it.prevT < down && gt >= down && near) Snd.gateLand(); it.prevT = gt;
     }
     if (G.state !== 'play') { /* una trampa terminó la partida */ }
     else if (M.x < -6) win();
