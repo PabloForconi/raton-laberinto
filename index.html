@@ -2788,6 +2788,11 @@ function drawGachaFx(gcv) {
 // usuario (sin contar orejas, patas ni bigotes); hecha bolita, la bola es la cabeza agrandada y la panza va achicada
 // adentro.
 const JUMP = { n: 36, dt: 1 / 30, contact: 16 };   // cuadros · segundos por cuadro · el cuadro en que apoya las patas
+// JUMP_SLOW: cuánto más lento va el salto en el aire, de la bolita hasta que apoya las patas (el aterrizaje y el rebote
+// siguen a su velocidad). 1 es el salto de antes, que el usuario quiso conservar al pedir probar uno más lento
+const JUMP_SLOW = 1.35;
+const JUMP_AIR = JUMP.contact * JUMP.dt * JUMP_SLOW;   // lo que dura en el aire (s)
+const jumpFr = t => clamp(t < JUMP_AIR ? t / (JUMP.dt * JUMP_SLOW) : JUMP.contact + (t - JUMP_AIR) / JUMP.dt, 0, JUMP.n - 1);   // el cuadro en el instante t
 const SALTO_FR = [
 [83.7,1218.7,23.1,12.2,1247,24.4,9.1,60,984.4,30,30,0,6,22,159,1203.8,39.9,24.4,0.3,60,1024.4,30,15,0,0,984.4,991.9,267.3,262,0.45,0.45,1184.4],
 [84.7,1181,23.8,12.2,1209.7,24.7,9.2,60,946,30,30,0,6,22,160.1,1167,39.7,24.4,0.3,60,986,30,15,0,0,946,952.7,268.8,262,0.435,0.45,1146],
@@ -2828,7 +2833,7 @@ const SALTO_FR = [
 ];
 // La ratita en el instante t del salto (en segundos), con (cx, cy, size) como la sentada (drawRatFrontPose)
 function drawRatJump(c, cx, cy, size, i, t) {
-  const fr = clamp(t / JUMP.dt, 0, JUMP.n - 1), k0 = Math.floor(fr), k1 = Math.min(JUMP.n - 1, k0 + 1), w = fr - k0;
+  const fr = jumpFr(t), k0 = Math.floor(fr), k1 = Math.min(JUMP.n - 1, k0 + 1), w = fr - k0;
   const F = SALTO_FR[k0].map((v, j) => j === 24 ? (w < 0.5 ? v : SALTO_FR[k1][j]) : lerp(v, SALTO_FR[k1][j], w));
   // la bolita sale toda blanca de la cápsula y para el cuadro 8 ya tiene sus colores (lo pidió el usuario)
   const wht = 1 - (u => u * u * (3 - 2 * u))(clamp((fr - 4) / 3, 0, 1));   // (blanca hasta el cuadro 5)
@@ -2938,12 +2943,12 @@ function drawRatJump(c, cx, cy, size, i, t) {
   c.restore();
 }
 const REV_SLOW = 1, REV_CAP_FRONT = 0.06;   // ritmo de las mitades de la cápsula · hasta cuándo van delante de la ratita
-const REV_END = (JUMP.n - 1) * JUMP.dt;      // desde acá queda la ratita sentada (la misma, sin cambiar nada)
+const REV_END = JUMP_AIR + (JUMP.n - 1 - JUMP.contact) * JUMP.dt;      // desde acá queda la ratita sentada (la misma, sin cambiar nada)
 // KF2: la ratita sentada al final (size es su altura); un 15% más chica que antes (154), como pidió el usuario, con los
 // pies en el mismo lugar de la mesada (el salto entero se achica con ella; la bolita sigue en el centro de la cápsula)
 // (1092 − 624: del centro del cuerpo de la sentada, FRONT_CY[0], al piso; FRONT_CY se declara más abajo)
 const KF2_FLOOR = 132 + (1092 - 624) * 154 / 935, KF2_SIZE = 154 * 0.85;
-const TRAVEL = JUMP.contact * JUMP.dt, KF2 = { x: 150, y: KF2_FLOOR - (1092 - 624) * KF2_SIZE / 935, size: KF2_SIZE };
+const TRAVEL = JUMP_AIR, KF2 = { x: 150, y: KF2_FLOOR - (1092 - 624) * KF2_SIZE / 935, size: KF2_SIZE };
 // Sombra de la ratita sobre la mesada, como la de la máquina (una elipse chata, negra al 30%): aparece de transparente a
 // la par que se esfuman las líneas cinéticas y aparece el laboratorio (lo pidió el usuario; antes aparecía al apoyar las
 // patas) y su ancho sigue a las patas
@@ -2951,7 +2956,7 @@ function drawRatShadow(g, t) {
   const o = 1 - clamp((t - SPEED_HOLD) / SPEED_FADE, 0, 1), a = 1 - o * o * (3 - 2 * o); if (a <= 0) return;   // (como Gacha.labA)
   let span = 244 + 110;   // de la ratita sentada: del centro al borde de afuera de la pata
   if (t < REV_END) {
-    const fr = clamp(t / JUMP.dt, 0, JUMP.n - 1), k0 = Math.floor(fr), k1 = Math.min(JUMP.n - 1, k0 + 1), w = fr - k0;
+    const fr = jumpFr(t), k0 = Math.floor(fr), k1 = Math.min(JUMP.n - 1, k0 + 1), w = fr - k0;
     const sp = F => F[19] + F[21] * Math.abs(Math.cos(F[23]));
     span = lerp(sp(SALTO_FR[k0]), sp(SALTO_FR[k1]), w);
   }
@@ -2959,7 +2964,7 @@ function drawRatShadow(g, t) {
   g.save(); g.globalAlpha *= a; g.fillStyle = 'rgba(0,0,0,0.3)';
   g.beginPath(); g.ellipse(KF2.x, fy, rx, rx * 0.06, 0, 0, Math.PI * 2); g.fill(); g.restore();
 }
-const JUMP_OFF_T = 9 * JUMP.dt;   // en cuánto deja de estar corrida hacia el centro de la cápsula (antes de lo más alto)
+const JUMP_OFF_T = 9 * JUMP.dt * JUMP_SLOW;   // en cuánto deja de estar corrida hacia el centro de la cápsula (antes de lo más alto)
 function drawRevealRat(g, t, pick) {
   drawRatShadow(g, t);
   if (t < REV_END) {
@@ -3160,10 +3165,10 @@ function buildSpeedLines(FR) {
   w2.fill();
   P.raysKey = FR;
 }
-const SPEED_HOLD = 1.9, SPEED_FADE = 1.4;
+const SPEED_HOLD = 1.9, SPEED_FADE = 1.4;   // las líneas cinéticas del premio: cuánto quedan y cuánto tardan en apagarse (s)
 // cuándo aparecen el nombre (apenas después de que aterriza), la rareza y el aviso (con el laboratorio ya a la vista), en
 // segundos desde que se abre la cápsula
-const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1, SPEED_HOLD + SPEED_FADE + 0.45];   // las líneas cinéticas del premio: cuánto quedan y cuánto tardan en apagarse (s)
+const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1, SPEED_HOLD + SPEED_FADE + 0.45];
 // a prueba: la imagen bg_cinetica_01 del usuario (img/fondo-cinetica.jpg) en vez de los rayos dibujados (false = dibujados)
 const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg';
 // la imagen es de 1920 px: se achica una sola vez a SPEED_IMG_PX en un canvas aparte, así cada cuadro gira una textura
