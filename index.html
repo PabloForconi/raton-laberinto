@@ -65,7 +65,7 @@
   .cbtn.alt { background: #c8b893; font-size: 17px; }
   .cbtn:hover { filter: brightness(1.06); }
   .cbtn:active { transform: translateY(2px) scale(.97); box-shadow: 0 1px 0 #6b4c2c; }
-  #card .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 14px 0 4px; max-height: 52vh; overflow-y: auto; padding: 4px 6px 8px;
+  #card .levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 14px 0 4px; max-height: 52vh; overflow-y: auto; padding: 4px 6px 8px;
     scrollbar-width: none; }   /* se sigue pudiendo deslizar, pero sin la barra */
   #card .levels::-webkit-scrollbar { display: none; }
   #card .lvl { background: #e2d6b8; border: 0; padding: 8px 4px 6px; cursor: pointer; box-shadow: 0 3px 0 #6b4c2c;
@@ -194,7 +194,7 @@
   #card .wprice { display: inline-flex; align-items: center; gap: 4px; font-size: .8em; opacity: .85; }
   #card .wprice .ci { width: 1.05em; height: 1.05em; }
   /* selector de niveles: fichas de papel en una caja de papel encintada; las de los niveles a oscuras, oscuras */
-  #card .wlevels { margin: 16px 2px 4px; padding: 10px 6px; }
+  #card .wlevels { margin: 16px 2px 4px; padding: 10px 6px; background-color: #cfa96f; }   /* un marrón un poco más oscuro que el papel: las fichas se despegan del fondo */
   #card .wlevels .levels { margin: 0; }
   #card .lvl { background: #f6e9cc; border-radius: 6px; box-shadow: 0 3px 0 #9b7244; }
   #card .lvl.dark { background: #3a3542; color: #f1e3c2; box-shadow: 0 3px 0 #1d1a22; }
@@ -455,7 +455,7 @@
     #timer { top: 32px; font-size: 26px; }
     #cheese, #lamp { font-size: 21px; }
     #lamp { top: 108px; }
-    #card .levels { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+    #card .levels { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
     #card .lvl b { font-size: 21px; }
     #card .lvl small { font-size: 9px; }
     #card .st { font-size: 18px; }
