@@ -231,7 +231,7 @@
   #card .wcoins .ci:first-child { left: 0; top: 8px; } #card .wcoins .ci:last-child { left: 30px; top: 0; }
   #card .wreward .num { font-size: 56px; }
   #card .wreward .wray { position: static; width: 26px; height: 26px; }
-  #card .wmach { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 72px; margin: 0 0 14px; padding: 8px 10px 8px 112px;
+  #card .wmach { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: 10px; width: 100%;   /* (border-box: el cartel sin monedas es un div, no un botón) */ min-height: 72px; margin: 0 0 14px; padding: 8px 10px 8px 112px;
     background: linear-gradient(#ffdc45, #f4b00e); border: 3px solid #b77d06; border-radius: 14px; box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.3);
     font: 22px/1.05 'Kalam', cursive; color: #2b1a0b; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* la ratita asomando de la cápsula (img/btn-maquina.png, la btn_img_maquina del usuario achicada a 200 px de ancho): más
