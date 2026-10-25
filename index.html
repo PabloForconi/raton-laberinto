@@ -105,6 +105,7 @@
   #card .wstar { position: relative; width: 31%; max-width: 104px; margin: 0 2px; flex: none; }   /* las de los costados, del mismo tamaño que antes y un poco hacia afuera */
   #card .wstar svg { display: block; width: 100%; height: auto; }
   #card .wstar .wsh { transform: translateY(7%) scale(1.16); }   /* un poco más grande y más abajo: asoma por debajo de la dorada */
+  #card .wstar.off .wsh { transform: translateY(1%) scale(1.16); }   /* vacía (sin dorada encima): un poco más arriba, a la altura de las doradas */
   #card .wstar .wgold { position: absolute; inset: 0; filter: drop-shadow(0 4px 2px rgba(60,30,5,.45)); animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
   #card .wstar:nth-of-type(2) { top: -14px; width: 36%; max-width: 122px; }   /* la del medio, más grande y más arriba */
   #card .wray { position: absolute; width: 34px; height: 34px; top: 18px; }
@@ -3176,7 +3177,7 @@ const STAR_PTS = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 +
 function starSvg(on, d) {
   const pts = STAR_PTS.map(p => p.join(',')).join(' ');
   const sh = `<svg class="wsh" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="rgba(45,25,8,.42)" stroke="rgba(45,25,8,.42)" stroke-width="7" stroke-linejoin="round"/></svg>`;
-  if (!on) return `<span class="wstar">${sh}</span>`;
+  if (!on) return `<span class="wstar off">${sh}</span>`;
   let fac = '';
   for (let i = 0; i < 10; i += 2) {
     const o = STAR_PTS[i], a = STAR_PTS[(i + 9) % 10], b = STAR_PTS[i + 1], c = '50,53';
@@ -4215,17 +4216,19 @@ function spinPush(cx, cy, r, k = 0) {
   }
   return [ox, oy];
 }
-function drawSpinner(c, it) {
+function drawSpinner(c, it, armsOnly = false) {
   const a = spinAng(it);
   c.save(); c.translate(it.x, it.y);
+  if (!armsOnly) {
   // flechas en el piso, alrededor, en el sentido del giro
   c.strokeStyle = 'rgba(35,24,14,0.55)'; c.lineWidth = 1.8; c.lineCap = 'round'; c.lineJoin = 'round';   // el marrón de los textos escritos en el piso
   const R = 29;   // las flechas, donde estaban con las aspas largas: separadas de las aspas cortas, así no se empastan
   for (let q = 0; q < 4; q++) {
-    const m0 = q * Math.PI / 2 + Math.PI / 4 - 0.45, m1 = m0 + 0.9, e = it.dir > 0 ? m1 : m0;
+    const m0 = q * Math.PI / 2 + Math.PI / 4 - 0.27, m1 = m0 + 0.54, e = it.dir > 0 ? m1 : m0;
     c.beginPath(); c.arc(0, 0, R, m0, m1); c.stroke();
     const ex = Math.cos(e) * R, ey = Math.sin(e) * R, tx = -Math.sin(e) * it.dir, ty = Math.cos(e) * it.dir, rx = Math.cos(e), ry = Math.sin(e);
     c.beginPath(); c.moveTo(ex - tx * 4 + rx * 3, ey - ty * 4 + ry * 3); c.lineTo(ex, ey); c.lineTo(ex - tx * 4 - rx * 3, ey - ty * 4 - ry * 3); c.stroke();
+  }
   }
   c.rotate(a);
   // sombra de las aspas en el piso
@@ -4517,6 +4520,19 @@ function drawMouse(c, alpha) {
     for (let i = 1; i <= TAIL_N; i++) {
       c.lineWidth = tailWidth(i / TAIL_N);
       c.beginPath(); c.moveTo(M.tail[i - 1][0], M.tail[i - 1][1]); c.lineTo(M.tail[i][0], M.tail[i][1]); c.stroke();
+    }
+    // la cola va por el piso, debajo de las aspas de los molinetes (el cuerpo no): en el juego, las aspas de un molinete
+    // cercano se vuelven a dibujar encima, recortadas a la forma de la cola
+    if (c === mouseCtx) for (const it of G.items) {
+      if (it.type !== 'spinner' || Math.hypot(it.x - M.x, it.y - M.y) > SPIN_ARM + 60) continue;
+      c.save(); c.beginPath();
+      for (let i = 1; i <= TAIL_N; i++) {
+        const [x0, y0] = M.tail[i - 1], [x1, y1] = M.tail[i], r = tailWidth(i / TAIL_N) / 2 + 0.5, d = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const nx = -(y1 - y0) / d * r, ny = (x1 - x0) / d * r;
+        c.moveTo(x0 + nx, y0 + ny); c.lineTo(x1 + nx, y1 + ny); c.lineTo(x1 - nx, y1 - ny); c.lineTo(x0 - nx, y0 - ny); c.closePath();
+        c.moveTo(x1 + r, y1); c.arc(x1, y1, r, 0, Math.PI * 2);
+      }
+      c.clip(); drawSpinner(c, it, true); c.restore();
     }
   }
   c.translate(M.x, M.y); c.rotate(M.a);
