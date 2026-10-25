@@ -205,6 +205,9 @@
   #card .lvl.dark { background: #3a3542; color: #f1e3c2; box-shadow: 0 3px 0 #1d1a22; }
   #card .lvl.dark .st i { color: rgba(241,227,194,.25); }
   #card .lvl.dark small { opacity: .8; }
+  /* en PC el cartel de niveles es más ancho y las fichas, cuadradas (como en el celular): así entran los nombres largos */
+  #card:has(.wsel) { width: min(600px, calc(100vw - 24px)); }
+  @media (min-width: 561px) { #card .wsel .lvl { aspect-ratio: 1; justify-content: center; } #card .wsel .lvl small { font-size: 12px; } }
   /* carteles de perder (trampa o tiempo): el subtítulo en rojo y una caja con el dibujito y qué pasó */
   :is(#card, #opts) .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
   #card .wlose { display: flex; align-items: center; gap: 14px; margin: 16px 2px 18px; padding: 16px 16px 14px; text-align: left; }
@@ -1810,7 +1813,7 @@ let cardTimer = 0;
 // Los carteles no se mezclan: el que sale se va rápido (0,1 s) y el nuevo entra recién cuando el otro ya no está.
 // Durante un fundido a negro el viejo desaparece de una (no se ve) y el nuevo entra cuando la pantalla se aclara
 const CARD_OUT_MS = 100, CARD_GAP_MS = 40;
-let fading = false;   // hay un fundido a negro en curso (fadeTo)
+let fading = false, fadeLock = false, fadeId = 0;   // hay un fundido a negro en curso (fadeTo) · todavía no se puede empezar otro · cuál es el último
 function card(html, anim = null) {
   clearTimeout(cardTimer); cardAnimStop();
   const leaving = $card.classList.contains('out'), shown = !$card.classList.contains('hidden') && !leaving;
@@ -1874,7 +1877,7 @@ function showSelect() {
     return `<button class="lvl${DARK_LEVELS.includes(i + 1) ? ' dark' : ''}" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
       <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? 'bloqueado' : L.name}</small></button>`;
   }).join('');
-  card(`<div class="win"><div class="wtitle"><b>Niveles</b></div>
+  card(`<div class="win wsel"><div class="wtitle"><b>Niveles</b></div>
     <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div>
     <div class="wbtns home"><button class="wbtn re sq" data-act="menu" aria-label="Portada">${ICONS.home}</button><button class="wbtn re" data-act="ratitas">Bioterio</button></div></div>`, { kind: 'select' });   // adentro del cartel (como en los demás): la casita a la portada y el Bioterio para elegir la ratita antes de jugar (ESPACIO sigue jugando el último desbloqueado)
   updateButtons();
@@ -2411,6 +2414,10 @@ function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
   Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
+  // solo quedan guardados los cuadros del salto de la que sale ahora (cada ratita son 25 imágenes, ~20 MB: guardando las
+  // de todas, después de muchas tiradas la memoria se llenaba y el navegador congelaba los lienzos de la máquina al abrirse
+  // la cápsula)
+  for (const p in jumpCache) if (+p !== Gacha.pick) { jumpCache[p].forEach(cv => { if (cv) cv.width = cv.height = 0; }); delete jumpCache[p]; }
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
   Gacha.cap = CAP_COLORS[Math.floor(Math.random() * CAP_COLORS.length)];
@@ -2748,6 +2755,7 @@ function jumpFrame(pick, k) {
   x.putImageData(im, 0, 0);
   // se copia a un canvas común: el de willReadFrequently vive en la CPU y dibujarlo en cada cuadro era más lento
   const out = document.createElement('canvas'); out.width = JUMP.fw; out.height = JUMP.fh; out.getContext('2d').drawImage(c, 0, 0);
+  c.width = c.height = 0;   // el de la CPU ya no hace falta: se libera enseguida
   return cache[k] = out;
 }
 // Pinta por adelantado los cuadros del salto de la ratita que va a salir, de a uno por cuadro mientras la máquina anda
@@ -3304,6 +3312,8 @@ function starSvg(on, d) {
   const spk = [0, 1, 2, 3, 4, 5].map(k => `<i class="spk" style="--ang:${k * 60 + 15}deg"></i>`).join('');
   return `<span class="wstar" style="--d:${d}s">${sh}<svg class="wgold" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg>${spk}</span>`;
 }
+// rayitas derechas de la recompensa (como pidió el usuario): una horizontal y dos en abanico, que apuntan hacia el medio
+const RAYS_SIDE_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M14 20 L34 20 M15 9 L31 15 M15 31 L31 25"/></svg>`;
 const RAYS_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M30 30 L14 16 M33 24 L28 5 M24 34 L5 30"/></svg>`;
 const WATCH_SVG = `<svg viewBox="0 0 64 64"><rect x="26" y="3" width="12" height="7" rx="2" fill="#3b3b40"/><rect x="29.5" y="9" width="5" height="6" fill="#3b3b40"/>
   <rect x="45" y="10" width="9" height="6" rx="2" fill="#3b3b40" transform="rotate(42 49.5 13)"/><rect x="10" y="10" width="9" height="6" rx="2" fill="#3b3b40" transform="rotate(-42 14.5 13)"/>
@@ -3352,8 +3362,20 @@ function machButton() {
 function fitWin() {
   const w = $card.querySelector('.win'); if (!w) return;
   w.style.zoom = 1;
-  const h = $card.offsetHeight + 30, side = innerWidth - $card.offsetWidth < 150;   // +30: el título asoma arriba
-  const avail = innerHeight - (side ? 130 : 30);
+  const side = innerWidth - $card.offsetWidth < 150, avail = innerHeight - (side ? 130 : 30);
+  // niveles en PC: la grilla ocupa el alto que queda y termina con la última fila cortada por la mitad, así se ve que
+  // sigue (no hay barra de desplazamiento); en el celular queda como estaba (el usuario lo ve bien así)
+  const L = w.classList.contains('wsel') && w.querySelector('.levels'), t0 = L && L.firstElementChild;
+  if (L) L.style.maxHeight = '';
+  if (t0 && innerWidth > 560) {
+    L.style.maxHeight = 'none';
+    const cs = getComputedStyle(L), gap = parseFloat(cs.rowGap) || 0, pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0), th = t0.offsetHeight;
+    const room = avail - 30 - ($card.offsetHeight - L.offsetHeight) - pad;   // lo que queda para la grilla (30: el título asoma arriba)
+    // (max-height cuenta sin el relleno: se descuenta el de abajo, así de la última fila se ve justo la mitad)
+    const rows = Math.max(1, Math.floor((room - th * 0.5) / (th + gap))), want = rows * (th + gap) + th * 0.5 - (parseFloat(cs.paddingBottom) || 0);
+    if (want < L.scrollHeight) L.style.maxHeight = want + 'px';
+  }
+  const h = $card.offsetHeight + 30;   // +30: el título asoma arriba
   if (h > avail) w.style.zoom = Math.max(0.5, (avail - 20) / (h - 20));
 }
 addEventListener('resize', fitWin);
@@ -3433,8 +3455,8 @@ function showWinCard() {
         ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>Quesos</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
         <div class="wbox wstat">${WATCH_SVG}<div><h3>Tiempo</h3><span class="num">${fmtMS(time)}</span></div>${record ? '<span class="stamp" style="animation-delay:1.75s">¡Nuevo récord!</span>' : ''}</div>
       </div>
-      <div class="wbox wreward"><span class="wtag">Recompensa</span><i class="wray">${RAYS_SVG}</i>
-        <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SVG}</i></div>
+      <div class="wbox wreward"><span class="wtag">Recompensa</span><i class="wray">${RAYS_SIDE_SVG}</i>
+        <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SIDE_SVG}</i></div>
       <div id="machSlot">${machButton()}</div>
       ${last ? '<p>¡Completaste la Historia! Escapaste del laboratorio.</p>' : ''}
       <div class="wbtns ${last ? 'home' : 'three'}">${exitBtn()}<button class="wbtn re" data-act="retry">${RETRY_SVG}Repetir</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}Siguiente</button>`}</div>
@@ -3535,10 +3557,16 @@ const FADE_MS = 160;
 const $fade = document.createElement('div'); $fade.id = 'fade'; document.body.appendChild($fade);
 // (fading está declarado más arriba, junto a card(), que también lo mira)
 function fadeTo(fn) {
-  if (fading) return;   // ya está cambiando de pantalla: el segundo toque no hace nada
-  fading = true; $fade.classList.add('on');
+  // mientras va a negro (y un ratito después) el segundo toque no hace nada, así un doble click no cambia dos veces; pero
+  // apenas aparece la pantalla nueva, mientras se aclara, sus botones ya andan (antes se ignoraban hasta que terminaba
+  // de aclarar, y armar el Bioterio tarda: tocar Máquina enseguida no hacía nada y había que tocar otra vez)
+  if (fadeLock) return;
+  const id = ++fadeId; fadeLock = fading = true; $fade.classList.add('on');
   setTimeout(() => {
-    try { fn(); } finally { setTimeout(() => { $fade.classList.remove('on'); setTimeout(() => { fading = false; }, FADE_MS); }, 30); }
+    try { fn(); } finally {
+      setTimeout(() => { fadeLock = false; }, 130);
+      setTimeout(() => { if (id !== fadeId) return; $fade.classList.remove('on'); setTimeout(() => { if (id === fadeId) fading = false; }, FADE_MS); }, 30);
+    }
   }, FADE_MS);
 }
 // Botones de los carteles (data-act); los que cambian de pantalla pasan por el fundido
