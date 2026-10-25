@@ -120,7 +120,7 @@
      en la caja de la recompensa, montado en su borde de arriba y corrido a la derecha (el usuario lo prefirió abajo del
      tiempo, como en las otras, y no adentro de la caja) */
   #card .wrow.solo .wstat { z-index: 1; }
-  #card .wbox.wreward .stamp { top: -36px; bottom: auto; left: 70%; z-index: 3; }
+  #card .wbox.wreward .stamp { top: -29px; bottom: auto; left: 77%; z-index: 3; }
   #card .wrow.solo { grid-template-columns: 1fr; }
   :is(#card, #opts) .wbox { position: relative; padding: 8px 10px; background: #efdcb6; border-radius: 3px;
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.35), transparent 70%); box-shadow: 0 3px 0 #9b7244, 0 4px 8px rgba(0,0,0,.25); }
@@ -134,8 +134,8 @@
   #card .wstat h3 { font-size: 15px; }
   #card .wstat .num { display: block; font-size: 34px; white-space: nowrap; }
   /* el sello del récord va abajo de la caja del tiempo, así no tapa nada */
-  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -11px; z-index: 1; font-size: 21px; padding: 3px 11px 1px; transform: translateX(-50%) rotate(-6deg); animation-name: stampLow; }
-  @keyframes stampLow { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-6deg) scale(1); opacity: 1; } }
+  :is(#card, #opts) .wbox .stamp { top: auto; bottom: -11px; left: 62%; z-index: 1; font-size: 21px; padding: 3px 11px 1px; transform: translateX(-50%) rotate(4deg); animation-name: stampLow; }
+  @keyframes stampLow { from { transform: translateX(-50%) rotate(20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(4deg) scale(1); opacity: 1; } }
   /* cartel de inicio con el mismo formato: el título y una caja "Objetivo" con los quesos y el tiempo de las tres
      estrellas, separados por una rayita, y el botón verde para jugar */
   #card .wgoal { margin: 16px 2px 18px; padding: 10px 12px 14px; text-align: left; }
@@ -223,7 +223,7 @@
     text-transform: uppercase; transform: rotate(-4deg); box-shadow: 0 2px 4px rgba(0,0,0,.3); }
   /* el tiempo objetivo sobre la caja del tiempo (lo pidió el usuario): una etiqueta derecha, cremita y centrada; verde si lo
      cumpliste, roja si no */
-  #card .wtag.wobj { left: 50%; transform: translateX(-50%); white-space: nowrap; background: #fff6df; border: 1.5px solid rgba(110,75,35,.28);
+  #card .wtag.wobj { left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 13px; padding: 2px 8px 0; top: -9px; background: #fff6df; border: 1.5px solid rgba(110,75,35,.28);
     border-radius: 4px; color: #c2362b; }
   #card .wtag.wobj.ok { color: #3f8a2e; }
   #card .wcoins { position: relative; width: 82px; height: 58px; }
@@ -255,7 +255,7 @@
   #card .stamp { position: absolute; left: 50%; top: -27px; white-space: nowrap; font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; font-size: 25px; line-height: 1.1;
     color: #fff; background: #c8161d; border-radius: 6px; padding: 1px 10px 0; text-transform: uppercase; letter-spacing: 1px; overflow: hidden;   /* letra de imprenta angosta, como la referencia */
     box-shadow: 0 2px 3px rgba(0,0,0,.3);
-    transform: translateX(-50%) rotate(-3deg); animation: stamp .35s cubic-bezier(.2, .9, .3, 1.4) .9s both; }
+    transform: translateX(-50%) rotate(-3deg); animation: stamp .2s cubic-bezier(.3, .9, .45, 1.08) .9s both; }   /* rápido y casi sin rebote (lo pidió el usuario) */
   /* como un sello de goma gastado (referencia del usuario): rojo lleno, letras blancas y raspaduras blancas encima */
   #card .stamp::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='28' fill='white' opacity='.75'%3E%3Ccircle cx='0.0' cy='25.8' r='0.56'/%3E%3Ccircle cx='18.9' cy='20.4' r='0.78'/%3E%3Ccircle cx='29.6' cy='21.1' r='0.98'/%3E%3Ccircle cx='48.9' cy='19.2' r='0.87'/%3E%3Ccircle cx='73.5' cy='6.8' r='0.64'/%3E%3Ccircle cx='63.7' cy='19.5' r='0.35'/%3E%3Ccircle cx='61.6' cy='13.1' r='1.13'/%3E%3Ccircle cx='72.7' cy='3.4' r='0.76'/%3E%3Ccircle cx='83.1' cy='19.3' r='0.88'/%3E%3Ccircle cx='52.0' cy='25.5' r='1.12'/%3E%3Ccircle cx='33.5' cy='9.4' r='1.05'/%3E%3Ccircle cx='29.9' cy='4.3' r='0.57'/%3E%3Ccircle cx='38.6' cy='8.3' r='1.14'/%3E%3Ccircle cx='50.2' cy='20.4' r='1.09'/%3E%3Ccircle cx='5.3' cy='7.7' r='0.80'/%3E%3Ccircle cx='45.8' cy='11.8' r='0.47'/%3E%3Ccircle cx='81.8' cy='1.5' r='0.63'/%3E%3Ccircle cx='31.0' cy='18.6' r='1.13'/%3E%3Ccircle cx='46.3' cy='4.6' r='0.67'/%3E%3Ccircle cx='25.5' cy='10.2' r='0.68'/%3E%3Ccircle cx='29.9' cy='14.9' r='0.85'/%3E%3Ccircle cx='21.0' cy='25.4' r='0.71'/%3E%3Ccircle cx='77.7' cy='17.8' r='0.87'/%3E%3Ccircle cx='46.5' cy='14.1' r='0.92'/%3E%3Ccircle cx='84.6' cy='11.1' r='0.94'/%3E%3Ccircle cx='22.6' cy='16.4' r='0.62'/%3E%3Cpath d='M29.8 11.0l-8.7 3.3' stroke='white' stroke-width='0.47' stroke-linecap='round'/%3E%3Cpath d='M73.7 2.2l1.3 2.1' stroke='white' stroke-width='0.45' stroke-linecap='round'/%3E%3Cpath d='M89.7 6.2l-1.7 2.0' stroke='white' stroke-width='0.67' stroke-linecap='round'/%3E%3Cpath d='M53.4 3.9l-10.6 1.3' stroke='white' stroke-width='0.93' stroke-linecap='round'/%3E%3Cpath d='M79.7 25.4l-4.0 1.9' stroke='white' stroke-width='0.41' stroke-linecap='round'/%3E%3Cpath d='M22.3 2.1l8.6 0.0' stroke='white' stroke-width='0.54' stroke-linecap='round'/%3E%3Cpath d='M66.7 13.7l-2.9 2.1' stroke='white' stroke-width='0.93' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 90px 28px; }
   @keyframes stamp { from { transform: translateX(-50%) rotate(-20deg) scale(2); opacity: 0; } to { transform: translateX(-50%) rotate(-3deg) scale(1); opacity: 1; } }
@@ -467,12 +467,6 @@
     .rack, #card .levels, #card { scrollbar-width: none; }
     .rack::-webkit-scrollbar, #card .levels::-webkit-scrollbar, #card::-webkit-scrollbar { display: none; }
   }
-  /* botón provisorio para probar: luz general en el laberinto (abajo a la derecha) */
-  #btnLight { position: fixed; bottom: 14px; right: 14px; z-index: 8; width: 58px; height: 58px; padding: 0; gap: 1px; display: flex;
-    flex-direction: column; align-items: center; justify-content: center; line-height: 1;   /* cuadrado: la lamparita arriba del texto */
-    font-family: 'Kalam', cursive; font-size: 12px; transform: rotate(1.5deg); }
-  #btnLight svg { width: 22px; height: 22px; }
-  #btnLight.on { background: #ffe17a; }
   @media (max-width: 560px) {
     #level { font-size: 13px; }
     #timer { top: 32px; font-size: 26px; }
@@ -529,7 +523,6 @@
 <div id="hintTouch">Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir</div>
 <div id="stickZone"></div>
 <div id="stick"><div id="knob"></div></div>
-<button id="btnLight" class="btn tape hidden" type="button" title="Luz general para probar (no cambia la linterna)"></button>
 <button id="btnBack" class="btn tape hidden" type="button" title="Niveles" aria-label="Niveles"></button>
 <div id="topbtns">
   <button id="btnGear" class="btn tape" type="button" title="Pausa y opciones (P)"></button>
@@ -539,6 +532,16 @@
 <div id="screen"></div>
 
 <script>
+// Reinicio del progreso: la primera vez que se abre esta versión se borran el progreso de Historia, las monedas y las
+// ratitas (el usuario lo pidió al terminar de probar, junto con volver a cobrar la máquina y desbloquear los niveles de a
+// uno); las preferencias (idioma, música y sonido) quedan. Para reiniciar a todos otra vez, cambiar SAVE_VER
+const SAVE_VER = '2';
+try {
+  if (localStorage.getItem('raton.ver') !== SAVE_VER) {
+    ['raton.story', 'raton.coins', 'raton.skins', 'raton.debugLight'].forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('raton.ver', SAVE_VER);
+  }
+} catch (_) {}
 // Idioma (el usuario pidió poder pasar a inglés desde las opciones, con una banderita de Argentina y una de Estados
 // Unidos): 'es' o 'en', guardado en el navegador; la primera vez sale del idioma del navegador. say(es, en) devuelve el
 // texto en el idioma elegido (las pantallas de prueba, la galería y la librería de colores quedan en castellano)
@@ -687,7 +690,7 @@ const BAT_CELLS = 26;   // pilas: como mucho tantas celdas de camino entre una y
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
 // cuando se apaga, se apaga)
 const ROOM_AMBIENT = 0.85, DARK_AMBIENT = 0.1;
-const UNLOCK_ALL = true;   // provisorio, para probar: todos los niveles de Historia desbloqueados (después va false)
+const UNLOCK_ALL = false;   // true: todos los niveles de Historia desbloqueados (para probar)
 
 // Progreso de Historia (niveles desbloqueados, mejores estrellas y mejor tiempo de cada nivel), guardado en el navegador
 const Story = {
@@ -708,8 +711,12 @@ const Story = {
 // ===================== MONEDAS Y RATITAS =====================
 // Monedas: se juntan en el laberinto y quedan guardadas aunque pierdas. Con COIN_SPIN se gira la máquina de ratitas
 // (como el Crossy Road): sale una al azar; si ya la tenías, te devuelve COIN_DUP.
-const COIN_PRICE = 20, FREE_SPIN = true;   // lo que cuesta girar la máquina; FREE_SPIN: provisorio, gratis para probarla
-const COIN_SPIN = FREE_SPIN ? 0 : COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
+// Lo que cuesta girar la máquina. Recalculado (octubre 2026): la Historia da 305 monedas si se juntan todas (7,6 por nivel,
+// de 5 a 13; los niveles 1 a 3 dan 18), o sea hasta 15 giros, uno cada 2 o 3 niveles, y el primero después del nivel 3;
+// juntar las 20 ratitas lleva unos 100 giros (~1200 monedas con lo que devuelven las repetidas), así que el resto sale
+// del Desafío (el nivel N da N monedas)
+const COIN_PRICE = 20;
+const COIN_SPIN = COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
@@ -3718,7 +3725,6 @@ function renderOpts() {
 function applyLangStatic() {
   $btnGear.title = say('Pausa y opciones (P)', 'Pause and options (P)');
   $btnBack.title = say('Niveles', 'Levels'); $btnBack.setAttribute('aria-label', $btnBack.title);
-  $btnLight.title = say('Luz general para probar (no cambia la linterna)', 'Test light for the whole maze (the flashlight does not change)');
   $hint.innerHTML = say('<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> moverte ·<kbd>P</kbd> pausa · <kbd>M</kbd> música · <kbd>F</kbd> efectos ·<kbd>R</kbd> reiniciar · <kbd>N</kbd> saltar nivel (debug)',
     '<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> move ·<kbd>P</kbd> pause · <kbd>M</kbd> music · <kbd>F</kbd> effects ·<kbd>R</kbd> restart · <kbd>N</kbd> skip level (debug)');
   $hintTouch.textContent = say('Apoyá el dedo en cualquier lugar y arrastrá hacia donde querés ir', 'Put your finger anywhere and drag toward where you want to go');
@@ -3726,7 +3732,7 @@ function applyLangStatic() {
 // Al cambiar de idioma se rehace lo que está a la vista: las opciones, el cartel de atrás (el de resultados sin volver a
 // guardar el nivel) y los botones del Bioterio y la Máquina
 function relang() {
-  applyLangStatic(); renderOpts(); updateLightBtn();
+  applyLangStatic(); renderOpts();
   const st = G.state;
   if (st === 'title') showTitle(); else if (st === 'select') showSelect(); else if (st === 'intro') showIntro();
   else if (st === 'lost') lost(); else if (st === 'won' && G.winCard && G.winBuild) G.winBuild();
@@ -3849,7 +3855,6 @@ function updateButtons() {
   // en el Bioterio y la Máquina el botón de la esquina es la casita (lleva a la portada); en el resto, la flechita
   const icon = G.screen ? 'home' : 'back';
   if ($btnBack.dataset.icon !== icon) { $btnBack.dataset.icon = icon; $btnBack.innerHTML = G.screen ? ICONS.home : BACK_ARROW; }
-  $btnLight.classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el botón de la luz de prueba solo está en la portada
   // flechita / casita arriba a la izquierda: en el selector, los resultados, el Bioterio y la Máquina
   const back = false;   // ya no hay flechita en la esquina: en los carteles la salida va adentro del cartel, y en el Bioterio y la Máquina abajo
   $btnBack.classList.toggle('hidden', !back);
@@ -3878,20 +3883,6 @@ $btnBack.addEventListener('click', e => {   // casita (Bioterio, Máquina): a la
   e.stopPropagation(); Snd.init();
   if (G.screen) act('back'); else if (G.state === 'select' || G.mode === 'challenge') fadeTo(showTitle); else act('levels');
 });
-// Luz general provisoria (para probar los niveles): ilumina todo el laberinto parejo, sin tocar la linterna.
-// Se prende y apaga desde la portada y queda guardada.
-const DEBUG_AMBIENT = 0.7;
-let debugLight = (() => { try { return localStorage.getItem('raton.debugLight') === '1'; } catch (_) { return false; } })();
-const $btnLight = document.getElementById('btnLight');
-function updateLightBtn() {
-  $btnLight.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" ${debugLight ? 'fill="#f7c531"' : ''}/></svg>${say('Luz', 'Light')} ${debugLight ? 'ON' : 'OFF'}`;
-  $btnLight.classList.toggle('on', debugLight);
-}
-$btnLight.addEventListener('click', e => {
-  e.stopPropagation(); debugLight = !debugLight; Snd.click(); updateLightBtn();
-  try { localStorage.setItem('raton.debugLight', debugLight ? '1' : '0'); } catch (_) {}
-});
-updateLightBtn();
 applyLangStatic();
 // la letra del sello del récord se baja de entrada (si no, la primera vez el sello salía con otra letra)
 try { document.fonts.load("25px 'Bebas Neue'", "NUEVO RÉCORD NEW"); } catch (_) {}
@@ -5139,7 +5130,7 @@ function render() {
   const T6 = [scale, 0, 0, scale, w / 2 - cam.x * scale, h / 2 - cam.y * scale];
   const menu = isMenu();   // en los menús no hay rata
   const roomLit = !menu && G.mode === 'story' && !G.dark && G.maze;   // nivel con la luz del laberinto prendida
-  const lit = G.light > 0.01 || menu || debugLight || roomLit;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
+  const lit = G.light > 0.01 || menu || roomLit;   // en los menús siempre hay una luz ambiente tenue (el fondo se ve un poco)
 
   if (lit) {
     // 1) escena completamente iluminada
@@ -5201,7 +5192,7 @@ function render() {
     } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
     lctx.globalAlpha = G.light * WALL_LIGHT; lctx.drawImage(bCv, 0, 0);   // las paredes, menos iluminadas que el piso
     lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
-    const amb = menu ? MENU_AMBIENT : debugLight ? DEBUG_AMBIENT : roomLit ? ROOM_AMBIENT : G.dark ? DARK_AMBIENT * G.light : 0;   // menús: fondo tenue · luz de prueba: todo el laberinto a la vista
+    const amb = menu ? MENU_AMBIENT : roomLit ? ROOM_AMBIENT : G.dark ? DARK_AMBIENT * G.light : 0;   // menús: fondo tenue
     if (amb) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + amb + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
     if (G.siren > 0.01) drawSiren(lctx, T6);
 
