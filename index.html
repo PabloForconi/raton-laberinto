@@ -73,7 +73,8 @@
     -webkit-tap-highlight-color: transparent; }
   #card .lvl:nth-child(odd) { transform: rotate(-1deg); } #card .lvl:nth-child(even) { transform: rotate(1deg); }
   #card .lvl b { font-family: 'Kalam', cursive; font-size: 26px; line-height: 1; }
-  #card .lvl small { font-size: 13px; letter-spacing: .3px; }
+  #card .lvl small { font: 15px/1.05 'Kalam', cursive; }   /* (los nombres en Kalam y un poco más grandes, lo pidió el usuario) */
+  #card .lvl small.lg { font-size: 13px; }   /* (una palabra larga, como Investigación: un poco más chica para que entre) */
   #card .lvl:disabled { opacity: .45; cursor: default; }
   #card .lvl:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #6b4c2c; }
   #card .st { color: #c98a12; font-size: 21px; line-height: 1.05; letter-spacing: 0; }   /* estrellitas de las fichas de niveles, grandes para leerlas de un vistazo */ #card .st i { color: rgba(60,40,20,.3); font-style: normal; }
@@ -197,8 +198,10 @@
   #card .wmenu .wbtns { grid-template-columns: 1fr 1fr; margin-top: 12px; }
   #card .wmenu .wbtns + .wbtns .wbtn { height: 54px; font-size: 21px; }
   #card .wbtn.yl { background: linear-gradient(#ffdc45, #f4b00e); color: #2b1a0b; border: 3px solid #b77d06; box-shadow: 0 4px 0 #8f5f05; }
-  #card .wprice { display: inline-flex; align-items: center; gap: 4px; font-size: .8em; opacity: .85; }
-  #card .wprice .ci { width: 1.05em; height: 1.05em; }
+  #card .wprice { display: inline-flex; align-items: center; gap: 4px; font-size: .8em; }
+  #card .wprice b { font-weight: inherit; opacity: .85; }
+  /* la moneda más grande y sin transparencia, con el borde tan oscuro y grueso como la del HUD (lo pidió el usuario) */
+  #card .wprice .ci { width: 1.4em; height: 1.4em; } #card .wprice .ci circle:last-child { stroke-width: 1.6; }
   /* selector de niveles: fichas de papel en una caja de papel encintada; las de los niveles a oscuras, oscuras */
   #card .wlevels { margin: 16px 2px 4px; padding: 10px 6px; background-color: #cfa96f; }   /* un marrón un poco más oscuro que el papel: las fichas se despegan del fondo */
   #card .wlevels .levels { margin: 0; }
@@ -208,7 +211,7 @@
   #card .lvl.dark small { opacity: .8; }
   /* en PC el cartel de niveles es más ancho y las fichas, cuadradas (como en el celular): así entran los nombres largos */
   #card:has(.wsel) { width: min(600px, calc(100vw - 24px)); }
-  @media (min-width: 561px) { #card .wsel .lvl { aspect-ratio: 1; justify-content: center; } #card .wsel .lvl small { font-size: 14px; } }
+  @media (min-width: 561px) { #card .wsel .lvl { aspect-ratio: 1; justify-content: center; } #card .wsel .lvl small { font-size: 16px; } #card .wsel .lvl small.lg { font-size: 14px; } }
   /* carteles de perder (trampa o tiempo): el subtítulo en rojo y una caja con el dibujito y qué pasó */
   :is(#card, #opts) .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
   #card .wlose { display: flex; align-items: center; gap: 14px; margin: 16px 2px 18px; padding: 16px 16px 14px; text-align: left; }
@@ -430,6 +433,9 @@
   @keyframes optsIn { from { transform: rotate(-5deg) scale(.6); opacity: 0; } to { transform: rotate(-1deg) scale(1); opacity: 1; } }
   /* al cerrarse (sacar la pausa, cerrar opciones) se achica y se va, como entró pero al revés; el fondo oscuro se aclara */
   /* fundido a negro entre pantallas (fadeTo): por encima de todo menos la librería */
+  /* crédito al pie de la portada (lo pidió el usuario): chiquito pero legible, en un gris claro */
+  #credit { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; text-align: center; pointer-events: none;
+    font: 700 13px/1 'Kalam', cursive; color: #b8b8b8; letter-spacing: .02em; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
   #fade { position: fixed; inset: 0; z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
   #fade.on { opacity: 1; pointer-events: auto; }
   #opts:not(.hidden) { animation: optsBgIn .18s ease-out both; }
@@ -492,7 +498,7 @@
     #lamp { top: 108px; }
     #card .levels { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
     #card .lvl b { font-size: 21px; }
-    #card .lvl small { font-size: 11px; }
+    #card .lvl small { font-size: 13px; } #card .lvl small.lg { font-size: 11px; }
     #card .st { font-size: 18px; }
     #screen .stitle { font-size: 36px; }
     .cbtn { font-size: 19px; padding: 7px 16px 5px; }
@@ -545,6 +551,7 @@
 <div id="topbtns">
   <button id="btnGear" class="btn tape" type="button" title="Pausa y opciones (P)"></button>
 </div>
+<div id="credit" class="hidden">Made with love by Vibe Games · 2026</div>
 <div id="opts" class="hidden"></div>
 <div id="card" class="hidden"></div>
 <div id="screen"></div>
@@ -611,19 +618,19 @@ function timeFor(n, pathCells) {
 // Campos: size [columnas, filas], loops (fracción de paredes que se abren para hacer ciclos), traps / sticky / cheese /
 // doors / spinners / gates (cantidad de cada cosa), cheeseGoal (quesos a juntar, si hay de más), time (opcional).
 const LEVELS = [
-  { name: 'Primeros pasos', en: 'First Steps', seed: 1101, size: [10, 6], loops: 0.03,
+  { name: 'Pasitos', en: 'Steps', seed: 1101, size: [10, 6], loops: 0.03,
     intro: 'Encontrá la salida antes del tiempo objetivo.' },
-  { name: 'Olor a queso', en: 'Smells Like Cheese', seed: 1254, size: [10, 6], loops: 0.03, cheese: 1,
+  { name: 'Aroma', en: 'Aroma', seed: 1254, size: [10, 6], loops: 0.03, cheese: 1,
     intro: 'Hay un queso escondido. Agarralo y escapá a tiempo.' },
-  { name: 'Gruyère', en: 'Gruyère', seed: 1368, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
+  { name: 'Quesitos', en: 'Cheesies', seed: 1368, size: [11, 6], loops: 0.03, cheese: 3, cheeseGoal: 2,
     intro: 'Más agujeros que queso... y más quesos que antes.' },
-  { name: 'Pegote', en: 'Sticky Mess', seed: 1404, size: [11, 7], loops: 0.03, sticky: 2, cheese: 2,
+  { name: 'Pegote', en: 'Gunk', seed: 1404, size: [11, 7], loops: 0.03, sticky: 2, cheese: 2,
     intro: 'Hay bandejas con pegamento: te frenan y te dejan las patas pegajosas un rato. Si podés, rodealas.' },
-  { name: 'Patas pegajosas', en: 'Sticky Paws', seed: 1505, size: [11, 7], loops: 0.03, sticky: 3, cheese: 3, cheeseGoal: 2,
+  { name: 'Pringoso', en: 'Gooey', seed: 1505, size: [11, 7], loops: 0.03, sticky: 3, cheese: 3, cheeseGoal: 2,
     intro: 'Pegamento y unos quesitos. A veces el queso está del otro lado del pegote.' },
-  { name: 'La trampera', en: 'Snap Trap', seed: 1970, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
+  { name: 'Trampera', en: 'Snaptrap', seed: 1970, size: [12, 7], loops: 0.03, traps: 3, cheese: 2,
     intro: 'Cuidado: las trampas esperan al fondo de los pasillos sin salida. Si tocás una, te atrapa.' },
-  { name: 'Callejones', en: 'Dead Ends', seed: 1967, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
+  { name: 'Callejones', en: 'Deadends', seed: 1967, size: [12, 7], loops: 0.03, traps: 4, sticky: 2, cheese: 3, cheeseGoal: 2,
     intro: 'Callejones sin salida con trampas, y pegote en los pasillos.' },
   { name: 'Puertas', en: 'Doors', seed: 6618, size: [13, 7], loops: 0.01, cheese: 2, doors: 2,
     intro: 'Hay puertitas en las paredes: del lado de la cinta empujás la cortina y pasás. Del otro lado no se abren.' },
@@ -633,63 +640,63 @@ const LEVELS = [
     intro: 'En algunos cruces hay molinetes que giran. Esperá el hueco y pasá; si un aspa te agarra, te empuja.' },
   { name: 'Aspas', en: 'Blades', seed: 2228, size: [14, 8], loops: 0.03, sticky: 2, cheese: 3, cheeseGoal: 2, spinners: 3,
     intro: 'Más molinetes, y pegote cerca. Medí el tiempo.' },
-  { name: 'Compuerta', en: 'The Gate', seed: 2537, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
+  { name: 'Compuerta', en: 'Gate', seed: 2537, size: [14, 8], loops: 0.03, cheese: 2, gates: 2,
     intro: 'Hay compuertas que se abren y se cierran. Pasá cuando están abiertas.' },
-  { name: 'Abre y cierra', en: 'Open and Shut', seed: 2937, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
+  { name: 'Portones', en: 'Gates', seed: 2937, size: [14, 8], loops: 0.03, traps: 3, cheese: 3, cheeseGoal: 2, gates: 3,
     intro: 'Compuertas en los pasillos y trampas en los callejones.' },
-  { name: 'Picada', en: 'Snack Platter', seed: 2414, size: [15, 9], loops: 0.03, cheese: 4, cheeseGoal: 3, spinners: 2, gates: 2,
+  { name: 'Picada', en: 'Platter', seed: 2414, size: [15, 9], loops: 0.03, cheese: 4, cheeseGoal: 3, spinners: 2, gates: 2,
     intro: 'Compuertas y molinetes en el mismo laberinto.' },
   { name: 'Engrudo', en: 'Paste', seed: 2723, size: [15, 9], loops: 0.02, sticky: 4, cheese: 4, cheeseGoal: 3, doors: 2,
     intro: 'Pegote en el camino y puertas para atajar.' },
-  { name: 'Cebo', en: 'Bait', seed: 2941, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
+  { name: 'Señuelo', en: 'Decoy', seed: 2941, size: [15, 9], loops: 0.03, traps: 5, cheese: 4, cheeseGoal: 3, spinners: 2,
     intro: 'Hay quesos de verdad... y quesos de cebo en las trampas.' },
-  { name: 'Tabla de quesos', en: 'Cheese Board', seed: 2756, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
+  { name: 'Festín', en: 'Feast', seed: 2756, size: [16, 9], loops: 0.03, sticky: 3, cheese: 6, cheeseGoal: 5, gates: 2,
     intro: 'Una tabla entera para picar, entre pegote y compuertas.' },
   { name: 'Clic', en: 'Click', seed: 3572, size: [16, 9], loops: 0.02, traps: 6, cheese: 4, cheeseGoal: 3, doors: 3,
     intro: 'Mirá bien antes de meterte en un pasillo.' },
   { name: 'Remolino', en: 'Whirlpool', seed: 3023, size: [16, 10], loops: 0.03, sticky: 4, cheese: 5, cheeseGoal: 4, spinners: 3,
     intro: 'Si te pegás, el aspa no te espera.' },
-  { name: 'Peligro dulce', en: 'Sweet Danger', seed: 3046, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
+  { name: 'Tentación', en: 'Temptation', seed: 3046, size: [17, 10], loops: 0.03, traps: 6, sticky: 4, cheese: 4, cheeseGoal: 3, gates: 2,
     intro: 'Trampas, pegote y compuertas.' },
-  { name: 'Ida sin vuelta', en: 'One-Way Trip', seed: 3602, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
+  { name: 'Travesía', en: 'Crossing', seed: 3602, size: [17, 10], loops: 0.02, cheese: 5, cheeseGoal: 4, doors: 3, spinners: 3,
     intro: 'Si pasás una puerta, no hay vuelta atrás: ¿juntaste los quesos de este lado?' },
-  { name: 'Campo minado', en: 'Minefield', seed: 3222, size: [18, 10], loops: 0.03, traps: 8, cheese: 5, cheeseGoal: 4, gates: 3,
+  { name: 'Pegriloso', en: 'Danger', seed: 3222, size: [18, 10], loops: 0.03, traps: 8, cheese: 5, cheeseGoal: 4, gates: 3,
     intro: 'Muchas trampas. Paso a paso.' },
-  { name: 'Mermelada', en: 'Jam', seed: 3479, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
+  { name: 'Chasquido', en: 'Snap', seed: 3479, size: [18, 11], loops: 0.02, sticky: 6, cheese: 5, cheeseGoal: 4, doors: 2, spinners: 3,
     intro: 'Todo pegajoso. Elegí bien por dónde pasar.' },
-  { name: 'Ventilador', en: 'Fan', seed: 3827, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
+  { name: 'Ratatrampa', en: 'Rattrap', seed: 3827, size: [18, 11], loops: 0.03, traps: 6, cheese: 5, cheeseGoal: 4, spinners: 4,
     intro: 'Molinetes en los cruces y trampas en los callejones.' },
-  { name: 'Puerta giratoria', en: 'Revolving Door', seed: 6840, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
+  { name: 'Giroscopio', en: 'Gyroscope', seed: 6840, size: [19, 11], loops: 0.02, sticky: 4, cheese: 6, cheeseGoal: 5, doors: 4, gates: 3,
     intro: 'Puertas, compuertas y pegote. Pensá el recorrido.' },
   { name: 'Ratonera', en: 'Mousetrap', seed: 3704, size: [19, 11], loops: 0.03, traps: 10, cheese: 6, cheeseGoal: 5, spinners: 3,
     intro: 'Una ratonera de verdad. Los quesos están cerca de las trampas.' },
-  { name: 'Pantano', en: 'Swamp', seed: 6730, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
+  { name: 'Cuidado', en: 'Careful', seed: 6730, size: [19, 11], loops: 0.02, sticky: 8, cheese: 6, cheeseGoal: 5, doors: 3, gates: 3,
     intro: 'Un pantano de pegamento. Los atajos pueden salir caros.' },
-  { name: 'Laberinto de puertas', en: 'Maze of Doors', seed: 4920, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
+  { name: 'Accesos', en: 'Access', seed: 4920, size: [20, 12], loops: 0.02, traps: 6, cheese: 6, cheeseGoal: 5, doors: 5, spinners: 3,
     intro: 'Planeá el recorrido para no dejar quesos atrás.' },
-  { name: 'Licuadora', en: 'Blender', seed: 3929, size: [20, 12], loops: 0.03, sticky: 5, cheese: 6, cheeseGoal: 5, spinners: 5, gates: 3,
+  { name: 'Mezcla', en: 'Mix', seed: 3929, size: [20, 12], loops: 0.03, sticky: 5, cheese: 6, cheeseGoal: 5, spinners: 5, gates: 3,
     intro: 'Todo gira, se abre y se cierra.' },
   { name: 'Combo', en: 'Combo', seed: 4862, size: [20, 12], loops: 0.02, traps: 8, sticky: 5, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 2,
     intro: 'Todo lo que aprendiste, junto.' },
-  { name: 'Hora pico', en: 'Rush Hour', seed: 5782, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
+  { name: 'Congestión', en: 'Congestion', seed: 5782, size: [21, 12], loops: 0.02, traps: 9, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 3, spinners: 3, gates: 3,
     intro: 'El laboratorio está lleno de cosas. Y el tiempo corre.' },
-  { name: 'Laboratorio', en: 'Laboratory', seed: 14372, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
+  { name: 'Investigación', en: 'Research', seed: 14372, size: [21, 12], loops: 0.02, traps: 10, sticky: 6, cheese: 7, cheeseGoal: 5, doors: 4, spinners: 3, gates: 3,
     intro: 'Un piso entero del laboratorio para escapar.' },
-  { name: 'Experimento', en: 'Experiment', seed: 9520, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
+  { name: 'Prueba', en: 'Trial', seed: 9520, size: [21, 13], loops: 0.03, traps: 10, sticky: 7, cheese: 7, cheeseGoal: 6, doors: 4, spinners: 4, gates: 3,
     intro: 'Te están mirando. Demostrales lo que sabés.' },
-  { name: 'Sótano', en: 'Basement', seed: 10440, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
+  { name: 'Ensayo', en: 'Trial', seed: 10440, size: [22, 13], loops: 0.02, traps: 12, sticky: 6, cheese: 6, cheeseGoal: 5, doors: 4, spinners: 3, gates: 4,
     intro: 'Más trampas y menos pasillos que se crucen.' },
-  { name: 'Depósito', en: 'Storeroom', seed: 6225, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Testeo', en: 'Testing', seed: 6225, size: [22, 13], loops: 0.02, traps: 12, sticky: 8, cheese: 8, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Cajas y cajas de cartón. Y en algún lado, la salida.' },
-  { name: 'Contrarreloj', en: 'Against the Clock', seed: 9682, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Contrarreloj', en: 'Timeattack', seed: 9682, size: [23, 13], loops: 0.04, traps: 10, sticky: 8, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Muchos caminos posibles. Elegí rápido.' },
-  { name: 'Laberinto mayor', en: 'The Big Maze', seed: 14305, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
+  { name: 'Perdición', en: 'Doom', seed: 14305, size: [23, 13], loops: 0.02, traps: 13, sticky: 8, cheese: 8, cheeseGoal: 7, doors: 5, spinners: 4, gates: 5,
     intro: 'El más grande hasta ahora.' },
-  { name: 'Pegatrampas', en: 'Glue Traps', seed: 7958, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
+  { name: 'Pegatrampa', en: 'Gluetrap', seed: 7958, size: [23, 14], loops: 0.02, traps: 14, sticky: 10, cheese: 7, cheeseGoal: 6, doors: 5, spinners: 4, gates: 4,
     intro: 'Pegamento por todos lados y trampas en cada callejón.' },
-  { name: 'Casi libre', en: 'Almost Free', seed: 15272, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'Fuga', en: 'Breakout', seed: 15272, size: [24, 14], loops: 0.02, traps: 15, sticky: 10, cheese: 9, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'Ya se huele el aire de afuera.' },
-  { name: 'La gran fuga', en: 'The Great Escape', seed: 48251, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
+  { name: 'Escape', en: 'Escape', seed: 48251, size: [24, 14], loops: 0.02, traps: 16, sticky: 11, cheese: 10, cheeseGoal: 8, doors: 6, spinners: 5, gates: 5,
     intro: 'El último laberinto. Todo lo que aprendiste, junto. ¡A escapar!' },
 ];
 const lvName = L => say(L.name, L.en);   // el nombre del nivel en el idioma elegido
@@ -708,7 +715,7 @@ const BAT_CELLS = 26;   // pilas: como mucho tantas celdas de camino entre una y
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
 // cuando se apaga, se apaga)
 const ROOM_AMBIENT = 0.85, DARK_AMBIENT = 0.1;
-const UNLOCK_ALL = false;   // true: todos los niveles de Historia desbloqueados (para probar)
+const UNLOCK_ALL = true;   // true: todos los niveles de Historia desbloqueados (para probar; el usuario lo volvió a pedir)
 
 // Progreso de Historia (niveles desbloqueados, mejores estrellas y mejor tiempo de cada nivel), guardado en el navegador
 const Story = {
@@ -733,7 +740,7 @@ const Story = {
 // de 5 a 13; los niveles 1 a 3 dan 18), o sea hasta 15 giros, uno cada 2 o 3 niveles, y el primero después del nivel 3;
 // juntar las 20 ratitas lleva unos 100 giros (~1200 monedas con lo que devuelven las repetidas), así que el resto sale
 // del Desafío (el nivel N da N monedas)
-const COIN_PRICE = 20, FREE_SPIN = false;   // FREE_SPIN: true para probar la máquina gratis; false = cobra COIN_PRICE
+const COIN_PRICE = 20, FREE_SPIN = true;    // FREE_SPIN: true para probar la máquina gratis; false = cobra COIN_PRICE
 const COIN_SPIN = FREE_SPIN ? 0 : COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
@@ -772,10 +779,10 @@ const ratName = i => say(RATS[i][0], RAT_EN[i]);
 // Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada): 10 comunes, 6 infrecuentes, 3 raras y 1
 // legendaria (la Dorada). La máquina primero sortea la rareza (w: chance de cada una) y después una ratita de esa rareza
 const RARITY = {
-  comun:      { name: 'Común',       en: 'Common',    color: '#e6dcc4', w: 0.62 },
-  infrecuente:{ name: 'Infrecuente', en: 'Uncommon',  color: '#86d67a', w: 0.26 },
-  rara:       { name: 'Rara',        en: 'Rare',      color: '#6fb8ff', w: 0.105 },
-  legendaria: { name: 'Legendaria',  en: 'Legendary', color: '#ffcc33', w: 0.015 },
+  comun:      { name: 'Común',       en: 'Common',    color: '#3a3a3a', w: 0.62 },
+  infrecuente:{ name: 'Infrecuente', en: 'Uncommon',  color: '#00ffff', w: 0.26 },
+  rara:       { name: 'Rara',        en: 'Rare',      color: '#00ff00', w: 0.105 },
+  legendaria: { name: 'Legendaria',  en: 'Legendary', color: '#ffff00', w: 0.015 },
 };
 // (el usuario las reordenó: comunes Vainilla, Wasabi, Cenizón, Bordolín, Cacao, Pinky, Cheddar, Musguito, Chispita y
 // Mordisquito; infrecuentes Panchita, Voltio, Lila, Burbuja, Toxi y Copito; raras Violeta, Sombrita y Fogui)
@@ -828,9 +835,9 @@ const coinBand = (a, b, col) => {
   const p = v => v.toFixed(2);
   return `<path d="M${p(12 - w1)} ${p(y1)}H${p(12 + w1)}A${R} ${R} 0 0 1 ${p(12 + w2)} ${p(y2)}H${p(12 - w2)}A${R} ${R} 0 0 1 ${p(12 - w1)} ${p(y1)}Z" fill="${col}"/>`;
 };
-const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24">' +
+const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><g transform="rotate(-20 12 12)">' +   // girada un poco, con las bandas subiendo hacia la derecha (lo pidió el usuario; la del laberinto no)
   `<circle cx="12" cy="12" r="10.5" fill="${COIN_FACE}"/>` + COIN_BANDS.map(([a, b, col]) => coinBand(a, b, col)).join('') +
-  '<circle cx="12" cy="12" r="10.5" fill="none" stroke="#6b7179" stroke-width="1.3"/></svg>';   // borde gris, del mismo ancho que el del queso del HUD
+  '<circle cx="12" cy="12" r="10.5" fill="none" stroke="#6b7179" stroke-width="1.3"/></g></svg>';   // borde gris, del mismo ancho que el del queso del HUD
 const isMenu = () => ['title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 // Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
@@ -1935,7 +1942,7 @@ function showTitle() {
   card(`<div class="win wmenu"><img class="logo" src="img/logo.png" alt="Maze Mouse" onerror="this.outerHTML='<h1>MAZE MOUSE</h1>'">
     <div class="wbox wctl"><span class="wtag">${say('Controles', 'Controls')}</span><div class="ctl">${ctl}</div></div>
     <div class="wbtns"><button class="wbtn go" data-act="story">${PLAY_SVG}${say('Historia', 'Story')}</button><button class="wbtn yl" data-act="challenge">${say('Desafío', 'Challenge')}</button></div>
-    <div class="wbtns"><button class="wbtn re" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button><button class="wbtn re" data-act="machine">${say('Máquina', 'Machine')} <span class="wprice">${COIN_SPIN} ${COIN_ICON}</span></button></div>
+    <div class="wbtns"><button class="wbtn re" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button><button class="wbtn re" data-act="machine">${say('Máquina', 'Machine')} <span class="wprice"><b>${COIN_SPIN}</b> ${COIN_ICON}</span></button></div>
     </div>`, { kind: 'title' });   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
@@ -1947,7 +1954,7 @@ function showSelect() {
   const btns = LEVELS.map((L, i) => {
     const locked = !UNLOCK_ALL && i + 1 > d.unlocked, st = d.stars[i] || 0;
     return `<button class="lvl${DARK_LEVELS.includes(i + 1) ? ' dark' : ''}" data-act="level" data-i="${i}" ${locked ? 'disabled' : ''}>
-      <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small>${locked ? say('bloqueado', 'locked') : lvName(L)}</small></button>`;
+      <b>${i + 1}</b><span class="st">${'★'.repeat(st)}<i>${'★'.repeat(3 - st)}</i></span><small${Math.max(...(locked ? say('bloqueado', 'locked') : lvName(L)).split(' ').map(w => w.length)) >= 10 ? ' class="lg"' : ''}>${locked ? say('bloqueado', 'locked') : lvName(L)}</small></button>`;
   }).join('');
   card(`<div class="win wsel"><div class="wtitle"><b>${say('Niveles', 'Levels')}</b></div>
     <div class="wbox wlevels"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i><div class="levels">${btns}</div></div>
@@ -2291,6 +2298,7 @@ const cageOff = document.createElement('canvas'), cageOffCtx = cageOff.getContex
 // lienzo de cada jaula del Bioterio: el mismo alto que antes y más ancho (antes 330 × 300), así la jaula solo crece
 // para los costados; y cuánto más grande va la ratita adentro
 const CAGE_W = 396, CAGE_H = 300, CAGE_RAT = 1.3;   // (1,3: lo más grande sin que las orejas lleguen al cartel del nombre)
+const CAGE_NAME_FS = 0.115;   // alto de letra del nombre en el cartelito, en fracción del alto de la jaula
 // shelf: dibuja su pedazo de estante (en la pantalla de Ratitas el estante lo pone el CSS, de punta a punta)
 function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag = 0) {
   const rnd = mulberry32(i * 977 + 13);
@@ -2310,10 +2318,10 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   g.fillStyle = 'rgba(205,220,226,0.45)'; g.fill(box);
   g.save(); g.clip(box);
   const bed = bot - h * 0.085;                                                       // viruta (bien abajo, casi al ras del estante)
-  g.fillStyle = '#c4aa7c'; g.beginPath(); g.moveTo(0, bot);   // (más oscura que antes, #dcc69e)
+  g.fillStyle = '#e49251'; g.beginPath(); g.moveTo(0, bot);   // (tonos de una foto de virutas del usuario, revision/ref-viruta.webp; antes fue #dcc69e, #c4aa7c, #a79169 y #8e7b59)
   for (let x = 0; x <= w; x += u / 12) g.lineTo(x, bed + Math.sin(x * 0.2 + i) * h * 0.012);
   g.lineTo(w, bot); g.closePath(); g.fill();
-  const flecks = ['#ad8e5b', '#d4c198', '#96764a', '#ddd0ae'];   // (también más oscuras)
+  const flecks = ['#c8682a', '#f4c69d', '#d67832', '#f8d7b6'];   // (sombras y luces de la misma foto)
   for (let k = 0, n = Math.round(40 * (x1 - x0) / (u * 0.86)); k < n; k++) {   // (más pedacitos si la caja es más ancha)
     g.fillStyle = flecks[k % 4];
     g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), bed + rnd() * (bot - bed), u * (0.012 + rnd() * 0.02), h * (0.005 + rnd() * 0.008), rnd() * 3, 0, Math.PI * 2); g.fill();
@@ -2334,6 +2342,8 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   g.save(); g.clip(box);
   g.fillStyle = 'rgba(255,255,255,0.16)';
   g.beginPath(); g.moveTo(x0 + u * 0.12, top); g.lineTo(x0 + u * 0.3, top); g.lineTo(x0 + u * 0.08, bot); g.lineTo(x0 - u * 0.1, bot); g.closePath(); g.fill();
+  // otro brillo, paralelo y más angosto, del lado de la cola (lo pidió el usuario)
+  g.beginPath(); g.moveTo(x1 - u * 0.3, top); g.lineTo(x1 - u * 0.22, top); g.lineTo(x1 - u * 0.42, bot); g.lineTo(x1 - u * 0.5, bot); g.closePath(); g.fill();
   g.restore();
   g.lineJoin = 'round';
   g.strokeStyle = 'rgba(110,130,138,0.45)'; g.lineWidth = Math.max(1, u * 0.012); g.stroke(box);
@@ -2357,13 +2367,14 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   g.fillStyle = sel ? '#ffe17a' : '#fbf8ee'; g.fillRect(lx, lyy, lw, lh);
   if (owned) {   // el nombre en mayúsculas; la jaula vacía lleva la etiqueta en blanco
     const name = ratName(i).toUpperCase();
-    let fs = h * 0.1; g.font = `${fs}px 'Bebas Neue', 'Arial Narrow', sans-serif`;
-    while (g.measureText(name).width > lw * 0.86 && fs > 6) { fs -= 0.5; g.font = `${fs}px 'Bebas Neue', 'Arial Narrow', sans-serif`; }
+    // en Kalam (el usuario volvió a ella desde la Bebas), un poco más grande; si un nombre no entra, se achica
+    let fs = h * CAGE_NAME_FS; g.font = `700 ${fs}px 'Kalam', cursive`;
+    while (g.measureText(name).width > lw * 0.86 && fs > 6) { fs -= 0.5; g.font = `700 ${fs}px 'Kalam', cursive`; }
     // centrado de verdad, con la altura real de las letras (en mayúsculas no hay nada por debajo de la línea)
     const m = g.measureText(name), asc = m.actualBoundingBoxAscent || fs * 0.7, desc = m.actualBoundingBoxDescent || 0;
     const ty = lyy + lh / 2 + (asc - desc) / 2;
     g.fillStyle = g.strokeStyle = '#2a2622'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.fillText(name, w / 2, ty);   // (con la Bebas, que ya es gruesa, no hace falta el repaso de negrita de la Special Elite)
+    g.fillText(name, w / 2, ty);
   }
   g.restore();
 }
@@ -2444,6 +2455,8 @@ function rampAt(t) {   // 0 arriba → 1 abajo
   return 1;
 }
 const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
+const SPARK_UP = 20;   // cuánto más arriba aparecen los destellos del premio (unidades del lienzo de la máquina)
+const SPARK_SIZE = 0.6;   // tamaño de cada destello (el usuario los quiso más chicos; 1 = como eran)
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
   caps: null, onStage: null, L: { beacon: 0, tubeL: 0, tubeR: 0, inner: 0, door: 0 }, vib: [0, 0] };
 // Fondo de la Máquina (img/fondo-maquina.jpg, 1920 × 1232, "bg_maquina_01" del usuario: una alcoba con una mesada,
@@ -2724,10 +2737,11 @@ function gachaUpdate(dt) {
     if (ph > 0 && Math.floor(ph / Math.PI) !== Math.floor(prev / Math.PI)) Snd.rattle();
   }   // la baliza se sigue apagando despacio
   if (dur && P.t >= dur) gachaStage(GACHA_STAGES[GACHA_STAGES.indexOf(P.phase) + 1]);
-  // destellos alrededor de la ratita: blancos, y mientras se apagan suben muy despacio (lo pidió el usuario)
+  // destellos alrededor de la ratita: blancos, y mientras se apagan suben muy despacio (lo pidió el usuario); la nube entera
+  // está corrida SPARK_UP unidades hacia arriba (también a pedido suyo), sin cambiar cómo se mueven
   if (P.phase === 'reveal' && P.t < 1.6 && Math.random() < dt * 22) {
     const a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 70;
-    P.spark.push({ x: 150 + Math.cos(a) * r, y: 150 + Math.sin(a) * r * 0.8, t: 0, life: 1.6 + Math.random() * 1.2, s: 4 + Math.random() * 6,
+    P.spark.push({ x: 150 + Math.cos(a) * r, y: 150 - SPARK_UP + Math.sin(a) * r * 0.8, t: 0, life: 1.6 + Math.random() * 1.2, s: 4 + Math.random() * 6,
       vy: -(6 + Math.random() * 8), col: '#ffffff' });
   }
   // el laboratorio aparece a medida que se apagan las líneas cinéticas; con "Otra vez" se va suave junto con la vuelta
@@ -2822,8 +2836,9 @@ function drawGachaFx(gcv) {
   }
   const P = Gacha;
   if (P.phase === 'reveal') {   // líneas cinéticas desde donde se abre la cápsula, en toda la pantalla
-    const [CX, CY] = capC();
-    drawSpeedLines(g, W, H, (r.left - fr.left + CX / 300 * r.width) * dpr, (r.top - fr.top + CY / 300 * r.height) * dpr, P.t);
+    // los rayos salen del pecho de la ratita ya sentada (SPEED_CY; lo pidió el usuario), y el fogonazo, de la cápsula
+    const [CX, CY] = capC(), sx = u => (r.left - fr.left + u / 300 * r.width) * dpr, sy = u => (r.top - fr.top + u / 300 * r.height) * dpr;
+    drawSpeedLines(g, W, H, sx(KF2.x), sy(SPEED_CY), P.t, sx(CX), sy(CY));
     if (g2) {   // la ratita, adelante y sin bordes que la corten (en las unidades del canvas de la máquina)
       const k = r.width / 300 * dpr2;
       g2.setTransform(k, 0, 0, k, (r.left - fr.left) * dpr2, (r.top - fr.top) * dpr2);
@@ -2831,7 +2846,7 @@ function drawGachaFx(gcv) {
       // van detrás, así la mitad de arriba no le tapa las orejas cuando ya se desplegó
       const capFront = P.t < REV_CAP_FRONT;
       if (!capFront) drawRevealCapsule(g2, P.t, P.cap);
-      drawRevealRat(g2, P.t, P.pick); if (capFront) drawRevealCapsule(g2, P.t, P.cap); Gacha.fx2Used = true;
+      drawRevealRat(g2, P.t, P.pick); if (capFront) drawRevealCapsule(g2, P.t, P.cap); drawSparks(g2); Gacha.fx2Used = true;
     }
     return;
   }
@@ -3030,6 +3045,7 @@ const REV_END = JUMP_AIR + (JUMP.n - 1 - JUMP.contact) * JUMP.dt;      // desde 
 // (1092 − 624: del centro del cuerpo de la sentada, FRONT_CY[0], al piso; FRONT_CY se declara más abajo)
 const KF2_FLOOR = 132 + (1092 - 624) * 154 / 935, KF2_SIZE = 154 * 0.85;
 const TRAVEL = JUMP_AIR, KF2 = { x: 150, y: KF2_FLOOR - (1092 - 624) * KF2_SIZE / 935, size: KF2_SIZE };
+const SPEED_CY = KF2_FLOOR - KF2_SIZE * 0.42;   // centro de las líneas cinéticas: el pecho de la ratita sentada, justo bajo el mentón (unidades de la máquina)
 // Sombra de la ratita sobre la mesada, como la de la máquina (una elipse chata, negra al 30%): aparece de transparente a
 // la par que se esfuman las líneas cinéticas y aparece el laboratorio (lo pidió el usuario; antes aparecía al apoyar las
 // patas) y su ancho sigue a las patas
@@ -3046,6 +3062,16 @@ function drawRatShadow(g, t) {
   g.beginPath(); g.ellipse(KF2.x, fy, rx, rx * 0.06, 0, 0, Math.PI * 2); g.fill(); g.restore();
 }
 const JUMP_OFF_T = 9 * JUMP.dt * JUMP_SLOW;   // en cuánto deja de estar corrida hacia el centro de la cápsula (antes de lo más alto)
+// destellos del premio: estrellitas de cuatro puntas que crecen y se apagan. Van en la capa de adelante, después de la
+// ratita, así brillan por delante de ella (lo pidió el usuario); g en las unidades del canvas de la máquina
+function drawSparks(g) {
+  for (const s of Gacha.spark) {
+    const k = Math.sin(Math.PI * s.t / s.life), r = s.s * k * SPARK_SIZE;
+    g.save(); g.translate(s.x, s.y); g.rotate(s.t * 2); g.fillStyle = s.col; g.globalAlpha = k;
+    g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(0, 0, r, 0); g.quadraticCurveTo(0, 0, 0, r); g.quadraticCurveTo(0, 0, -r, 0); g.quadraticCurveTo(0, 0, 0, -r); g.fill();
+    g.restore();
+  }
+}
 function drawRevealRat(g, t, pick) {
   drawRatShadow(g, t);
   if (t < REV_END) {
@@ -3134,7 +3160,7 @@ function drawGacha(g, n) {
     // (antes llevaban un borde oscuro: el usuario lo sacó)
     const pop = k => clamp((t - TXT_AT[k]) / 0.3, 0, 1);
     if (pop(0) > 0) {
-      const name = P.dup ? ratName(P.pick) : say(`¡${ratName(P.pick)}!`, `${ratName(P.pick)}!`);
+      const name = ratName(P.pick);   // (sin ¡!, lo pidió el usuario)
       const sub = P.dup ? say(['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`], ['You already have it,', `so you get ${COIN_DUP} coin${COIN_DUP === 1 ? '' : 's'} back`]) : [say('¡Ratita nueva!', 'New rat!')];
       const txt = (ty, k, fn) => {
         const na = pop(k); if (na <= 0) return;
@@ -3171,12 +3197,7 @@ function drawGacha(g, n) {
     fl.addColorStop(0, `rgba(255,252,235,${0.9 * a})`); fl.addColorStop(1, 'rgba(255,252,235,0)');
     g.fillStyle = fl; g.fillRect(0, 0, 300, 300);
   }
-  for (const s of P.spark) {   // destellos: estrellitas de cuatro puntas que crecen y se apagan
-    const k = Math.sin(Math.PI * s.t / s.life), r = s.s * k;
-    g.save(); g.translate(s.x, s.y); g.rotate(s.t * 2); g.fillStyle = s.col; g.globalAlpha = k;
-    g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(0, 0, r, 0); g.quadraticCurveTo(0, 0, 0, r); g.quadraticCurveTo(0, 0, -r, 0); g.quadraticCurveTo(0, 0, 0, -r); g.fill();
-    g.restore();
-  }
+  // (los destellos van en la capa de adelante, delante de la ratita: drawSparks desde drawGachaFx)
   for (const f of P.conf) {   // papelitos
     g.save(); g.translate(f.x, f.y); g.rotate(f.r); g.fillStyle = f.col; g.fillRect(-f.w / 2, -f.h / 2, f.w, f.h); g.restore();
   }
@@ -3250,8 +3271,8 @@ const SPEED_HOLD = 1.9, SPEED_FADE = 1.4;   // las líneas cinéticas del premio
 // cuándo aparecen el nombre (apenas después de que aterriza), la rareza y el aviso (con el laboratorio ya a la vista), en
 // segundos desde que se abre la cápsula
 const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1, SPEED_HOLD + SPEED_FADE + 0.45];
-// a prueba: la imagen bg_cinetica_01 del usuario (img/fondo-cinetica.jpg) en vez de los rayos dibujados (false = dibujados)
-const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg';
+// la imagen de rayos del usuario (img/fondo-cinetica.jpg, hoy su fondo-cinetica3) en vez de los rayos dibujados (false = dibujados); ?v para que no quede la vieja en caché
+const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg?v=3';
 // la imagen es de 1920 px: se achica una sola vez a SPEED_IMG_PX en un canvas aparte, así cada cuadro gira una textura
 // chica (girar la grande en cada cuadro le costaba al celular)
 const SPEED_IMG_PX = 1024, speedImgCv = document.createElement('canvas');
@@ -3259,24 +3280,25 @@ SPEED_IMG.onload = () => {
   speedImgCv.width = speedImgCv.height = SPEED_IMG_PX;
   const c = speedImgCv.getContext('2d'); c.imageSmoothingQuality = 'high'; c.drawImage(SPEED_IMG, 0, 0, SPEED_IMG_PX, SPEED_IMG_PX);
 };
-const SPEED_SPIN = 0.15, SPEED_SPIN2 = 0.45;   // cuánto giran los rayos dorados y los blancos de encima (radianes por segundo)
-function drawSpeedLines(g, W, H, cx, cy, t) {
+const SPEED_SPIN = 0.25, SPEED_SPIN2 = 0.45;   // cuánto giran los rayos dorados y los blancos de encima (radianes por segundo; los dorados, un poco más rápido desde que lo pidió el usuario)
+const SPEED_IN0 = 0.25, SPEED_IN = 0.3;   // el fondo aparece un poco después de que se abre la cápsula (s) y en cuánto se aclara
+function drawSpeedLines(g, W, H, cx, cy, t, fx = cx, fy = cy) {   // (fx, fy: dónde va el fogonazo; por defecto en el centro)
   const P = Gacha, FR = Math.round(Math.max(W, H) * 0.62);
   if ((t < 0.02 || P.raysKey !== FR) && !(SPEED_USE_IMG && speedImgCv.width)) buildSpeedLines(FR);   // (con la imagen no hace falta)   // uno nuevo por premio (o si cambió el tamaño de la pantalla)
-  // aparece de golpe al abrirse y, cuando la ratita ya cayó, se va apagando suave hasta que queda todo negro
+  // aparece un poco después de que se abre (SPEED_IN0) y, cuando la ratita ya cayó, se va apagando suave hasta que queda todo negro
   const out = 1 - clamp((t - SPEED_HOLD) / SPEED_FADE, 0, 1), o = out * out * (3 - 2 * out);
   if (o <= 0) return;
-  const inA = Math.min(1, t / 0.12) * o, flash = Math.max(0, 1 - t / 0.5);
+  const inA = clamp((t - SPEED_IN0) / SPEED_IN, 0, 1) * o, flash = Math.max(0, 1 - t / 0.5);
   g.save(); g.translate(cx, cy);
   if (SPEED_USE_IMG && speedImgCv.width) {
     // la imagen del usuario (bg_cinetica_01): girada alrededor de su centro; tan grande que el círculo que entra en el
     // cuadrado cubre hasta la esquina más lejana de la pantalla, así al girar nunca se ven sus bordes
     const R = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy));
     g.save(); g.rotate(t * SPEED_SPIN); g.globalAlpha = inA; g.drawImage(speedImgCv, -R, -R, R * 2, R * 2); g.restore();
-    if (flash > 0) {   // solo el fogonazo de cuando se abre la cápsula (la imagen ya trae su centro blanco)
-      const fr = Math.max(W, H) * 0.3, fl = g.createRadialGradient(0, 0, 0, 0, 0, fr);
+    if (flash > 0) {   // solo el fogonazo de cuando se abre la cápsula (la imagen ya trae su centro blanco), en la cápsula
+      const fr = Math.max(W, H) * 0.3, ox = fx - cx, oy = fy - cy, fl = g.createRadialGradient(ox, oy, 0, ox, oy, fr);
       fl.addColorStop(0, `rgba(255,255,245,${flash * inA})`); fl.addColorStop(1, 'rgba(255,250,220,0)');
-      g.fillStyle = fl; g.beginPath(); g.arc(0, 0, fr, 0, Math.PI * 2); g.fill();
+      g.fillStyle = fl; g.beginPath(); g.arc(ox, oy, fr, 0, Math.PI * 2); g.fill();
     }
     g.restore(); return;
   }
@@ -3952,6 +3974,7 @@ function updateButtons() {
   // con el cartel de fin de nivel (ganado o perdido), el nivel y el reloj de arriba se esconden: el cartel ya los muestra y en el celular
   // su título se montaba sobre el reloj
   $level.style.visibility = $timer.style.visibility = ((G.state === 'won' && G.winCard) || G.state === 'lost') && !G.screen ? 'hidden' : '';
+  document.getElementById('credit').classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el crédito, solo en la portada
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
@@ -4815,10 +4838,12 @@ function drawGates(c, v, mask = false, list = G.items) {
 }
 // Pila del laberinto, después de un diseño del usuario: cuerpo naranja con tapas grises y franjas azul oscuro, el polo +
 // gris arriba y un rayo verde. Se dibuja en las coordenadas de la referencia (vertical, 340 × 750, el polo arriba)
-// llevadas a la pila acostada (el polo hacia +x); gira un poco según la pila y late suave
+// llevadas a la pila acostada (el polo hacia +x); gira un poco según la pila, late suave y se mece
 const BAT_K = 28 / 703, BAT_X = y => (376.5 - y) * BAT_K, BAT_Y = x => (x - 169) * BAT_K;   // de la referencia a la pila acostada
 const BAT_BOLT = [[250, 162], [170, 386], [276, 386], [79, 638], [148, 432], [62, 432]];   // el rayo, en la referencia
-function batteryAt(c, it) { const p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph); c.translate(it.x, it.y); c.rotate(-0.5 + it.ph % 1); c.scale(p, p); }
+// además de latir, se mece sobre su eje unos grados para un lado y para el otro (BAT_ROCK, lo pidió el usuario)
+const BAT_ROCK = 0.07;
+function batteryAt(c, it) { const p = 1 + 0.05 * Math.sin(G.time * 4 + it.ph); c.translate(it.x, it.y); c.rotate(-0.5 + it.ph % 1 + BAT_ROCK * Math.sin(G.time * 2.2 + it.ph * 3)); c.scale(p, p); }
 function drawBattery(c, it) {
   const k = BAT_K, X = BAT_X, Y = BAT_Y;
   c.save(); batteryAt(c, it);
@@ -5115,7 +5140,8 @@ function drawMouse(c, alpha) {
   if (!bare) {
   c.save(); c.clip(body);
   c.strokeStyle = S.harness; c.lineWidth = 2; c.lineCap = 'butt'; c.beginPath();
-  c.moveTo(1, -13); c.lineTo(1, 13); c.moveTo(-10, -13); c.lineTo(-10, 13); c.moveTo(-10, 0); c.lineTo(1, 0); c.stroke();
+  const hf = MOUSE_V2 ? -1.8 : 1;   // la tira de adelante (con el diseño nuevo, más hacia la cola: lo pidió el usuario)
+  c.moveTo(hf, -13); c.lineTo(hf, 13); c.moveTo(-10, -13); c.lineTo(-10, 13); c.moveTo(-10, 0); c.lineTo(hf, 0); c.stroke();
   c.restore();
   }
   // orejas: giran con la cabeza y van debajo de la linterna
