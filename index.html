@@ -527,6 +527,12 @@
     font-size: 23px; border-radius: 14px; background: #ecd7ae; color: #2b1a0b; border: 0; box-shadow: 0 4px 0 #75522c, 0 6px 12px rgba(0,0,0,.35); }   /* flotantes: sin borde, como el engranaje */
   #screen .sbtns .cbtn.home { padding: 0 14px; }
   #screen #gachaBtns .cbtn { background: linear-gradient(#ffdc45, #f4b00e); box-shadow: 0 4px 0 #8f5f05, 0 6px 12px rgba(0,0,0,.35); }
+  /* "¡Usarla!" (verde, con la patita), a la derecha de Bioterio después del premio; con él, los botones de esa fila van un
+     poco más angostos para que entren los tres en el celular más angosto (360 px) */
+  #screen #gachaNav .cbtn.go { background: linear-gradient(#5fce50, #2f9b33); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.3); box-shadow: 0 4px 0 #185a1c, 0 6px 12px rgba(0,0,0,.35); gap: 6px; }
+  #screen #gachaNav .cbtn.go svg { width: 22px; height: 22px; }
+  #screen #gachaNav .cbtn.go:active { box-shadow: 0 1px 0 #185a1c; }
+  #screen #gachaNav:has(.go) .cbtn:not(.home) { padding: 4px 15px 0; }
   #screen .sbtns .cbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #75522c; }
   #screen #gachaBtns .cbtn:active { box-shadow: 0 1px 0 #8f5f05; }
 </style>
@@ -1970,7 +1976,11 @@ const $scr = document.getElementById('screen');
 let scrTimer = 0;
 const screenBackBtn = () => G.state === 'select'
   ? `<button class="cbtn home" data-act="back" aria-label="${say('Niveles', 'Levels')}">${LEVELS_SVG}</button>`
-  : `<button class="cbtn home" data-act="back" aria-label="${say('Portada', 'Home')}">${ICONS.home}</button>`;
+  : ['won', 'lost'].includes(G.state)   // abierta desde el cartel de fin de nivel: una flechita, porque vuelve al cartel
+    ? `<button class="cbtn home" data-act="back" aria-label="${say('Volver', 'Back')}">${BACK_ARROW}</button>`
+    : `<button class="cbtn home" data-act="back" aria-label="${say('Portada', 'Home')}">${ICONS.home}</button>`;
+// patita (la del botón "¡Usarla!" de la máquina, que eligió el usuario)
+const PAW_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.2" cy="10.3" rx="2.2" ry="2.8"/><ellipse cx="9.4" cy="6.3" rx="2.2" ry="2.9"/><ellipse cx="14.6" cy="6.3" rx="2.2" ry="2.9"/><ellipse cx="18.8" cy="10.3" rx="2.2" ry="2.8"/></svg>';
 function openScreen(html) {   // aparece de una (la entrada la hace el fundido a negro, fadeTo)
   clearTimeout(scrTimer);
   if (!$scr.classList.contains('open')) Snd.cardIn();
@@ -2557,6 +2567,7 @@ function gachaSpin() {
   Gacha.reappear = Gacha.phase === 'reveal';
   if (Gacha.reappear) { Gacha.caps = null; Object.assign(Gacha.L, { beacon: 0.12, tubeL: 0.15, tubeR: 0.15, inner: 0.3, door: 0 }); machBgDark(false); }
   Gacha.conf = []; Gacha.spark = [];
+  const useBtn = document.querySelector('#gachaNav [data-act="use"]'); if (useBtn) useBtn.remove();   // "¡Usarla!" vuelve con el próximo premio
   Gacha.beaconOn = false;
   // el botón se esconde pero sigue ocupando su lugar (si se sacaba, la fila quedaba 8 px más baja y la máquina, que está
   // centrada con ella, se corría 4 px justo al tocar Activar)
@@ -2759,7 +2770,12 @@ function gachaResult() {
   if (Gacha.dup) { Wallet.add(COIN_DUP); Snd.coin(); }
   else Snd.win();
   // el nombre (y si es nueva o repetida) se dibuja en el canvas, debajo de la ratita (drawGacha)
-  document.getElementById('gachaBtns').innerHTML = gachaButtons(true); updateButtons();
+  document.getElementById('gachaBtns').innerHTML = gachaButtons(true);
+  // abajo, a la derecha de Bioterio: "¡Usarla!" la elige y vuelve a donde estabas (el usuario quería jugar enseguida con
+  // la ratita que le tocó, nueva o repetida, sin dar toda la vuelta por la portada y el Bioterio)
+  const nav = document.getElementById('gachaNav');
+  if (nav && !nav.querySelector('[data-act="use"]')) nav.insertAdjacentHTML('beforeend', `<button class="cbtn go" data-act="use">${PAW_SVG}${say('¡Usarla!', 'Use it!')}</button>`);
+  updateButtons();
 }
 // Posición de la cápsula premiada mientras salta hacia la cámara: [x, y, radio, giro]
 // CAP_Y: altura de la cápsula adelante (y de la ratita hecha bolita); apoyada sobre la misma línea que los pies de la
@@ -3150,12 +3166,12 @@ function drawGacha(g, n) {
     // completo y cae sentada mirando a la cámara, con el rebote del aterrizaje
     // (la ratita se dibuja en la capa de adelante de pantalla completa, drawRevealRat desde drawGachaFx, así en el salto
     // no se corta en el borde de arriba de este canvas)
-    // como la referencia del usuario sobre el laboratorio: el nombre arriba de la cabeza, la rareza debajo de la ratita
-    // (sobre la mesada) y el aviso en el borde de la mesada
+    // como la referencia del usuario sobre el laboratorio: el nombre arriba de la cabeza y el aviso en el borde de la mesada
+    // (la rareza, que iba debajo de la ratita sobre la mesada, ya no se muestra: el usuario la sacó)
     // (el medio de la franja del borde de la mesada, y 812–884 de la imagen, es 252.7)
     // (el nombre, a la misma distancia de la cabeza que cuando la ratita era más grande)
     const NAME_Y = 46 + (KF2.y - 132) + (160 - FRONT_CY[0]) * (KF2.size - 154) / 935 - 16,   // (y un poco más arriba, como pidió el usuario)
-      RAR_Y = 233, TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
+      TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
     // los textos aparecen con un saltito, a destiempo (lo pidió el usuario): el nombre apenas después de que aterriza, y la
     // rareza y después el aviso cuando ya se ve el laboratorio (TXT_AT, segundos desde que se abre la cápsula); sin borde
     // (antes llevaban un borde oscuro: el usuario lo sacó)
@@ -3175,9 +3191,7 @@ function drawGacha(g, n) {
         // (sin el borde oscuro: el usuario lo sacó de los tres textos)
         g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
       });
-      const rar = RARITY[RAT_RARITY[P.pick]];   // la rareza entre paréntesis y de su color (con la letra del aviso, como pidió el usuario)
-      if (rar) txt(RAR_Y, 1, () => { const rt = `(${say(rar.name, rar.en).toUpperCase()})`; g.font = "13px 'Bebas Neue', 'Arial Narrow', sans-serif"; g.fillStyle = rar.color; g.fillText(rt, 0, 0); });
-      txt(SUB_Y, 2, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
+      txt(SUB_Y, 1, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
         g.font = "14px 'Bebas Neue', 'Arial Narrow', sans-serif"; g.lineWidth = 3.5; g.textBaseline = 'middle';
         const one = sub.join(' '), room = (innerWidth - 32) / ((P.geo ? P.geo.r.width : g.canvas.clientWidth) / 300) / TXT;   // ancho de pantalla, en las unidades del texto
         const lines = g.measureText(one).width <= room ? [one] : sub;
@@ -3269,9 +3283,9 @@ function buildSpeedLines(FR) {
   P.raysKey = FR;
 }
 const SPEED_HOLD = 1.9, SPEED_FADE = 1.4;   // las líneas cinéticas del premio: cuánto quedan y cuánto tardan en apagarse (s)
-// cuándo aparecen el nombre (apenas después de que aterriza), la rareza y el aviso (con el laboratorio ya a la vista), en
-// segundos desde que se abre la cápsula
-const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1, SPEED_HOLD + SPEED_FADE + 0.45];
+// cuándo aparecen el nombre (apenas después de que aterriza) y el aviso (con el laboratorio ya a la vista), en segundos
+// desde que se abre la cápsula (la rareza ya no se muestra: el usuario la sacó, no le servía al jugador)
+const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1];
 // la imagen de rayos del usuario (img/fondo-cinetica.jpg, hoy su fondo-cinetica3) en vez de los rayos dibujados (false = dibujados); ?v para que no quede la vieja en caché
 const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg?v=3';
 // la imagen es de 1920 px: se achica una sola vez a SPEED_IMG_PX en un canvas aparte, así cada cuadro gira una textura
@@ -3850,6 +3864,7 @@ function relang() {
       $scr.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // los nombres de las jaulas
     } else {
       const b = $scr.querySelector('#gachaNav [data-act="ratitas"]'); if (b) b.textContent = say('Bioterio', 'Vivarium');
+      const u = $scr.querySelector('#gachaNav [data-act="use"]'); if (u) u.innerHTML = `${PAW_SVG}${say('¡Usarla!', 'Use it!')}`;
       if (['idle', 'reveal'].includes(Gacha.phase)) {   // (mientras anda no hay textos ni botón)
         document.getElementById('gachaBtns').innerHTML = gachaButtons(Gacha.phase === 'reveal');
       }
@@ -3924,16 +3939,24 @@ function actNow(a, el) {
   else if (a === 'start') startPlay();
   else if (a === 'resume') togglePause();
   else if (a === 'retry') { G.attempts++; resetRun(); startPlay(); }   // el mismo laberinto, de nuevo
-  else if (a === 'back') {   // en el Bioterio y la Máquina es la casita: cierra la pantalla y va a la portada
-    if (G.screen) { G.screen = null; closeScreen(); if (G.state === 'select') showSelect(); else if (G.state !== 'title') showTitle(); else { refreshPrize(); updateButtons(); } }
-    else showTitle();
+  else if (a === 'back') {   // en el Bioterio y la Máquina: cierra la pantalla y vuelve a donde estabas
+    if (G.screen) leaveScreen(); else showTitle();
   }
   else if (a === 'menu') { closeOpts(); Music.resume(); showTitle(); }
   else if (a === 'ratitas') showRatitas(el);
   else if (a === 'machine') showMachine(el);
   else if (a === 'spin') gachaSpin();
   else if (a === 'pick') pickRat(+el.dataset.i);
-  else if (a === 'use') { Skins.data.sel = Gacha.pick; Skins.save(); showRatitas(); }
+  else if (a === 'use') { Skins.data.sel = Gacha.pick; Skins.save(); leaveScreen(); }   // la elige y vuelve a donde estabas
+}
+// Cierra el Bioterio o la Máquina y vuelve a la pantalla de donde se abrieron: el selector de niveles, la portada o el
+// cartel de fin de nivel (que quedó debajo, con Siguiente / Repetir / Reintentar a mano; antes se iba a la portada y había
+// que volver a buscar el nivel); desde cualquier otro lado, a la portada
+function leaveScreen() {
+  G.screen = null; closeScreen();
+  if (G.state === 'select') showSelect();
+  else if (['title', 'won', 'lost'].includes(G.state)) { refreshPrize(); updateButtons(); }
+  else showTitle();
 }
 
 // ---- botones de sonido / pausa ----
