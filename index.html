@@ -313,19 +313,22 @@
 
 
   /* columna de la izquierda: la casita (o la flechita), debajo las monedas y debajo el queso, más grandes */
+  /* queso y batería: el mismo ancho fijo (entra "10/10"; en em, así se achica con la letra en el celular), con el
+     contenido centrado; así no cambia de tamaño al juntar quesos y la batería queda del mismo ancho (lo pidió el usuario) */
+  #cheese, #lamp { box-sizing: border-box; width: 4.4em; justify-content: center; }
   #cheese { top: 64px; left: 14px; font-size: 24px; display: flex; align-items: center; gap: 7px; transform: rotate(1deg); padding: 3px 12px 1px; }
   #cheese svg { width: 27px; height: 27px; }
   #cheese.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   /* batería de la linterna (niveles a oscuras): 4 bloques de 15 s, debajo del queso */
-  #lamp { top: 114px; left: 14px; display: flex; align-items: center; padding: 3px 12px 1px 10px; font-size: 24px; transform: rotate(-1deg); }
+  #lamp { top: 114px; left: 14px; display: flex; align-items: center; padding: 3px 12px 1px; font-size: 24px; transform: rotate(-1deg); }
   #lamp::before { content: '\200b'; }   /* una línea de texto invisible: así mide lo mismo de alto que el queso */
   #lamp.up { top: 64px; }   /* sin queso, va en su lugar (entre monedas, queso y batería queda el mismo espacio: 8 px) */
   #lamp.pop { animation: levelPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   /* pila del HUD, después de un diseño del usuario: un marco gris oscuro con el polo a la derecha y 4 celdas planas; las
      prendidas van todas del mismo color según cuántas quedan (LAMP_COLORS: 4 verde, 3 amarilla, 2 naranja, 1 roja) y las vacías, gris */
-  #lamp .bat { position: relative; display: flex; gap: 3px; margin-right: 6px; padding: 3px; border-radius: 5px; background: #4b4b4b; }
-  #lamp .bat::after { content: ''; position: absolute; right: -4px; top: 50%; width: 4px; height: 44%; transform: translateY(-50%); background: #4b4b4b; border-radius: 0 2px 2px 0; }
-  #lamp .bat i { width: .38em; height: .6em; border-radius: 2px; background: #333333; }
+  #lamp .bat { position: relative; display: flex; gap: 3px; margin-right: 5px; padding: 4px; border-radius: 6px; background: #4b4b4b; }
+  #lamp .bat::after { content: ''; position: absolute; right: -5px; top: 50%; width: 5px; height: 44%; transform: translateY(-50%); background: #4b4b4b; border-radius: 0 2px 2px 0; }
+  #lamp .bat i { width: .45em; height: .7em; border-radius: 2px; background: #333333; }   /* (un poco más grande, para probar) */
   #lamp .bat i.blink { opacity: .25; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
   #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
@@ -698,7 +701,7 @@ const DARK_LEVELS = [5, 9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40];
 const LAMP_MAX = 60, LAMP_BLOCK = 15;
 // colores de la pila según cuántos bloques quedan (1 a 4): la del HUD, la barra de la linterna del lomo, el rayo de las
 // pilas del laberinto y sus chispitas usan el mismo verde (el usuario pidió unificarlos)
-const LAMP_COLORS = ['#e8382f', '#f5a01e', '#d6e02a', '#4fd832'], BAT_GREEN = LAMP_COLORS[3];
+const LAMP_COLORS = ['#e8382f', '#f5a01e', '#d6e02a', '#00d900'], BAT_GREEN = LAMP_COLORS[3];   // (el verde, el que eligió el usuario para la linterna)
 const lampBlocks = () => isMenu() ? 4 : Math.max(0, Math.min(4, Math.ceil(Math.max(0, G.timeLeft) / (G.lampBlock || LAMP_BLOCK) - 1e-6)));
 const WARN_T = 15;   // los últimos segundos de pila: sirena, tics, pila roja que titila y linterna que parpadea (antes 10)
 const BAT_CELLS = 26;   // pilas: como mucho tantas celdas de camino entre una y otra (~20 s a paso normal)
@@ -737,34 +740,34 @@ const Wallet = {
   add(n) { this.coins = Math.max(0, this.coins + n); try { localStorage.setItem('raton.coins', this.coins); } catch (_) {} updateCoins(); },
 };
 // Ratitas: nombre, pelaje, orejas, arnés, cuerpo de la linterna, ojos, (patas y cola: ya no se usa, salen de
-// portraitOf) y manchas (solo Pandita). Pelaje y orejas son la base de portraitOf, que puede pisarlos.
+// portraitOf) y manchas (solo Panchita). Pelaje y orejas son la base de portraitOf, que puede pisarlos.
 // La 0 (Albina) viene de entrada; las demás salen de la máquina.
 const RATS = [
-  ['Albina',      '#e0d8ce', '#cfa59f', '#26262b', '#4a5960', '#ff0a1e', '#b98582'],
-  ['Vainilla',    '#ecdcae', '#f2b27a', '#6b4524', '#1d1e21', '#5a341a', '#f2b27a'],
-  ['Copito',      '#d6ecf7', '#8fcbe8', '#1d3566', '#4a4f57', '#2f6fd6', '#8fcbe8'],
-  ['Cenizón',     '#9a9894', '#d9b3b0', '#26262b', '#a9adb2', '#ff0a1e', '#a89090'],
-  ['Sombrita',    '#2b2a2c', '#4a484c', '#3e3d40', '#1a1a1c', '#ff0a1e', '#4a484c'],
-  ['Chispita',    '#f07a1f', '#f6b37a', '#4a2a14', '#1d1e21', '#ffb000', '#e8761e'],
-  ['Cacao',       '#5b3a24', '#b38763', '#1f1d1c', '#4a4f57', '#0d0b0a', '#7a5236'],
-  ['Pinky',       '#f4c2d0', '#ef89c3', '#7a1834', '#1d1e21', '#ca1c8a', '#ef89c3'],
-  ['Cheddar',     '#f5c518', '#f08a1c', '#1f1d1c', '#4a4f57', '#b62f3a', '#e6b40f'],
-  ['Radiactín',   '#5cff3a', '#b6ff3a', '#1d4a1f', '#1d1e21', '#e1ff00', '#5cff3a'],
-  ['Musguito',    '#2f5a2c', '#5f9a4f', '#1f1d1c', '#4a4f57', '#332b00', '#2f5a2c'],
-  ['Voltio',      '#1f5fe0', '#8fd3f5', '#12285e', '#1d1e21', '#2ff3ff', '#1f5fe0'],
-  ['Mordisquito', '#8a2be2', '#c9a3f0', '#1f1d1c', '#4a4f57', '#ff7fbf', '#8a2be2'],
-  ['Fuego',       '#e01f1f', '#f27a6e', '#1f1d1c', '#4a4f57', '#ffd400', '#e01f1f'],
-  ['Burbuja',     '#2fc9c0', '#8fd8f0', '#12285e', '#1d1e21', '#2f6fd6', '#2fc9c0'],
-  ['Lila',        '#d9cdf2', '#b79be6', '#4b2a7a', '#4a4f57', '#7b3fd1', '#d9cdf2'],
-  ['Bordolín',    '#5e1020', '#b0475f', '#1f1d1c', '#4a4f57', '#000000', '#5e1020'],
-  ['Pandita',     '#f2efe9', '#cfa59f', '#1f1d1c', '#4a4f57', '#0d0b0a', '#cfa59f', '#4f4f4f'],
-  ['Wasabi',      '#7d8a3a', '#c1d268', '#1d4a1f', '#1d1e21', '#275a20', '#c1d268'],
-  ['Radium',      '#b5f02a', '#a8ba20', '#1f1d1c', '#1d4a1f', '#fe9ae3', '#a8ba20'],
-  ['Dorada',      '#f0bf2a', '#f8d66a', '#3b2a05', '#c9a227', '#ffdd00', '#f8d66a'],
+  ['Albina',      '#e3e3e3', '#f79e96', '#212127', '#4a5960', '#fd0a1d', '#b98582'],
+  ['Vainilla',    '#ebd9ac', '#f3b077', '#6b4524', '#1d1e21', '#582f12', '#f2b27a'],
+  ['Copito',      '#cde9f7', '#9fd4f1', '#1d3566', '#4a4f57', '#0857cc', '#8fcbe8'],
+  ['Cenizón',     '#959595', '#daafb0', '#26262b', '#a9adb2', '#dd0816', '#a89090'],
+  ['Sombrita',    '#383838', '#444444', '#3e3d40', '#1a1a1c', '#fb1026', '#4a484c'],
+  ['Chispita',    '#f16e15', '#f6a86f', '#4a2a14', '#1d1e21', '#fce803', '#e8761e'],
+  ['Cacao',       '#59361f', '#ac7c59', '#1f1d1c', '#4a4f57', '#171412', '#7a5236'],
+  ['Pinky',       '#f9bfd4', '#f8a6cd', '#7a1834', '#1d1e21', '#d70683', '#ef89c3'],
+  ['Cheddar',     '#fbc611', '#fdaa53', '#1f1d1c', '#4a4f57', '#b2182b', '#e6b40f'],
+  ['Toxi',        '#57fb3f', '#b3fa3e', '#1d4a1f', '#1d1e21', '#f9f807', '#5cff3a'],
+  ['Musguito',    '#2b5b29', '#5fa04c', '#1f1d1c', '#4a4f57', '#111010', '#2f5a2c'],
+  ['Voltio',      '#296efd', '#86d1fb', '#12285e', '#1d1e21', '#17fbfe', '#1f5fe0'],
+  ['Mordisquito', '#841ee5', '#c69bfd', '#1f1d1c', '#4a4f57', '#fb97e4', '#8a2be2'],
+  ['Fogui',       '#ed171d', '#fc736a', '#1f1d1c', '#4a4f57', '#fbde04', '#e01f1f'],
+  ['Burbuja',     '#61d7fd', '#86d9fd', '#12285e', '#1d1e21', '#0456fa', '#2fc9c0'],
+  ['Lila',        '#dbcbf8', '#cdb0fc', '#4b2a7a', '#4a4f57', '#690fe4', '#d9cdf2'],
+  ['Bordolín',    '#730f29', '#a02346', '#1f1d1c', '#4a4f57', '#050200', '#5e1020'],
+  ['Panchita',    '#444444', '#81635d', '#1f1d1c', '#4a4f57', '#141414', '#cfa59f'],
+  ['Wasabi',      '#8a9e30', '#b2c660', '#1d4a1f', '#1d1e21', '#124619', '#c1d268'],
+  ['Violeta',     '#74059e', '#721695', '#1f1d1c', '#1d4a1f', '#fe8ae4', '#a8ba20'],
+  ['Dorada',      '#fcce0e', '#fde306', '#3b2a05', '#c9a227', '#ffdd00', '#f8d66a'],
 ];
 // sus nombres en inglés (en el mismo orden) y el nombre en el idioma elegido
-const RAT_EN = ['Albie', 'Vanilla', 'Flake', 'Ashy', 'Shadow', 'Sparky', 'Cocoa', 'Pinky', 'Cheddar', 'Nuke', 'Mossy', 'Volt',
-  'Nibbles', 'Blaze', 'Bubbles', 'Lilac', 'Merlot', 'Panda', 'Wasabi', 'Radium', 'Goldie'];
+const RAT_EN = ['Albie', 'Vanilla', 'Flake', 'Ashy', 'Shadow', 'Sparky', 'Cocoa', 'Pinky', 'Cheddar', 'Toxie', 'Mossy', 'Volt',
+  'Nibbles', 'Blaze', 'Bubbles', 'Lilac', 'Merlot', 'Patches', 'Wasabi', 'Violet', 'Goldie'];
 const ratName = i => say(RATS[i][0], RAT_EN[i]);
 // Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada): 10 comunes, 6 infrecuentes, 3 raras y 1
 // legendaria (la Dorada). La máquina primero sortea la rareza (w: chance de cada una) y después una ratita de esa rareza
@@ -774,8 +777,10 @@ const RARITY = {
   rara:       { name: 'Rara',        en: 'Rare',      color: '#6fb8ff', w: 0.105 },
   legendaria: { name: 'Legendaria',  en: 'Legendary', color: '#ffcc33', w: 0.015 },
 };
-const RAT_RARITY = [null, 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'comun', 'rara', 'comun',
-  'infrecuente', 'infrecuente', 'infrecuente', 'infrecuente', 'comun', 'rara', 'rara', 'infrecuente', 'infrecuente', 'legendaria'];
+// (el usuario las reordenó: comunes Vainilla, Wasabi, Cenizón, Bordolín, Cacao, Pinky, Cheddar, Musguito, Chispita y
+// Mordisquito; infrecuentes Panchita, Voltio, Lila, Burbuja, Toxi y Copito; raras Violeta, Sombrita y Fogui)
+const RAT_RARITY = [null, 'comun', 'infrecuente', 'comun', 'rara', 'comun', 'comun', 'comun', 'comun', 'infrecuente', 'comun',
+  'infrecuente', 'comun', 'rara', 'infrecuente', 'infrecuente', 'comun', 'infrecuente', 'comun', 'rara', 'legendaria'];
 function rollRat() {
   let r = Math.random(), tier = 'comun';
   for (const k in RARITY) { if ((r -= RARITY[k].w) < 0) { tier = k; break; } }
@@ -801,8 +806,8 @@ function skinOf(i) {
   const [name, , , , , eyes, , spots] = RATS[i], harness = RATS[0][3], P = portraitOf(i), fur = P.fur;
   const shut = lum(fur) < 0.35 ? mixC(fur, '#ffffff', 0.5) : mixC(mixC(fur, '#000000', 0.55), eyes, 0.25);
   return skinCache[i] = { name, spots, harness, eyes, tail: P.tail, ear: P.ear,
-    earIn: P.earDark, nose: P.nose, shine: P.shine, eyeShut: shut,
-    eyeGlow: i === 0 ? hexRgb(eyes).join(',') : null,   // brillo rojo alrededor de los ojos: solo la Albina
+    earIn: P.earIn, nose: P.nose, shine: P.shine, eyeShut: shut,
+    eyeGlow: null,   // (la Albina tenía un brillo rojo alrededor de los ojos; el usuario lo sacó)
     fur, foot: hexRgb(P.paws) };   // colores planos (sin degradés), los mismos de la ratita de frente y de perfil
 }
 let skinOverride = null;   // para dibujar otra ratita (vistas previas); si no, la elegida
@@ -1610,11 +1615,19 @@ const caughtAmp = () => clamp((M.caughtT || 0) / (CAUGHT_T * 0.35), 0, 1);
 const stretchAmount = () => { if (!(M.stretchT > 0)) return 0; const f = 1 - M.stretchT / STRETCH_T; return Math.sin(f * Math.PI * 1.5) * (1 - f); };
 const EAR_TILT = 0.35;   // inclinación de las orejas hacia afuera (rad)
 const EAR_IN = 0.45;     // cuánto se meten las orejas hacia el cuerpo
+// Ratita vista desde arriba, diseño nuevo según una referencia del usuario (cuerpo de gota con la cabeza en punta, orejas
+// en forma de D apoyadas a los costados de la cabeza, ojos grandes, nariz redonda en la punta y tres bigotes por lado).
+// false vuelve al diseño anterior (el usuario pidió probarlo sin romper el actual)
+const MOUSE_V2 = true;
+// orejas del diseño nuevo inclinadas hacia atrás (rad; el lado recto sigue pegado a la cabeza): la parte de afuera se va hacia la cola,
+// como en la referencia del usuario. 0 deja las orejas derechas, como la primera versión
+const EAR_BACK = 0.35;
 const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   // la cola nace en x = -TAIL_ROOT
 const tailWidth = t => 3.6 - 3.0 * t;
 
 // Patas: [x, y] de reposo (coordenadas del ratón), si es de adelante, y su par diagonal (se mueven de a pares, como un trote)
-const FEET = [[6, -5.4, true, 0], [6, 5.4, true, 1], [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
+const FEET = [[MOUSE_V2 ? 5 : 6, -5.4, true, 0], [MOUSE_V2 ? 5 : 6, 5.4, true, 1],   // (con el diseño nuevo, las manos un poco más atrás: con las orejas inclinadas asomaban los deditos)
+   [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
 const STRIDE = 28;        // largo de un ciclo de paso (unidades de mundo recorridas por las patas): más largo = pasos más lentos
 const FOOT_SLIP = 0.45;   // apoyada, la pata acompaña al cuerpo este tanto (leve arrastre): pasos largos sin despegarse del cuerpo
 const SWING = 0.45;       // fracción del ciclo que la pata va por el aire
@@ -2028,68 +2041,113 @@ function pickRat(i) {
 // líneas oscuras en el muslo y el hombro, patas largas con deditos y la cola que se va a la derecha y vuelve por abajo.
 // Usa la misma paleta que el juego. t anima: respira, parpadea, mueve la oreja y la cola (t = 0: quieta).
 // Coordenadas propias de unos 900 × 430; se centra en (x, y) y size es el ancho total en píxeles.
-// Colores del retrato (plano): pelaje, oreja de adelante, oreja de atrás e interior (earDark), línea del pliegue de la
+// Colores del retrato (plano): pelaje, oreja de adelante, oreja de atrás (earDark), interior de la oreja (earIn), línea del pliegue de la
 // oreja, nariz, patas y cola, y líneas del cuerpo. Salen de la tabla RATS con las mismas proporciones que la Albina
 // (que tiene sus colores elegidos a mano); para ajustar una ratita a mano, se agrega en PORTRAIT_COLORS.
 const PORTRAIT_COLORS = {
-  0: { fur: '#e5e5e5', ear: '#f5a192', earDark: '#f38471', earLine: '#ea583e', nose: '#f5a192', paws: '#f5a192', line: '#6c6c6c', legLine: '#ffffff' },   // Albina
-  1: { earLine: '#b57f4f', legLine: '#d0aa49' },   // Vainilla
-  2: { ear: '#aadbf3', earDark: '#8eceec', earLine: '#7dbad9', nose: '#8fcbe8', paws: '#8fcbe8', tail: '#8fcbe8', legLine: '#8ec9e6' },   // Copito
-  3: { earLine: '#af9592', legLine: '#808080' },   // Cenizón
-  4: { legLine: '#5c5c5c', line: '#8a8a8b', fur: '#454545', tail: '#4a484c', paws: '#706c75' },   // Sombrita
-  5: { earLine: '#d58d53', line: '#8f4f1e', legLine: '#f39b58' },   // Chispita
-  6: { earLine: '#8d623f', line: '#aa8974', legLine: '#936343' },   // Cacao
-  7: { ear: '#f5b7da', earDark: '#f094c8', earLine: '#ad5c8a', legLine: '#c28999', nose: '#ef89c3', tail: '#ef89c3', paws: '#ef89c3' },   // Pinky
-  8: { earLine: '#bd701f', legLine: '#c7a529', earDark: '#e79236', nose: '#f08a1c', tail: '#f08a1c', paws: '#f08a1c', ear: '#ffab52' },   // Cheddar
-  9: { earLine: '#9ddf2a', line: '#45a531', legLine: '#40df20', nose: '#cefe7c' },   // Radiactín
-  10: { legLine: '#578452' },   // Musguito
-  11: { fur: '#3b7af7', ear: '#8ad8ff', earDark: '#82c0df', earLine: '#528fad', nose: '#8fd3f5', paws: '#8fd3f5', tail: '#8fd3f5', line: '#1c4087', legLine: '#2d56a9' },   // Voltio
-  14: { fur: '#6cdafe', ear: '#8ae2ff', earDark: '#69cae8', earLine: '#5badc8', nose: '#00bfff', paws: '#9ee7ff', tail: '#8fd8f0', line: '#165e5a', legLine: '#3fb3d9' },   // Burbuja
-  15: { ear: '#d8c7ff', earDark: '#c4aaee', earLine: '#a88bda', nose: '#b79be6', paws: '#b79be6', tail: '#b79be6', line: '#7c67a8', legLine: '#c9adff' },   // Lila
-  16: { fur: '#63081a', ear: '#63081a', earDark: '#a22040', earLine: '#812c40', nose: '#b0475f', paws: '#b0475f', tail: '#e63760', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Bordolín
-  17: { fur: '#454545', ear: '#7a5c57', earDark: '#674b46', earLine: '#594440', nose: '#764841', paws: '#7a5c57', tail: '#cfa59f', line: '#86735f', legLine: '#3b2b1c' },   // Pandita
-  18: { fur: '#8c9e33', ear: '#b0bf69', earDark: '#9ead53', earLine: '#7d8a3d', nose: '#c1d268', paws: '#bed062', tail: '#bfd454', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
-  19: { fur: '#7b11a2', ear: '#772296', earDark: '#6a0d8c', earLine: '#5c047c', nose: '#a62ed1', paws: '#9453ac', tail: '#4d2b5a', line: '#b479c8', legLine: '#a348fe', shine: '#ffd6e8' },   // Radium
-  20: { fur: '#f0bf2a', ear: '#ffdd00', earDark: '#fec22a', earLine: '#dfa92a', nose: '#f8d66a', paws: '#ffdd00', tail: '#ffdd00', line: '#ad801f', legLine: '#ffe49e', shine: '#fff6cc' },   // Dorada (legendaria)
+  0: { fur: '#e3e3e3', ear: '#f79e96', earDark: '#f17f73', earIn: '#f58174', nose: '#f9a59b', paws: '#f69891', tail: '#f59690', earLine: '#ea583e', line: '#6c6c6c', legLine: '#ffffff' },   // Albina
+  1: { fur: '#ebd9ac', ear: '#f3b077', earDark: '#db9b65', earIn: '#e09f6a', nose: '#f4b27c', paws: '#f4ae74', tail: '#f1aa71', earLine: '#b57f4f', legLine: '#d0aa49' },   // Vainilla
+  2: { fur: '#cde9f7', ear: '#9fd4f1', earDark: '#81c0e2', earIn: '#83c8eb', nose: '#94d0f2', paws: '#8fceef', tail: '#88caee', earLine: '#7dbad9', legLine: '#8ec9e6' },   // Copito
+  3: { fur: '#959595', ear: '#daafb0', earDark: '#be9a9a', earIn: '#bd9d9b', nose: '#d8acac', paws: '#dab1b1', tail: '#d6adad', earLine: '#af9592', legLine: '#808080' },   // Cenizón
+  4: { fur: '#383838', ear: '#444444', earDark: '#333333', earIn: '#333333', nose: '#7e7d80', paws: '#727275', tail: '#444444', line: '#8a8a8b', legLine: '#5c5c5c' },   // Sombrita
+  5: { fur: '#f16e15', ear: '#f6a86f', earDark: '#eb8743', earIn: '#e89255', nose: '#f8ad73', paws: '#f6a86e', tail: '#f5a76d', earLine: '#d58d53', line: '#8f4f1e', legLine: '#f39b58' },   // Chispita
+  6: { fur: '#59361f', ear: '#ac7c59', earDark: '#9b6d4c', earIn: '#986b4a', nose: '#c8956d', paws: '#c7936b', tail: '#a17552', earLine: '#8d623f', line: '#aa8974', legLine: '#936343' },   // Cacao
+  7: { fur: '#f9bfd4', ear: '#f8a6cd', earDark: '#ec83bf', earIn: '#ee8dc2', nose: '#f597c1', paws: '#f38bc5', tail: '#ef85c2', earLine: '#ad5c8a', legLine: '#c28999' },   // Pinky
+  8: { fur: '#fbc611', ear: '#fdaa53', earDark: '#f6942e', earIn: '#f39d36', nose: '#fbaf6f', paws: '#fc9011', tail: '#fc8b05', earLine: '#bd701f', legLine: '#c7a529' },   // Cheddar
+  9: { fur: '#57fb3f', ear: '#b3fa3e', earDark: '#9dea31', earIn: '#9beb32', nose: '#e8fa89', paws: '#b1fb3c', tail: '#b1f838', earLine: '#9ddf2a', line: '#45a531', legLine: '#40df20' },   // Toxi
+  10: { fur: '#2b5b29', ear: '#5fa04c', earDark: '#508a41', earIn: '#4e8c41', nose: '#71aa5c', paws: '#61a44e', tail: '#629e4f', legLine: '#578452' },   // Musguito
+  11: { fur: '#296efd', ear: '#86d1fb', earDark: '#67b7fb', earIn: '#6cbcf0', nose: '#8ad3fe', paws: '#84d0fd', tail: '#74c4fa', earLine: '#528fad', line: '#1c4087', legLine: '#2d56a9' },   // Voltio
+  12: { fur: '#841ee5', ear: '#c69bfd', earDark: '#b478fb', earIn: '#b480ef', nose: '#cba2fb', paws: '#c394fc', tail: '#c397f8' },   // Mordisquito
+  13: { fur: '#ed171d', ear: '#fc736a', earDark: '#fa534e', earIn: '#ec5b55', nose: '#fb8a7f', paws: '#fd756c', tail: '#fa736b' },   // Fogui
+  14: { fur: '#61d7fd', ear: '#86d9fd', earDark: '#67c9f3', earIn: '#6bc8e8', nose: '#b2eafa', paws: '#92defc', tail: '#76caf4', earLine: '#5badc8', line: '#165e5a', legLine: '#3fb3d9' },   // Burbuja
+  15: { fur: '#dbcbf8', ear: '#cdb0fc', earDark: '#b891f0', earIn: '#be96f5', nose: '#be91f3', paws: '#c092fa', tail: '#b488f0', earLine: '#a88bda', line: '#7c67a8', legLine: '#c9adff' },   // Lila
+  16: { fur: '#730f29', ear: '#a02346', earDark: '#931c3d', earIn: '#881938', nose: '#de5172', paws: '#bf3054', tail: '#bf2a52', earLine: '#812c40', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Bordolín
+  17: { fur: '#444444', ear: '#81635d', earDark: '#735851', earIn: '#6a524d', nose: '#a08077', paws: '#886761', tail: '#b6928c', earLine: '#594440', line: '#86735f', legLine: '#3b2b1c' },   // Panchita
+  18: { fur: '#8a9e30', ear: '#b2c660', earDark: '#97ab48', earIn: '#9baf4b', nose: '#bdd55e', paws: '#bcd25b', tail: '#bacf5b', earLine: '#7d8a3d', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
+  19: { fur: '#74059e', ear: '#721695', earDark: '#640785', earIn: '#66088a', nose: '#c971ea', paws: '#b554e8', tail: '#60127b', earLine: '#5c047c', line: '#b479c8', legLine: '#a348fe', shine: '#ffd6e8' },   // Violeta
+  20: { fur: '#fcce0e', ear: '#fde306', earDark: '#f8cc17', earIn: '#fdc824', nose: '#fcd963', paws: '#f8df01', tail: '#f9db00', earLine: '#dfa92a', line: '#ad801f', legLine: '#ffe49e', shine: '#fff6cc' },   // Dorada
 };
 // Colores del retrato (y de la ratita de frente): se sacan de RATS, y PORTRAIT_COLORS puede pisar algunos o todos.
-// ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás y el interior de la oreja,
+// ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás, earIn el interior (si no, earDark),
 // line las líneas de la cara (bigotes, boca) y legLine las de las patas (muslo, hombro, bracitos; si no, igual que line)
 function portraitOf(i) {
   const o = PORTRAIT_COLORS[i] || {}, [, rf, rears] = RATS[i], fur = o.fur || rf, ear = o.ear || rears, dark = lum(fur) < 0.3;
   const line = o.line || (dark ? mixC(fur, '#ffffff', 0.45) : mixC(fur, '#000000', 0.53));
   const paws = o.paws || ear;   // nariz, patitas y cola: del tono claro de la oreja (si no se eligen aparte)
-  return { fur, ear, earDark: o.earDark || mixC(ear, '#000000', 0.09), earLine: o.earLine || mixC(ear, '#000000', 0.42),
+  const earDark = o.earDark || mixC(ear, '#000000', 0.09);
+  return { fur, ear, earDark, earIn: o.earIn || earDark, earLine: o.earLine || mixC(ear, '#000000', 0.42),
     nose: o.nose || ear, paws, tail: o.tail || paws,
     line, legLine: o.legLine || line, shine: o.shine || '#ffffff' };   // shine: el brillito del ojo
 }
+// La cola del retrato en reposo (en las coordenadas de la referencia nueva), repartida en tramos iguales a lo largo; al
+// moverse cada tramo solo gira, así la cola nunca se estira. TAIL_LIFT: cuánto gira la base para arriba al tocarla (rad),
+// TAIL_CURL: cuánto más se enrosca la punta, TAIL_WAVE: cuánto ondula
+const TAIL_LIFT = 0.75, TAIL_CURL = 1.25, TAIL_WAVE = 0.7;
+let tailShapesCache = null;
+function tailShapes() {
+  if (tailShapesCache) return tailShapesCache;
+  const rest = [[1415, 522], [1530, 524], [1620, 542], [1680, 568], [1715, 600], [1730, 640], [1717, 680], [1695, 703], [1666, 720],
+    [1610, 744], [1530, 761], [1410, 772], [1290, 768], [1218, 764]];
+  const d = [];   // Catmull-Rom denso, para medir y repartir los puntos parejo
+  for (let s = 0; s < rest.length - 1; s++) for (let u = 0; u < 1; u += 0.05) {
+    const p0 = rest[Math.max(0, s - 1)], p1 = rest[s], p2 = rest[s + 1], p3 = rest[Math.min(rest.length - 1, s + 2)];
+    const f = (a, b, cc, e) => 0.5 * (2 * b + (-a + cc) * u + (2 * a - 5 * b + 4 * cc - e) * u * u + (-a + 3 * b - 3 * cc + e) * u * u * u);
+    d.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+  }
+  d.push(rest[rest.length - 1]);
+  const acc = [0];
+  for (let j = 1; j < d.length; j++) acc.push(acc[j - 1] + Math.hypot(d[j][0] - d[j - 1][0], d[j][1] - d[j - 1][1]));
+  const L = acc[acc.length - 1], out = [], N = 18; let j = 1;
+  for (let n = 0; n < N; n++) {
+    const t = L * n / (N - 1); while (j < acc.length - 1 && acc[j] < t) j++;
+    const w = (t - acc[j - 1]) / ((acc[j] - acc[j - 1]) || 1); out.push(lerp2(d[j - 1], d[j], Math.min(1, w)));
+  }
+  return (tailShapesCache = out);
+}
 function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: cuánto se mueve (0 = quieta, 1 = normal); wag: segundos desde que se la tocó (0 = nada)
-  // Dibujo plano de costado, mirando a la izquierda, como la referencia que mandó el usuario (cuerpo de gota con el lomo
-  // alto atrás y la cabeza en cuña, dos orejas redondas, ojo redondo, nariz en la punta, tres bigotes, patas en forma de
-  // loma con dos deditos, la "C" del muslo y el paréntesis del hombro, y la cola que sale del anca, da la vuelta y vuelve
-  // por abajo). Se dibuja en las coordenadas de esa imagen (1536 × 1024, piso en y = 765) llevadas al marco de siempre
-  // (x, y es el centro y size el ancho de referencia), así las jaulas y la máquina no cambian.
+  // Dibujo plano de costado, mirando a la izquierda, según la última referencia del usuario (revision/rata-perfil-nueva,
+  // 1804 × 872, piso en y = 700), medida píxel por píxel: cuerpo de gota con el lomo alto atrás y la cabeza en cuña, una
+  // sombra más oscura abajo (la panza y la pata de atrás, debajo del anca) en lugar de las líneas del muslo y el hombro,
+  // dos orejas redondas (la de adelante con el interior y su arco), ojo grande con el brillo arriba a la izquierda, nariz
+  // redonda en la punta, tres bigotes, patas en forma de loma con dos rayitas y la cola que sale del anca, da la vuelta y
+  // vuelve por abajo. Se dibuja en las coordenadas de esa imagen, llevadas a las de la referencia anterior (NS, con el
+  // mismo largo de hocico a anca) y de ahí al marco de siempre (x, y es el centro y size el ancho de referencia), así las
+  // jaulas, la máquina y las galerías no cambian.
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line;
   const breath = 1 + 0.012 * amp * Math.sin(t * 2.6), blink = t > 0 && amp > 0.5 && (t % 3.7) < 0.13;
   let twitch = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.14 * amp : 0;
   if (wag > 0 && wag < 0.7) twitch += Math.sin(wag * Math.PI * 2 * 5) * 0.2 * (1 - wag / 0.7) * Math.min(1, wag * 20);   // al tocarla: sacude las orejitas
   const sway = t > 0 ? Math.sin(t * 1.4) * amp : 0;
-  const k = size / 930, R = 0.6227;   // R: de la imagen de referencia al marco del retrato
+  const k = size / 930, R = 0.6227, NS = 0.8586;   // R: de la referencia anterior al marco; NS: de la nueva a la anterior
   c.save(); c.translate(x, y); c.scale(k, k); c.translate(-540, -330);
   c.translate(80 - 58 * R, 412 - 765 * R); c.scale(R, R);
+  c.translate(15.5, 164); c.scale(NS, NS);
   c.lineCap = 'round'; c.lineJoin = 'round';
-  // cola: sale del anca hacia la derecha, da la vuelta y vuelve hacia la izquierda por abajo, afinándose hasta la punta
-  const SW = [0, 0, 4, 7, 10, 12, 13, 13, 12, 10];
-  const tailPts = [[1225, 600], [1300, 598], [1400, 616], [1468, 662], [1490, 722], [1455, 776], [1360, 805], [1220, 816], [1085, 830], [985, 858]]
-    .map(([px, py], n) => [px, py + sway * SW[n] * 1.6]);
-  if (wag > 0 && wag < WAG_T) {   // al tocarla: la cola se levanta y ondula despacio, como un gatito (una onda que va de la
-    // base a la punta), y vuelve a bajar. Solo sube (nunca baja), así no se mete debajo de la caja ni del estante
-    const e = Math.min(1, wag / 0.35, (WAG_T - wag) / 0.7), env = e * e * (3 - 2 * e);
-    tailPts.forEach((p, n) => {
-      const v = n / (tailPts.length - 1);
-      p[1] -= env * Math.pow(v, 1.1) * (75 + 45 * Math.sin(wag * Math.PI * 2 * WAG_HZ - n * 0.75));
-      p[0] += env * Math.pow(v, 1.3) * 22 * Math.sin(wag * Math.PI * 2 * WAG_HZ - n * 0.75 - 1.2);
-    });
+  // cola: sale del anca hacia la derecha, da la vuelta y vuelve hacia la izquierda por abajo (delante del piso), afinándose.
+  // Es una cadena de tramos iguales que nunca se estiran (el usuario quería que conserve su largo): cada tramo solo gira
+  // respecto de su forma en reposo. Quieta, un vaivén suave. Al tocarla, como la cola de un gato: la base gira hacia
+  // arriba (TAIL_LIFT, repartido en los primeros tramos, así sube la vuelta entera), la punta se enrosca un poco más (hacia adentro de la vuelta) para
+  // arriba (TAIL_CURL) y una onda recorre la cola de la base a la punta (TAIL_WAVE); al final vuelve acelerando y rebota dos
+  // veces. Ningún punto baja más que el piso de la cola en reposo, así no se mete en el estante
+  const rest = tailShapes(), last = rest.length - 1, floorY = Math.max(...rest.map(p => p[1]));
+  let env = 0, wave = 0;
+  if (wag > 0 && wag < WAG_T) {
+    const fall = WAG_T - 1.05, s2 = wag - fall;
+    if (s2 < 0) env = 1 - Math.pow(1 - Math.min(1, wag / 0.45), 3);          // sube rápido y frena arriba
+    else if (s2 < 0.45) env = 1 - (s2 / 0.45) * (s2 / 0.45);                // vuelve acelerando
+    else if (s2 < 0.8) env = 0.2 * Math.sin(Math.PI * (s2 - 0.45) / 0.35);  // primer rebote
+    else env = 0.06 * Math.sin(Math.PI * Math.min(1, (s2 - 0.8) / 0.25));   // y uno chiquito
+    wave = Math.min(1, wag / 0.3) * (s2 < 0 ? 1 : Math.max(0, 1 - s2 / 0.45));   // la onda se apaga mientras vuelve
+  }
+  const tailPts = [rest[0].slice()];
+  let add = 0;
+  for (let n = 1; n <= last; n++) {
+    const v = n / last, dx = rest[n][0] - rest[n - 1][0], dy = rest[n][1] - rest[n - 1][1];
+    add += -env * TAIL_LIFT * (n <= 4 ? 0.25 : 0) + env * TAIL_CURL * (v > 0.55 ? 1 / (last * 0.45) : 0)
+      + wave * TAIL_WAVE * Math.pow(v, 0.7) / last * 4 * Math.sin(wag * Math.PI * 2 * WAG_HZ - n * 0.7)
+      + (n <= 4 ? sway * 0.01 : 0);
+    const cs = Math.cos(add), sn = Math.sin(add), q = tailPts[n - 1];
+    tailPts.push([q[0] + dx * cs - dy * sn, Math.min(floorY, q[1] + dx * sn + dy * cs)]);
   }
   const tp = [];
   for (let s = 0; s < tailPts.length - 1; s++) for (let u = 0; u < 1; u += 0.1) {   // Catmull-Rom entre los puntos
@@ -2100,78 +2158,86 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
   tp.push(tailPts[tailPts.length - 1]);
   const edge = sgn => tp.map(([px, py], j) => {
     const q = tp[Math.min(tp.length - 1, j + 1)], o = tp[Math.max(0, j - 1)], dx = q[0] - o[0], dy = q[1] - o[1], l = Math.hypot(dx, dy) || 1;
-    const u = j / (tp.length - 1), wdt = 6 + 25 * Math.pow(1 - u, 0.7);   // gruesa en la base, se afina parejo hasta la punta
+    const u = j / (tp.length - 1), wdt = 11 + 17 * Math.pow(1 - u, 0.7);   // gruesa en la base, se afina parejo hasta la punta
     return [px - dy / l * wdt * sgn, py + dx / l * wdt * sgn];
   });
   // la cola se dibuja entera detrás del cuerpo (así nace por detrás del anca) y después la punta otra vez por delante
-  // (desde TAIL_FRONT del largo): cuando la levanta y la ondula, la punta pasa por delante del cuerpo
+  // (desde la mitad del largo): cuando la levanta y la ondula, la punta pasa por delante del cuerpo
   const E1 = edge(1), E2 = edge(-1);
   const tailPart = j0 => {
     c.fillStyle = P.tail; c.beginPath(); [...E1.slice(j0), ...E2.slice(j0).reverse()].forEach(([px, py], j) => j ? c.lineTo(px, py) : c.moveTo(px, py));
     c.closePath(); c.fill();
-    c.beginPath(); c.arc(tp[tp.length - 1][0], tp[tp.length - 1][1], 6, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(tp[tp.length - 1][0], tp[tp.length - 1][1], 11, 0, Math.PI * 2); c.fill();
   };
   tailPart(0);
   // oreja de atrás: redonda, del color de adentro de la oreja (la base queda tapada por la cabeza)
-  c.save(); c.translate(390, 470); c.rotate(twitch * 0.5); c.translate(-390, -470);
-  c.fillStyle = P.earDark; c.beginPath(); c.arc(352, 382, 125, 0, Math.PI * 2); c.fill();
+  c.save(); c.translate(436, 356); c.rotate(twitch * 0.5); c.translate(-436, -356);
+  c.fillStyle = P.earDark; c.beginPath(); c.arc(413, 297, 135, 0, Math.PI * 2); c.fill();
   c.restore();
   // cuerpo y cabeza: una sola silueta (cuña adelante, lomo alto y redondo atrás, panza plana en el piso)
-  c.save(); c.translate(650, 765); c.scale(1, breath); c.translate(-650, -765);
+  c.save(); c.translate(739, 700); c.scale(1, breath); c.translate(-739, -700);
   const body = new Path2D();
-  body.moveTo(96, 652);
-  body.bezierCurveTo(150, 560, 250, 470, 380, 420);    // hocico → frente
-  body.bezierCurveTo(500, 362, 640, 278, 860, 276);    // nuca → lomo (lo más alto, atrás)
-  body.bezierCurveTo(1080, 274, 1230, 420, 1240, 610);  // lomo → anca
-  body.bezierCurveTo(1245, 700, 1190, 765, 1080, 765);  // anca → piso
-  body.lineTo(420, 765);                               // panza plana
-  body.bezierCurveTo(300, 762, 150, 726, 96, 702);     // pera
-  body.bezierCurveTo(70, 690, 72, 664, 96, 652);       // punta del hocico
+  body.moveTo(78, 612);
+  body.bezierCurveTo(140, 515, 280, 390, 420, 336);      // hocico → frente
+  body.bezierCurveTo(600, 272, 850, 196, 1030, 196);     // nuca → lomo (lo más alto, atrás)
+  body.bezierCurveTo(1250, 196, 1434, 370, 1434, 540);   // lomo → anca
+  body.bezierCurveTo(1434, 640, 1360, 700, 1240, 700);   // anca → piso
+  body.lineTo(270, 700);                                 // panza plana
+  body.bezierCurveTo(180, 698, 110, 682, 85, 655);       // pera
+  body.bezierCurveTo(70, 640, 68, 625, 78, 612);         // punta del hocico
   c.fillStyle = fur; c.fill(body);
-  if (S.spots) {   // manchas (Pandita)
-    c.save(); c.clip(body); c.fillStyle = S.spots;
-    for (const [sx, sy, rx, ry, r] of [[880, 410, 150, 95, 0.1], [1110, 610, 95, 120, 0], [610, 610, 80, 60, -0.2]]) { c.beginPath(); c.ellipse(sx, sy, rx, ry, r, 0, Math.PI * 2); c.fill(); }
-    c.restore();
+  // sombra de abajo (el pelaje un poco más oscuro): la panza bajo la cabeza y el pecho, y la pata de atrás debajo del anca
+  c.save(); c.clip(body); c.fillStyle = mixC(fur, '#000000', 0.066);
+  c.beginPath(); c.moveTo(60, 612); c.quadraticCurveTo(120, 662, 230, 674); c.lineTo(686, 677); c.lineTo(686, 740); c.lineTo(40, 740); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(698, 702); c.bezierCurveTo(762, 690, 806, 650, 822, 584); c.bezierCurveTo(846, 612, 900, 648, 1000, 665);
+  c.lineTo(1290, 664); c.bezierCurveTo(1360, 650, 1410, 610, 1440, 520); c.lineTo(1480, 740); c.lineTo(698, 740); c.closePath(); c.fill();
+  if (S.spots) {   // manchas (Panchita)
+    c.fillStyle = S.spots;
+    for (const [sx, sy, rx, ry, r] of [[1007, 286, 175, 111, 0.1], [1263, 519, 111, 140, 0], [692, 519, 93, 70, -0.2]]) { c.beginPath(); c.ellipse(sx, sy, rx, ry, r, 0, Math.PI * 2); c.fill(); }
   }
-  // líneas: la "C" del muslo y el paréntesis del hombro
-  c.strokeStyle = P.legLine; c.lineWidth = 7;
-  c.beginPath(); c.moveTo(1093, 447); c.bezierCurveTo(980, 408, 850, 480, 842, 592); c.bezierCurveTo(838, 650, 868, 690, 900, 708); c.stroke();
-  c.beginPath(); c.moveTo(703, 570); c.bezierCurveTo(760, 618, 762, 740, 637, 762); c.stroke();
   c.restore();
-  // patas: lomitas apoyadas en el piso, con dos deditos
-  const paw = (x0, x1, top) => {
-    const m = (x0 + x1) / 2;
-    c.fillStyle = P.paws; c.beginPath(); c.moveTo(x0, 768);
-    c.bezierCurveTo(x0 - 8, 734, x0 + 30, top, m - 10, top); c.bezierCurveTo(x1 - 40, top, x1 + 8, 728, x1, 764);
-    c.lineTo(x1 - 8, 770); c.closePath(); c.fill();
-    c.strokeStyle = mixC(P.paws, '#000000', 0.35); c.lineWidth = 4.5; c.beginPath();
-    for (const d of [0, 32]) { c.moveTo(x0 + 26 + d, 770); c.quadraticCurveTo(x0 + 26 + d, 748, x0 + 41 + d, 738); }
+  c.restore();
+  // patas: lomitas apoyadas en el piso, con dos rayitas
+  const paw = (x0, x1, top, lines) => {
+    const m = (x0 + x1) / 2, bot = 717;
+    c.fillStyle = P.paws; c.beginPath(); c.moveTo(x0 + 18, bot);
+    c.bezierCurveTo(x0 - 4, bot, x0 - 2, top + 34, x0 + 52, top + 10); c.bezierCurveTo(m - 20, top - 4, x1 - 50, top - 2, x1 - 18, top + 22);
+    c.bezierCurveTo(x1 + 6, top + 44, x1 + 4, bot, x1 - 18, bot); c.closePath(); c.fill();
+    c.strokeStyle = P.earLine; c.lineWidth = 5; c.beginPath();
+    for (const [ax, ay, bx, by] of lines) { c.moveTo(ax, ay); c.lineTo(bx, by); }
     c.stroke();
   };
-  paw(410, 578, 706); paw(842, 1080, 708);
+  paw(475, 688, 631, [[527, 659, 511, 704], [565, 659, 547, 704]]);
+  paw(994, 1233, 627, [[1046, 659, 1029, 702], [1083, 659, 1065, 704]]);
   tailPart(Math.round(tp.length * 0.5));   // la punta, por delante del cuerpo
   // oreja de adelante: redonda, con el interior más oscuro y el pliegue marcado arriba; es la que se mueve
-  c.save(); c.translate(520, 540); c.rotate(twitch); c.translate(-520, -540);
-  c.fillStyle = P.ear; c.beginPath(); c.arc(520, 422, 140, 0, Math.PI * 2); c.fill();
-  c.fillStyle = P.earDark; c.beginPath(); c.arc(530, 452, 88, 0, Math.PI * 2); c.fill();
-  c.strokeStyle = P.earLine; c.lineWidth = 6;
-  c.beginPath(); c.ellipse(530, 445, 86, 90, 0, Math.PI + 0.06, Math.PI * 2 + 0.6); c.stroke();
+  c.save(); c.translate(587, 438); c.rotate(twitch); c.translate(-587, -438);
+  c.fillStyle = P.ear; c.beginPath(); c.ellipse(604.5, 342.5, 171.5, 160.5, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = P.earIn; c.beginPath(); c.arc(602.5, 371.5, 105, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = P.earLine; c.lineWidth = 8;
+  c.beginPath(); c.arc(602.5, 371.5, 101, Math.PI - 0.28, Math.PI * 2 + 0.28); c.stroke();
   c.restore();
-  // ojo redondo (con antifaz si es Pandita)
-  if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(236, 600, 56, 46, 0.2, 0, Math.PI * 2); c.fill(); }
-  if (blink) { c.strokeStyle = S.eyeShut; c.lineWidth = 7; c.beginPath(); c.arc(232, 596, 26, 0.35, Math.PI - 0.35); c.stroke(); }
+  // la mejilla tapa la parte de abajo a la izquierda de la oreja (como en la referencia): pelaje debajo de una línea
+  // que va de donde la frente toca la oreja hasta el borde de abajo de la oreja (no se mueve con la oreja). Sin recorte:
+  // toda esa zona es pelaje (recortada a la oreja dejaba un filito rosa marcado en el borde)
+  c.fillStyle = fur; c.beginPath(); c.moveTo(400, 436); c.lineTo(459, 436); c.quadraticCurveTo(545, 452, 598, 508); c.lineTo(600, 560); c.lineTo(400, 560); c.closePath(); c.fill();
+  // ojo grande (con antifaz si es Panchita), con el brillo arriba a la izquierda
+  if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(262, 530, 66, 55, 0.2, 0, Math.PI * 2); c.fill(); }
+  if (blink) { c.strokeStyle = S.eyeShut; c.lineWidth = 8; c.beginPath(); c.arc(266, 526, 31, 0.35, Math.PI - 0.35); c.stroke(); }
   else {
-    c.fillStyle = S.eyes; c.beginPath(); c.arc(232, 602, 36, 0, Math.PI * 2); c.fill();
-    c.fillStyle = P.shine; c.beginPath(); c.arc(240, 593, 8.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = S.eyes; c.beginPath(); c.arc(266.5, 533.5, 44.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = P.shine; c.beginPath(); c.arc(250.5, 519.5, 11.5, 0, Math.PI * 2); c.fill();
   }
-  // bigotes: tres, desde atrás de la nariz hacia atrás y abajo
-  c.strokeStyle = ink; c.lineWidth = 4.5; c.globalAlpha = 0.85; c.beginPath();
-  const wy = Math.sin(t * 4) * 5 * amp;
-  for (const [y0, x1, y1, cx, cy] of [[662, 437, 658 + wy, 290, 642], [672, 402, 722 + wy, 290, 680], [682, 345, 772 + wy, 250, 708]]) {
-    c.moveTo(146, y0); c.quadraticCurveTo(cx, cy, x1, y1);
+  // bigotes: tres, desde atrás de la nariz hacia atrás (para arriba, derecho y para abajo)
+  c.strokeStyle = ink; c.lineWidth = 8; c.beginPath();
+  const wy = Math.sin(t * 4) * 6 * amp;
+  for (const [x0, y0, cx, cy, x1, y1] of [[138, 616, 300, 590, 480, 570 + wy], [148, 630, 300, 628, 456, 640 + wy], [152, 648, 300, 662, 436, 693 + wy]]) {
+    c.moveTo(x0, y0); c.quadraticCurveTo(cx, cy, x1, y1);
   }
-  c.stroke(); c.globalAlpha = 1;
-  c.fillStyle = P.nose; c.beginPath(); c.ellipse(86, 680, 31, 22, 0.35, 0, Math.PI * 2); c.fill();   // nariz en la punta del hocico
+  c.stroke();
+  c.fillStyle = P.nose; c.beginPath();   // nariz en la punta del hocico: una gota redonda que termina en punta adelante
+  c.moveTo(46, 628); c.bezierCurveTo(52, 604, 70, 594, 84, 595); c.bezierCurveTo(104, 597, 110, 618, 108, 632);
+  c.bezierCurveTo(106, 650, 96, 664, 82, 665); c.bezierCurveTo(66, 664, 52, 648, 46, 628); c.fill();
   c.restore();
 }
 // Ratita hecha una bolita (como la referencia): enroscada de costado, la cabeza metida adelante y abajo, la oreja
@@ -2312,7 +2378,7 @@ function drawThumb(cv, t = 0, amp = 0, wag = 0) {
 const CAGE_ANIM_MAX = 2, CAGE_ANIM_T = 2.8;
 // al tocar una ratita para elegirla, levanta la cola y la ondula despacio un ratito, como un gatito
 // WAG_DELAY: arranca un instante después del toque, así no queda tapada por el dedo (el "click" de la jaula sigue al toque)
-const WAG_T = 1.9, WAG_HZ = 1.5, WAG_DELAY = 0.4, cagePokes = new Map();   // cuánto dura, ondas por segundo; jaula → segundos desde que se tocó
+const WAG_T = 2.4, WAG_HZ = 1.6, WAG_DELAY = 0.4, cagePokes = new Map();   // cuánto dura, ondas por segundo; jaula → segundos desde que se tocó
 let cageLoopId = 0;
 function cageAnimLoop() {
   const id = ++cageLoopId;   // si se vuelve a abrir el Bioterio, el loop viejo se corta
@@ -2873,7 +2939,7 @@ function drawRatJump(c, cx, cy, size, i, t) {
     c.save(); c.translate(590 + sd * aDx, aY);
     c.fillStyle = P.ear; c.beginPath(); c.ellipse(0, 0, aRx, aRy, 0, 0, Math.PI * 2); c.fill();
     const sy = aRy / aRx, ir = iR, kk = ir / 124;
-    c.fillStyle = P.earDark; c.beginPath(); c.ellipse(sd * iDx, iDy, ir, ir * sy, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = P.earIn; c.beginPath(); c.ellipse(sd * iDx, iDy, ir, ir * sy, 0, 0, Math.PI * 2); c.fill();
     c.strokeStyle = P.earLine; c.lineWidth = 6 * Math.min(1, kk + 0.2); c.beginPath(); c.ellipse(sd * iDx, iDy, Math.max(1, ir - 4), Math.max(1, ir - 4) * sy, 0, Math.PI * 1.03, Math.PI * 1.97); c.stroke();   // (en el borde del interior)
     c.restore();
   }
@@ -5015,6 +5081,15 @@ function drawMouse(c, alpha) {
   };
   const bz = (...pts) => { const q = []; for (let i = 0; i < pts.length; i += 2) q.push(...P(pts[i], pts[i + 1])); body.bezierCurveTo(...q); };
   const body = new Path2D();
+  if (MOUSE_V2) {   // gota: la cabeza en punta, se ensancha parejo hasta las caderas y termina redonda atrás
+    body.moveTo(...P(18, 0));
+    bz(16.3, -2.5, 12.6, -5.4, 9.4, -6.5);     // hocico → cachete
+    bz(5, -7.7, -4, -8.7, -9, -9.7);           // costado
+    bz(-14.2, -10.6, -20.5, -6.4, -20.5, 0);   // cadera
+    bz(-20.5, 6.4, -14.2, 10.6, -9, 9.7);
+    bz(-4, 8.7, 5, 7.7, 9.4, 6.5);
+    bz(12.6, 5.4, 16.3, 2.5, 18, 0);
+  } else {
   body.moveTo(...P(18, 0));
   bz(16.5, -2.2, 13, -4.6, 9, -5.8);       // hocico → cachete
   bz(5, -7, 3, -8.8, -1, -10);             // hombros
@@ -5024,9 +5099,10 @@ function drawMouse(c, alpha) {
   bz(-11, 11.6, -5, 11.4, -1, 10);
   bz(3, 8.8, 5, 7, 9, 5.8);
   bz(13, 4.6, 16.5, 2.2, 18, 0);
+  }
   // cuerpo de un solo color, plano (sin degradé), como las vistas de frente y de perfil (el usuario lo prefirió así)
   c.fillStyle = S.fur; c.fill(body);
-  if (S.spots) {   // manchas (Pandita): en el lomo y la cadera, recortadas a la silueta
+  if (S.spots) {   // manchas (Panchita): en el lomo y la cadera, recortadas a la silueta
     c.save(); c.clip(body); c.fillStyle = S.spots;
     for (const [x, y, rx, ry, r] of [[-13, -6.5, 5.5, 4.2, 0.3], [-5, 7, 4.6, 3.4, -0.4], [-18, 5, 3.4, 3, 0], [4, -6.5, 3, 2.4, 0.5]]) {
       c.beginPath(); c.ellipse(x, y, rx, ry, r, 0, Math.PI * 2); c.fill();
@@ -5054,8 +5130,16 @@ function drawMouse(c, alpha) {
     c.translate(0, -sy * EAR_IN);
     c.translate(hx(2.5), sy * 6.5); c.rotate(sy * EAR_TILT); c.translate(-hx(2.5), -sy * 6.5);
     c.translate(hx(7.5), sy * 4.8); c.rotate(sy * ear); c.translate(-hx(7.5), -sy * 4.8);
+    if (MOUSE_V2) {   // en forma de D: el lado recto apoyado en la cabeza y el redondo hacia afuera, de un solo color
+      c.restore(); c.save();
+      c.translate(hx(5), sy * 5.3); c.transform(1, 0, -sy * Math.tan(clamp(EAR_BACK + ear * 0.45, -0.3, 0.8)), 1 - 0.18 * Math.min(1, Math.abs(ear)), 0, 0); c.translate(-hx(5), -sy * 5.3);   // (EAR_BACK: inclinada hacia atrás, el lado recto sigue pegado a la cabeza; al moverla, cambia la inclinación y se angosta un poco, sin girar: girada, el lado recto quedaba en diagonal sobre la cabeza, lo vio el usuario)
+      c.fillStyle = S.ear; c.beginPath();   // (como la referencia: arriba casi recta, el costado redondo y abajo vuelve a la cabeza)
+      c.moveTo(hx(10), sy * 5.3); c.bezierCurveTo(hx(10.3), sy * 9.3, hx(8.8), sy * 12.8, hx(5.3), sy * 12.8);
+      c.bezierCurveTo(hx(2.1), sy * 12.8, hx(0.9), sy * 9.4, hx(1.9), sy * 5.3); c.closePath(); c.fill();
+    } else {
     c.fillStyle = S.ear; c.beginPath(); c.ellipse(hx(7), sy * 7.8, 5.4, 4.0, 0, 0, Math.PI * 2); c.fill();
     c.fillStyle = S.earIn; c.beginPath(); c.ellipse(hx(7.5), sy * 7.0, 3.4, 2.4, 0, 0, Math.PI * 2); c.fill();
+    }
     c.restore();
   }
   c.restore();
@@ -5070,65 +5154,83 @@ function drawMouse(c, alpha) {
   const rr = (x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
   const k = 21.6 / 868, X = y => 8.6 - (y - 32) * k, Y = x => (x - 195) * k;   // de la referencia al lomo (la lente en x = 8.6)
   const box = (x0, x1, y0, y1, r, col) => { c.fillStyle = col; rr(X(y1), Y(x0), X(y0) - X(y1), Y(x1) - Y(x0), r); c.fill(); };
+  // (colores retocados por el usuario sobre una captura; también sacó la empuñadura y el borde de arriba del cuerpo)
   box(66, 322, 300, 900, 0.3, '#333333');   // cuerpo
-  box(66, 322, 465, 790, 0, '#141414');     // empuñadura
-  box(66, 322, 300, 312, 0, '#151515');     // borde de arriba del cuerpo
-  box(66, 322, 885, 900, 0.3, '#151515');   // tapa de atrás
-  c.fillStyle = '#2e2e2e'; c.beginPath();   // cuello: baja recto del cabezal y se curva hasta el cuerpo
+  box(66, 322, 885, 900, 0.3, '#0d0d0d');   // tapa de atrás
+  c.fillStyle = '#212121'; c.beginPath();   // cuello: baja recto del cabezal y se curva hasta el cuerpo
   c.moveTo(X(205), Y(36)); c.lineTo(X(250), Y(36)); c.quadraticCurveTo(X(300), Y(36), X(300), Y(66));
   c.lineTo(X(300), Y(322)); c.quadraticCurveTo(X(300), Y(355), X(250), Y(355)); c.lineTo(X(205), Y(355)); c.closePath(); c.fill();
-  box(28, 362, 45, 215, 0.6, '#4b4b4b');   // cabezal
+  box(28, 362, 45, 215, 0.6, '#2f2f2f');   // cabezal
   box(28, 362, 45, 95, 0.6, '#676767');    // su parte de arriba, más clara
   box(44, 348, 32, 47, 0.1, G.light > 0.2 ? '#fff4d2' : '#6b6450');   // lente (apagada cuando se apaga la linterna)
-  box(142, 250, 328, 386, (386 - 328) / 2 * k, '#151515');   // perilla de encendido
-  c.fillStyle = '#4b4b4b'; c.beginPath(); c.arc(X(357), Y(222), 24 * k, 0, Math.PI * 2); c.fill();
+  box(142, 250, 328, 386, (386 - 328) / 2 * k, '#212121');   // perilla de encendido
+  c.fillStyle = '#424242'; c.beginPath(); c.arc(X(357), Y(222), 24 * k, 0, Math.PI * 2); c.fill();
   // la ventana de la batería: marco negro y la barra, que se vacía hacia la cola, del color de la pila del HUD (verde,
   // amarilla, naranja y roja según los bloques que quedan). Un poco más ancha que en la referencia (lo pidió el usuario), y
   // en los últimos segundos titila alternando su color con blanco (antes se apagaba)
-  box(92, 301, 405, 852, 40 * k, '#000000');
-  box(104, 289, 418, 840, 30 * k, '#121316');
+  box(92, 301, 405, 852, 40 * k, '#212121');
+  box(104, 289, 418, 840, 30 * k, '#191919');
   const frac = isMenu() ? 1 : clamp(G.timeLeft / Math.max(1, G.timeLimit), 0, 1);
   const blinkWhite = G.state === 'play' && G.dark && G.timeLeft <= WARN_T && Math.sin(G.time * 14) < -0.3;
   if (frac > 0) {
     const x0 = X(840), len = X(418) - x0, y0 = Y(104), wd = Y(289) - y0;
     c.fillStyle = blinkWhite ? '#ffffff' : LAMP_COLORS[Math.max(1, lampBlocks()) - 1];   // los mismos colores que la pila del HUD
     rr(x0, y0, len * frac, wd, 30 * k); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(x0 + 0.2, y0 + 0.3, Math.max(0, len * frac - 0.4), 0.5);   // brillo
+    { const bc = LAMP_COLORS[Math.max(1, lampBlocks()) - 1]; c.fillStyle = blinkWhite ? '#ffffff' : bc === BAT_GREEN ? '#43e773' : mixC(bc, '#ffffff', 0.35); } c.fillRect(x0 + 0.2, y0 + 0.3, Math.max(0, len * frac - 0.4), 0.5);   // brillo
   }
   c.restore();   // fin de la linterna (rígida)
   }
   // cara (nariz, orejas, ojos, bigotes): gira entera con la cabeza
   c.save(); c.translate(NECK, 0); c.rotate(M.headA); c.translate(-NECK, 0);
   // nariz chiquita, un poco metida dentro del hocico
-  c.fillStyle = S.nose; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill();
+  if (MOUSE_V2) {
+    // nariz: un domo ancho y chato que corona la punta del hocico (sin brillo: no se vería, dijo el usuario);
+    // quieta, cada tanto olfatea (tiembla rapidito para adelante y atrás, como la de frente)
+    const still = 1 - clamp(Math.abs(M.v) / SPEED * 2, 0, 1), sn = M.caught ? 0 : sniffAt(G.time, Skins.data.sel) * still;
+    c.save(); c.translate(hx(17.4) + sn * 0.3, 0); c.scale(1 + sn * 0.06, 1 - sn * 0.08);
+    c.fillStyle = S.nose; c.beginPath(); c.moveTo(-0.9, -1.6);   // (ancha y chata, como un domo, igual que la referencia)
+    c.bezierCurveTo(-0.1, -1.8, 1.05, -1.3, 1.05, 0); c.bezierCurveTo(1.05, 1.3, -0.1, 1.8, -0.9, 1.6);
+    c.bezierCurveTo(-1.2, 0.9, -1.2, -0.9, -0.9, -1.6); c.fill();
+    c.restore();
+  }
+  else { c.fillStyle = S.nose; c.beginPath(); c.arc(hx(16.9), 0, 0.95, 0, Math.PI * 2); c.fill(); }
   const eyesClosed = M.blinkT > 0 || bump > 0.2 || (M.caught && !(M.caughtT > 0));   // atrapada: cuando deja de sacudirse, queda con los ojos cerrados
   for (const sy of [-1, 1]) {
     // oreja ovalada: nace donde nacía la redonda y se estira hacia atrás; el interior rosa corrido hacia el cuerpo
     // (las orejas se dibujan antes, debajo de la linterna)
     // ojo: cerca del hocico; rojo (albino) con brillito blanco, o cerrado (rayita de costado, curvada hacia el lomo)
-    const ex = hx(11.7);
+    const ex = hx(MOUSE_V2 ? 11.2 : 11.7), ey = MOUSE_V2 ? 4.1 : 2.9, er = MOUSE_V2 ? 1.35 : 1.1;
     if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(ex - 0.4, sy * 3, 2.6, 2, sy * 0.4, 0, Math.PI * 2); c.fill(); }   // antifaz de panda
     if (eyesClosed) {
       c.strokeStyle = S.eyeShut; c.lineWidth = 0.6; c.lineCap = 'round'; c.beginPath();
-      c.moveTo(ex, sy * 1.9); c.quadraticCurveTo(ex - 0.9, sy * 2.9, ex, sy * 3.9); c.stroke();
+      c.moveTo(ex, sy * (ey - 1)); c.quadraticCurveTo(ex - 0.9, sy * ey, ex, sy * (ey + 1)); c.stroke();
     } else {
       if (S.eyeGlow) {   // brillo rojo alrededor (solo la Albina)
         const eg = c.createRadialGradient(ex, sy * 2.9, 0.4, ex, sy * 2.9, 2.8);
         eg.addColorStop(0, `rgba(${S.eyeGlow},0.55)`); eg.addColorStop(1, `rgba(${S.eyeGlow},0)`);
         c.fillStyle = eg; c.beginPath(); c.arc(ex, sy * 2.9, 2.8, 0, Math.PI * 2); c.fill();
       }
-      c.fillStyle = S.eyes; c.beginPath(); c.arc(ex, sy * 2.9, 1.1, 0, Math.PI * 2); c.fill();
-      c.fillStyle = `rgba(${hexRgb(S.shine).join(',')},0.9)`; c.beginPath(); c.arc(ex + 0.4, sy * 2.5, 0.38, 0, Math.PI * 2); c.fill();
+      c.fillStyle = S.eyes; c.beginPath(); c.arc(ex, sy * ey, er, 0, Math.PI * 2); c.fill();
+      c.fillStyle = `rgba(${hexRgb(S.shine).join(',')},0.9)`; c.beginPath(); c.arc(ex + 0.4 * er / 1.1, sy * (ey - 0.4 * er / 1.1), 0.38 * er / 1.1, 0, Math.PI * 2); c.fill();
     }
     // bigotes: salen junto a la nariz y se abren bien a los costados; tiemblan apenas y mucho al chocar
     const wt = M.caught ? 0 : G.time;   // atrapada: los bigotes quedan quietos
     const wh = Math.sin(wt * 9 + sy) * 0.04 + Math.sin(wt * 55 + sy * 2) * 0.35 * bump;
     const wx = hx(15.8);
+    if (MOUSE_V2) {   // tres por lado, desde atrás de la nariz hacia afuera (para adelante, derecho y para atrás), apenas curvos
+      c.strokeStyle = 'rgba(205,205,205,0.75)'; c.lineWidth = 0.32; c.lineCap = 'round'; c.beginPath();
+      for (const [x0, l0, dx, dl] of [[15.9, 3.0, 2.6, 6.7], [15.5, 3.3, 0.3, 7.0], [15.1, 3.0, -1.8, 7.0]]) {   // (salen del cachete)
+        const th = Math.atan2(dl, dx) + wh, L = Math.hypot(dx, dl), ex2 = hx(x0) + Math.cos(th) * L, ey2 = sy * (l0 + Math.sin(th) * L);
+        c.moveTo(hx(x0), sy * l0); c.quadraticCurveTo(hx(x0) + Math.cos(th - 0.12) * L * 0.5, sy * (l0 + Math.sin(th - 0.12) * L * 0.5), ex2, ey2);
+      }
+      c.stroke();
+    } else {
     c.strokeStyle = 'rgba(235,230,220,0.6)'; c.lineWidth = 0.35; c.beginPath();
     for (const [k, len] of [[0.75, 10], [1.1, 12], [1.45, 12], [1.8, 10]]) {
       const th = sy * (k + wh); c.moveTo(wx, sy * 1.2); c.lineTo(wx + Math.cos(th) * len, sy * 1.2 + Math.sin(th) * len);
     }
     c.stroke();
+    }
   }
   c.restore();   // fin de la cara
   c.restore();   // fin del torso
@@ -5512,7 +5614,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
     c.translate(...ec); c.rotate(rot);
     c.fillStyle = P.ear; c.beginPath(); c.ellipse(0, 0, me(160, 70), me(160, 55), 0, 0, Math.PI * 2); c.fill();
     const iy = me(10, 11), irx = me(124, 44), iry = me(124, 34);
-    c.fillStyle = P.earDark; c.beginPath(); c.ellipse(0, iy, irx, iry, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = P.earIn; c.beginPath(); c.ellipse(0, iy, irx, iry, 0, 0, Math.PI * 2); c.fill();
     c.strokeStyle = P.earLine; c.lineWidth = 6; c.beginPath(); c.ellipse(0, iy, irx - 4, iry - 4, 0, Math.PI * 1.03, Math.PI * 1.97); c.stroke();   // (justo en el borde del interior)
     c.restore();
   }
@@ -5673,12 +5775,12 @@ const LIB = /libreria/i.test(location.search + location.hash);
 let libOn = false;
 const LIB_ORIG = { rats: RATS.map(r => r.slice()), port: JSON.parse(JSON.stringify(PORTRAIT_COLORS)) };
 // [campo, etiqueta]: claves de portraitOf, o 'r' + índice en RATS (ojos, manchas)
-const LIB_FIELDS = [['fur', 'Pelaje'], ['ear', 'Oreja externa'], ['earDark', 'Oreja interna (y la de atrás, de costado)'],
+const LIB_FIELDS = [['fur', 'Pelaje'], ['ear', 'Oreja externa'], ['earDark', 'Oreja de atrás'], ['earIn', 'Interior de la oreja'],
   ['earLine', 'Línea de la oreja'], ['nose', 'Nariz'], ['paws', 'Patas'], ['tail', 'Cola'], ['r5', 'Ojos'], ['shine', 'Brillo del ojo'],
   ['line', 'Líneas de la cara'], ['legLine', 'Líneas de las patas'], ['r7', 'Manchas']];   // (sin arnés ni linterna: son iguales para todas)
 // los automáticos de portraitOf salen de otro color: al cambiar ese, se fijan antes con el valor que tenían, así cada
 // selector cambia solo lo suyo
-const LIB_DEPS = { fur: ['line', 'legLine'], ear: ['earDark', 'earLine', 'nose', 'paws', 'tail'], paws: ['tail'], line: ['legLine'] };
+const LIB_DEPS = { fur: ['line', 'legLine'], ear: ['earDark', 'earLine', 'nose', 'paws', 'tail'], earDark: ['earIn'], paws: ['tail'], line: ['legLine'] };
 const libPal = i => { const P = portraitOf(i), r = RATS[i]; return { ...P, r3: r[3], r4: r[4], r5: r[5], r7: r[7] }; };
 const LIB_PAL0 = RATS.map((_, i) => libPal(i));   // cómo eran antes de los cambios
 const Lib = {
