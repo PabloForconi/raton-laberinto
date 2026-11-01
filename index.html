@@ -1186,6 +1186,21 @@ const MUS_PLAY = {
     if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), sd * 30, { gain: 0.007, attack: 0.4 });
     if (bar === 7 && s >= 8) MN.noise(t, sd * 1.1, 2000 + (s - 8) * 900, { type: 'bandpass', q: 2, gain: 0.006 + (s - 8) * 0.004, wet: 0.3 });
   },
+  // intro de un compás al empezar el nivel (el usuario la pidió, bien cortita): el bajo late en corcheas con el filtro
+  // que se abre, los platillos y un barrido de ruido crecen, los metales se inflan en la (la dominante) y en el último
+  // tiempo un redoble de palmas y un arpegio de celesta que sube a re; después entra todo con un golpe (land)
+  intro(s, t, sd) {
+    if (s % 2 === 0) MN.synthBass(t, hz(50), sd * 1.6, { gain: 0.03 + s * 0.0015, filter: 500 + s * 80 });
+    if (s >= 4) MN.hat(t, 0.004 + (s - 4) * 0.0012);
+    MN.noise(t, sd * 1.1, 1200 + s * 450, { type: 'bandpass', q: 2, gain: 0.003 + s * 0.0012, wet: 0.3 });
+    if (s === 8) for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 8, { gain: 0.014 });
+    if (s >= 12) MN.clap(t, 0.02 + (s - 12) * 0.008);
+    if (s >= 12) MN.celesta(t, hz([74, 77, 81, 86][s - 12]), 0.022, 0.5);
+  },
+  land(t) {
+    MN.noise(t, 1.1, 6000, { gain: 0.016, wet: 0.4 });   // platillo (el bombo ya está en el paso 0)
+    for (const n of [62, 65, 69]) MN.brass(t, hz(n), 0.35, { gain: 0.009 });
+  },
 };
 // Laberintos a oscuras (electrónico, frenético y oscuro): 146 bpm (162 con la última pila), 4 compases (re menor, mi bemol,
 // re menor, la; el mi bemol frigio roza contra el re): un bombo quebrado, un bajo distorsionado en semicorcheas con
@@ -1217,6 +1232,21 @@ const MUS_DARK = {
       MN.strings(t, hz(ch.n[2] + 12), sd * 0.8, { gain: 0.006, decay: sd * 0.25, filter: 3500, wet: 0.2 });
       if (s === 0) MN.brass(t, hz(74 + bar), sd * 14, { gain: 0.012 });
     }
+  },
+  // intro de un compás al empezar el nivel: un zumbido grave de re que crece, el corazón, el coro en racimo que se
+  // infla, un redoble de timbal que sube en la segunda mitad y un barrido de ruido; en el último tiempo los metales
+  // graves bajan la-lab-sol-fa# hacia el re, y entra todo con un golpe (land)
+  intro(s, t, sd) {
+    if (s === 0) MN.dist(t, hz(38), sd * 16, { gain: 0.015, filter: 400 });
+    if (s === 0 || s === 2 || s === 8 || s === 10) MN.tone(t, s % 8 ? 70 : 85, 0.2, { to: 38, type: 'sine', gain: s % 8 ? 0.08 : 0.12, attack: 0.004, decay: 0.06 });
+    if (s === 0) for (const n of [50, 51, 57]) MN.choir(t, hz(n), sd * 16, { gain: 0.012, attack: sd * 12, decay: sd * 4, wet: 0.8 });
+    if (s >= 8) MN.timp(t, hz(45), 0.02 + (s - 8) * 0.007);
+    MN.noise(t, sd * 1.1, 600 + s * 250, { type: 'bandpass', q: 2, gain: 0.003 + s * 0.001, wet: 0.4 });
+    if (s >= 12) MN.brass(t, hz([57, 56, 55, 54][s - 12]), sd * 1.4, { gain: 0.016 });
+  },
+  land(t) {
+    MN.noise(t, 1.2, 3500, { gain: 0.012, wet: 0.5 });   // platillo oscuro (el bombo y el corazón ya están en el paso 0)
+    MN.brass(t, hz(50), 0.5, { gain: 0.016 });
   },
 };
 // Remate al perder (al estilo de un dibujito de Elfman): metales que caen por semitonos con vibrato triste, un timbal, la
@@ -1250,8 +1280,11 @@ const Music = {
   play(track, fade = 0.8) {
     if (this.track === track) return;
     const c = Snd.ctx; if (track && !this.setup()) return;   // todavía sin audio: se intenta de nuevo en el próximo cuadro
-    this.release(0.5); this.track = track; this.step = 0;
+    this.release(0.5); this.track = track;
+    // las pistas de los laberintos arrancan con una intro de un compás (16 pasos con step < 0) y entran de golpe
+    this.step = track && track.intro ? -16 : 0;
     if (!track) return;
+    if (track.intro) fade = 0.05;
     const now = c.currentTime;
     this.out = c.createGain(); this.wet = c.createGain();
     for (const [g, to] of [[this.out, this.bus], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
@@ -1275,7 +1308,11 @@ const Music = {
     const now = c.currentTime;
     if (this.nextAt < now - 0.05) this.nextAt = now + 0.02;   // (pestaña en segundo plano: las notas perdidas se saltean)
     const sd = 60 / (tr.bpm + (tr.bpmUp || 0) * this.level) / 4;
-    while (this.nextAt < now + 0.15) { tr.step(this.step % tr.steps, this.nextAt, sd, this.level); this.nextAt += sd; this.step++; }
+    while (this.nextAt < now + 0.15) {
+      if (this.step < 0) tr.intro(this.step + 16, this.nextAt, sd, this.level);
+      else { if (this.step === 0 && tr.land) tr.land(this.nextAt); tr.step(this.step % tr.steps, this.nextAt, sd, this.level); }
+      this.nextAt += sd; this.step++;
+    }
   },
   // qué tiene que sonar según la pantalla (se mira en cada cuadro)
   want() {
