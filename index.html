@@ -926,8 +926,8 @@ const Snd = {
   step() {   // apagado: ruido filtrado con pasabajos (sin los agudos) y un golpecito grave, como una patita sobre cartón
     const r = Math.random;
     // (más fuertes desde que hay música: no se oían; el usuario pidió que al menos se sientan)
-    this.noise(0.03 + r() * 0.03, 850 + r() * 800, 0.6 + r() * 0.5, 0.11 + r() * 0.1, 'lowpass');
-    this.tone(240 + r() * 90, 115 + r() * 40, 0.04 + r() * 0.02, 'sine', 0.09 + r() * 0.05);
+    this.noise(0.03 + r() * 0.03, 1150 + r() * 1000, 0.6 + r() * 0.5, 0.11 + r() * 0.1, 'lowpass');
+    this.tone(300 + r() * 110, 145 + r() * 50, 0.04 + r() * 0.02, 'sine', 0.09 + r() * 0.05);
   },
   // chillido de rata asustada: tres chirridos agudos con vibrato, el tono sube y baja
   squeal() {
@@ -1179,7 +1179,18 @@ const Snd = {
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
   gateLand() { this.tone(110, 55, 0.14, 'sine', 0.22); this.noise(0.07, 450, 0.8, 0.18, 'lowpass'); this.noise(0.03, 380, 0.8, 0.06, 'lowpass', 0.16); },   // la compuerta toca abajo y rebota blandito
   tap() { this.noise(0.03, 1400, 1.2, 0.22); this.tone(520, 380, 0.05, 'triangle', 0.05); },
-  enter() { [392, 523, 784].forEach((f, i) => this.tone(f, f, 0.5, 'sine', 0.07, i * 0.07)); this.noise(0.35, 1800, 0.6, 0.05, 'bandpass'); },   // entrar desde "TOCÁ PARA ENTRAR": suave   // tocar un botón de cartón
+  // entrar desde "TOCÁ PARA ENTRAR": un acorde suave con un soplo de aire. El aire era ruido que arrancaba de golpe a todo
+  // volumen y sonaba como un click (el usuario lo oyó): ahora sube de a poco (sweep), y todo arranca 40 ms después, porque
+  // el audio se acaba de prender con ese mismo toque y en el iPhone el primer instante puede cortarse
+  enter() {
+    const c = this.ctx; if (!c) return;
+    [392, 523, 784].forEach((f, i) => {   // cada nota entra en 50 ms (no de golpe) y se apaga sola
+      const t = c.currentTime + 0.04 + i * 0.07, o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.07, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.6);
+    });
+    this.sweep(1300, 2300, 0.45, 0.035, 0.6, 0.04);
+  },
   battery() { this.tone(330, 660, 0.12, 'square', 0.06); this.tone(660, 1320, 0.16, 'square', 0.05, 0.1); this.tone(1320, 1320, 0.1, 'triangle', 0.12, 0.24); },
   flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
   flapShut(v = 1) { this.noise(0.05, 650, 0.9, 0.3 * v, 'lowpass'); this.tone(190, 95, 0.07, 'sine', 0.16 * v); },   // la cortina golpea el marco
