@@ -2,13 +2,23 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- abierto desde el ícono de la pantalla de inicio: a pantalla completa, también debajo de la barra de estado (el usuario
+     lo pidió para su iPhone); la hora y la batería quedan encima del juego -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
 <title>Maze Mouse</title>
 <link rel="preload" as="image" href="img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  /* lo que tapan la barra de estado (arriba) y la rayita de inicio (abajo) cuando el juego ocupa toda la pantalla: lo de
+     arriba (monedas, engranaje, HUD, títulos) baja eso; abajo los botones quedan donde estaban (ya tenían su margen) */
+  :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
+  #hud { position: fixed; top: var(--sat); left: 0; right: 0; height: 0; }
   body { font-family: 'Kalam', cursive; font-weight: 700; color: #2a1a0c; user-select: none; }
   canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
   #vignette { position: fixed; inset: 0; pointer-events: none;
@@ -24,7 +34,7 @@
   @keyframes pulse { to { transform: translateX(-50%) scale(1.08); } }
   #hint { position: fixed; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 16px; letter-spacing: .5px; color: #a08060; opacity: .75; pointer-events: none; }
   #hud.hidden, .hidden { display: none !important; }
-  #card { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-1deg);
+  #card { position: fixed; left: 50%; top: calc(50% + var(--sat) / 2); transform: translate(-50%, -50%) rotate(-1deg);
     width: min(520px, calc(100vw - 32px)); box-sizing: border-box; padding: 26px 30px 22px; text-align: center;
     background: #a27b4f;
     background-image:
@@ -43,7 +53,7 @@
   #level.pop { animation: lvlPop .3s cubic-bezier(.2, .9, .3, 1.4) both; }
   @keyframes lvlPop { from { transform: translateX(-50%) scale(.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
   /* botón casita (volver al menú), arriba a la izquierda; en los resultados de Historia, ahí mismo va la flechita a los niveles */
-  #btnBack { position: fixed; top: 12px; left: 14px; z-index: 5; transform: rotate(-2deg); }
+  #btnBack { position: fixed; top: calc(12px + var(--sat)); left: 14px; z-index: 5; transform: rotate(-2deg); }
   #btnBack { z-index: 9; }   /* por encima de las pantallas negras (Ratitas) */
   @keyframes timerPop { from { transform: translateX(-50%) scale(.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
   .btn.tape { transition: transform .12s; }
@@ -334,7 +344,7 @@
   #lamp .bat i { width: .45em; height: .7em; border-radius: 2px; background: #333333; }   /* (un poco más grande, para probar) */
   #lamp .bat i.blink { opacity: .25; }
   /* monedas: siempre a la vista arriba a la izquierda (en el juego, al lado de la casita) */
-  #coins { position: fixed; top: 14px; left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
+  #coins { position: fixed; top: calc(14px + var(--sat)); left: 14px; z-index: 8; font-size: 24px; display: flex; align-items: center; gap: 7px;   /* arriba a la izquierda */
     transform: rotate(-1.5deg); padding: 3px 12px 1px; pointer-events: none; }
 
   #coins .ci { width: 25px; height: 25px; }
@@ -349,7 +359,7 @@
     transition: clip-path .45s ease-in-out, -webkit-clip-path .45s ease-in-out; }
   #screen.open { pointer-events: auto; clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); }
   #screen .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
-    padding: 64px 12px calc(14px + env(safe-area-inset-bottom)); gap: 8px; opacity: 0; transition: opacity .25s; text-align: center; color: #e9dcc0; }
+    padding: calc(64px + var(--sat)) 12px max(14px, calc(var(--sab) - 20px)); gap: 8px; opacity: 0; transition: opacity .25s; text-align: center; color: #e9dcc0; }
   #screen.open .inner.show { opacity: 1; }
   #screen .stitle { font-family: 'Kalam', cursive; font-weight: normal; font-size: 46px; margin: 0; color: #f1e4c4; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
   #screen .ssub { margin: 0; font-size: 15px; color: #bfae8c; }
@@ -418,10 +428,10 @@
   /* arriba a la derecha: la ruedita (jugando pausa; en los menús abre las opciones) */
   #btnBack, #coins, #btnGear, #gachaNav { transition: opacity .3s ease; }
   .faded { opacity: 0 !important; pointer-events: none !important; }   /* se desvanece (la máquina andando) */
-  #topbtns { position: fixed; top: 12px; right: 14px; display: flex; gap: 8px; z-index: 8; }
+  #topbtns { position: fixed; top: calc(12px + var(--sat)); right: 14px; display: flex; gap: 8px; z-index: 8; }
   #btnGear svg { width: 27px; height: 27px; }
   /* ventana de pausa / opciones: Música y Sonido con interruptores, y abajo la casita y Reanudar (o Cerrar) */
-  #opts { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
+  #opts { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
   #opts.hidden { display: none; }
   /* pausa / opciones: con el formato de los carteles nuevos (cartón claro, título de papel que asoma arriba, caja de papel
      encintada con Música y Sonido, y botones grandes: la casita y Reanudar en verde, o Cerrar) */
@@ -434,7 +444,15 @@
   /* al cerrarse (sacar la pausa, cerrar opciones) se achica y se va, como entró pero al revés; el fondo oscuro se aclara */
   /* fundido a negro entre pantallas (fadeTo): por encima de todo menos la librería */
   /* crédito al pie de la portada (lo pidió el usuario): chiquito pero legible, en un gris claro */
-  #credit { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; text-align: center; pointer-events: none;
+  /* pantalla previa "TOCÁ PARA ENTRAR": solo el fondo del juego y el texto, que aparece suave y queda latiendo */
+  #splash { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; pointer-events: none; }
+  #splash span { font: 700 26px/1 'Kalam', cursive; letter-spacing: .12em; color: #f3e4c4; text-shadow: 0 2px 6px rgba(0,0,0,.9);
+    animation: splashIn .9s ease-out both, splashBeat 1.6s ease-in-out .9s infinite; }
+  #splash.out span { animation: splashOut .25s ease-in both; }
+  @keyframes splashIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes splashBeat { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
+  #credit { position: fixed; left: 0; right: 0; bottom: max(10px, calc(var(--sab) - 24px)); z-index: 5; text-align: center; pointer-events: none;
     font: 700 13px/1 'Kalam', cursive; color: #b8b8b8; letter-spacing: .02em; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
   #fade { position: fixed; inset: 0; z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
   #fade.on { opacity: 1; pointer-events: auto; }
@@ -475,7 +493,7 @@
   /* controles táctiles */
   body:not(.touch) #hintTouch { display: none; }
   body.touch #hint { display: none !important; }
-  #hintTouch { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center;
+  #hintTouch { position: fixed; bottom: max(14px, calc(var(--sab) - 20px)); left: 0; right: 0; text-align: center;
     font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; padding: 0 120px; }
   /* joystick flotante: aparece donde apoyás el dedo */
   #stickZone { position: fixed; inset: 0; z-index: 3; display: none; touch-action: none; }
@@ -559,6 +577,7 @@
   <button id="btnGear" class="btn tape" type="button" title="Pausa y opciones (P)"></button>
 </div>
 <div id="credit" class="hidden">Made with love by Vibe Games · 2026</div>
+<div id="splash" class="hidden"><span></span></div>
 <div id="opts" class="hidden"></div>
 <div id="card" class="hidden"></div>
 <div id="screen"></div>
@@ -846,7 +865,7 @@ const coinBand = (a, b, col) => {
 const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><g transform="rotate(-20 12 12)">' +   // girada un poco, con las bandas subiendo hacia la derecha (lo pidió el usuario; la del laberinto no)
   `<circle cx="12" cy="12" r="10.5" fill="${COIN_FACE}"/>` + COIN_BANDS.map(([a, b, col]) => coinBand(a, b, col)).join('') +
   '<circle cx="12" cy="12" r="10.5" fill="none" stroke="#6b7179" stroke-width="1.3"/></g></svg>';   // borde gris, del mismo ancho que el del queso del HUD
-const isMenu = () => ['title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
+const isMenu = () => ['splash', 'title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 // Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
 // ===================== UTILIDADES =====================
@@ -993,7 +1012,8 @@ const Snd = {
   cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
   gateLand() { this.tone(110, 55, 0.14, 'sine', 0.22); this.noise(0.07, 450, 0.8, 0.18, 'lowpass'); this.noise(0.03, 380, 0.8, 0.06, 'lowpass', 0.16); },   // la compuerta toca abajo y rebota blandito
-  tap() { this.noise(0.03, 1400, 1.2, 0.22); this.tone(520, 380, 0.05, 'triangle', 0.05); },   // tocar un botón de cartón
+  tap() { this.noise(0.03, 1400, 1.2, 0.22); this.tone(520, 380, 0.05, 'triangle', 0.05); },
+  enter() { [392, 523, 784].forEach((f, i) => this.tone(f, f, 0.5, 'sine', 0.07, i * 0.07)); this.noise(0.35, 1800, 0.6, 0.05, 'bandpass'); },   // entrar desde "TOCÁ PARA ENTRAR": suave   // tocar un botón de cartón
   battery() { this.tone(330, 660, 0.12, 'square', 0.06); this.tone(660, 1320, 0.16, 'square', 0.05, 0.1); this.tone(1320, 1320, 0.1, 'triangle', 0.12, 0.24); },
   flap() { this.noise(0.2, 900, 0.7, 0.22); this.sweep(350, 1100, 0.22, 0.1, 2); },   // cortina de cartón que se levanta
   flapShut(v = 1) { this.noise(0.05, 650, 0.9, 0.3 * v, 'lowpass'); this.tone(190, 95, 0.07, 'sine', 0.16 * v); },   // la cortina golpea el marco
@@ -1939,7 +1959,28 @@ function titleBackground() {
   cam.x = M.x; cam.y = M.y; G.titleSize = cv.width + 'x' + cv.height;
   G.iris = G.irisTarget = 1; $hud.classList.add('hidden');
 }
+// Pantalla previa "TOCÁ PARA ENTRAR" (estado 'splash', antes de la portada; como la de Growcore): el navegador del celular
+// no deja sonar nada hasta el primer toque, así que ese toque es el que prende el audio, y la portada ya arranca con la
+// música y los sonidos de su entrada. El toque no hace nada más (no toca ningún botón de la portada). El engranaje y las
+// teclas M / F siguen andando; con la música y el sonido apagados no hace falta y se saltea
+function showSplash() {
+  titleBackground();
+  G.state = 'splash';
+  $card.classList.add('hidden'); $card.innerHTML = '';
+  const sp = document.getElementById('splash');
+  sp.querySelector('span').textContent = say('TOCÁ PARA ENTRAR', 'TAP TO ENTER');
+  sp.classList.remove('hidden', 'out');
+  updateButtons();
+}
+function enterFromSplash() {
+  if (G.state !== 'splash' || fading) return;
+  Snd.init(); Snd.enter();
+  if (!Music.started) Music.start();
+  document.getElementById('splash').classList.add('out');
+  fadeTo(() => { document.getElementById('splash').classList.add('hidden'); showTitle(); });
+}
 function showTitle() {
+  document.getElementById('splash').classList.add('hidden');
   titleBackground();
   G.state = 'title';
   // portada: logo, controles (la etiqueta amarilla "Controles" y las teclas, WASD / flechas, sin más texto: el usuario lo
@@ -3698,6 +3739,12 @@ function machButton() {
 // achica en proporción, así se ve igual que en un celular de 390 px (en un celular prestado de 360 px el botón verde
 // quedaba cortado y el tiempo pegado al borde); en las pantallas más anchas no cambia nada
 const CARD_REF_W = 390;
+// cuánto tapa la barra de estado arriba (0 salvo a pantalla completa en el celular): se mide con un elemento que la usa
+function safeTop() {
+  let p = safeTop.el;
+  if (!p) { p = safeTop.el = document.createElement('div'); p.style.cssText = 'position:fixed;left:0;top:0;width:0;height:var(--sat);visibility:hidden;pointer-events:none'; document.body.appendChild(p); }
+  return p.offsetHeight;
+}
 function fitWin() {
   const w = $card.querySelector('.win'); if (!w) return;
   w.style.zoom = 1;
@@ -3712,7 +3759,7 @@ function fitWin() {
     }
   }
   const zW = Math.min(1, innerWidth / CARD_REF_W, fit);
-  const side = innerWidth - $card.offsetWidth < 150, avail = innerHeight - (side ? 130 : 30);
+  const side = innerWidth - $card.offsetWidth < 150, avail = innerHeight - safeTop() - (side ? 130 : 30);   // (sin lo que tapa la barra de estado)
   // niveles en PC: la grilla ocupa el alto que queda y termina con la última fila cortada por la mitad, así se ve que
   // sigue (no hay barra de desplazamiento); en el celular queda como estaba (el usuario lo ve bien así)
   const L = w.classList.contains('wsel') && w.querySelector('.levels'), t0 = L && L.firstElementChild;
@@ -3886,7 +3933,7 @@ function applyLangStatic() {
 function relang() {
   applyLangStatic(); renderOpts();
   const st = G.state;
-  if (st === 'title') showTitle(); else if (st === 'select') showSelect(); else if (st === 'intro') showIntro();
+  if (st === 'splash') showSplash(); else if (st === 'title') showTitle(); else if (st === 'select') showSelect(); else if (st === 'intro') showIntro();
   else if (st === 'lost') lost(); else if (st === 'won' && G.winCard && G.winBuild) G.winBuild();
   if (G.screen) {
     const back = $scr.querySelector('.cbtn.home'); if (back) back.outerHTML = screenBackBtn();
@@ -4025,7 +4072,7 @@ function updateButtons() {
   $coins.classList.toggle('below', back);
   // al terminar el nivel (ganado o perdido) el contador de monedas no se muestra: tapaba el cartel en el celular
   // (ni en el selector de niveles: ahí no se usan y en el celular tapaban el cartel)
-  $coins.style.visibility = !G.screen && ['won', 'lost', 'select'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
+  $coins.style.visibility = !G.screen && ['splash', 'won', 'lost', 'select'].includes(G.state) ? 'hidden' : '';   // las monedas en la esquina; con flechita, debajo de ella
   // con el cartel de fin de nivel (ganado o perdido), el nivel y el reloj de arriba se esconden: el cartel ya los muestra y en el celular
   // su título se montaba sobre el reloj
   $level.style.visibility = $timer.style.visibility = ((G.state === 'won' && G.winCard) || G.state === 'lost') && !G.screen ? 'hidden' : '';
@@ -4092,6 +4139,11 @@ addEventListener('keydown', e => {
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   keys[k] = true; Snd.init();
   if (e.repeat) return;
+  if (G.state === 'splash' && !optsOpen()) {   // cualquier tecla entra (M y F siguen siendo música y sonido)
+    if (k === 'm') { Music.toggle(); updateButtons(); } else if (k === 'f') { Snd.toggle(); updateButtons(); }
+    else if (!['shift', 'control', 'alt', 'meta', 'tab'].includes(k)) enterFromSplash();
+    return;
+  }
   if (optsOpen() && G.state !== 'paused') { if (k === 'escape' || k === ' ' || k === 'enter') closeOpts(); return; }   // con las opciones abiertas
   if (k === ' ' || k === 'enter') primaryAction();
   else if (G.state === 'title' && (k === '1' || k === '2')) act(k === '1' ? 'story' : 'challenge');
@@ -4108,8 +4160,9 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 // la música arranca con el primer toque o tecla (los navegadores no dejan reproducir audio antes de un gesto)
-for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (!Music.started) Music.start(); }, { capture: true });
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (!Music.started && G.state !== 'splash') Music.start(); }, { capture: true });
 addEventListener('click', e => {
+  if (G.state === 'splash') { if (!optsOpen() && !e.target.closest('.btn, #opts')) enterFromSplash(); return; }   // el toque de entrada: no hace nada más
   const b = e.target.closest('[data-act]');
   if (b) { if (!b.disabled && b.dataset.act) act(b.dataset.act, b); return; }   // (data-act vacío: no hace nada)
   if (e.target.closest('.btn')) return;
@@ -6014,7 +6067,7 @@ function frame(now) {
   update(dt); render();
 }
 resize();
-showTitle();
+if ((Snd.muted && Music.muted) || GALLERY || RAT_GALLERY || FRONT_GALLERY || PORTRAIT_GALLERY || LIB) showTitle(); else showSplash();
 if (GALLERY || RAT_GALLERY || FRONT_GALLERY || PORTRAIT_GALLERY) { document.getElementById('vignette').style.display = 'none'; $coins.style.display = 'none'; clearTimeout(cardTimer); $card.classList.add('hidden'); $hint.style.display = $hintTouch.style.display = 'none'; }
 if (LIB) openLib();
 requestAnimationFrame(frame);
