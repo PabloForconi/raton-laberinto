@@ -4254,7 +4254,8 @@ function updateButtons() {
   // con el cartel de fin de nivel (ganado o perdido), el nivel y el reloj de arriba se esconden: el cartel ya los muestra y en el celular
   // su título se montaba sobre el reloj
   $level.style.visibility = $timer.style.visibility = ((G.state === 'won' && G.winCard) || G.state === 'lost') && !G.screen ? 'hidden' : '';
-  document.getElementById('credit').classList.toggle('hidden', G.state !== 'title' || !!G.screen);   // el crédito, solo en la portada
+  document.getElementById('credit').classList.toggle('hidden', G.state !== 'title' || !!G.screen);
+  document.getElementById('topbtns').classList.toggle('hidden', G.state === 'splash');   // en "TOCÁ PARA ENTRAR", sin el engranaje (lo pidió el usuario)   // el crédito, solo en la portada
   if (optsOpen()) renderOpts();   // por si cambió la música o el sonido con las teclas
 
   document.body.classList.toggle('playing', ['play', 'paused', 'dying'].includes(G.state));
@@ -4339,8 +4340,17 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 // la música arranca con el primer toque o tecla (los navegadores no dejan reproducir audio antes de un gesto)
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { if (!Music.started && G.state !== 'splash') Music.start(); }, { capture: true });
+// el toque de "TOCÁ PARA ENTRAR": en el iPhone, Safari no manda el clic cuando se toca algo que no es un botón (el fondo
+// dibujado), así que también se escucha el toque mismo (touchend, que además es el gesto que le permite sonar al audio) y,
+// con mouse, pointerup; el clic que llega después ya no hace nada (enterFromSplash no entra dos veces)
+function splashTap(e) {
+  if (G.state !== 'splash' || optsOpen() || (e.target.closest && e.target.closest('.btn, #opts'))) return;
+  enterFromSplash();
+}
+addEventListener('touchend', splashTap, { passive: true });
+addEventListener('pointerup', e => { if (e.pointerType !== 'touch') splashTap(e); });
 addEventListener('click', e => {
-  if (G.state === 'splash') { if (!optsOpen() && !e.target.closest('.btn, #opts')) enterFromSplash(); return; }   // el toque de entrada: no hace nada más
+  if (G.state === 'splash') { splashTap(e); return; }   // el toque de entrada: no hace nada más
   const b = e.target.closest('[data-act]');
   if (b) { if (!b.disabled && b.dataset.act) act(b.dataset.act, b); return; }   // (data-act vacío: no hace nada)
   if (e.target.closest('.btn')) return;
