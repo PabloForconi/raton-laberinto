@@ -458,7 +458,7 @@
   /* crédito al pie de la portada (lo pidió el usuario): chiquito pero legible, en un gris claro */
   /* pantalla previa "TOCÁ PARA ENTRAR": solo el fondo del juego y el texto, que aparece suave y queda latiendo */
   #splash { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; pointer-events: none; }
-  #splash span { font: 700 22px/1 'Kalam', cursive; letter-spacing: .12em; color: #f3e4c4;   /* (sin sombra y un poco más chico, a pedido del usuario)
+  #splash span { font: 700 22px/1 'Kalam', cursive; letter-spacing: .12em; color: #f3e4c4;   /* (sin sombra y un poco más chico, a pedido del usuario) */
     animation: splashIn .9s ease-out both, splashBeat 1.6s ease-in-out .9s infinite; }
   #splash.out span { animation: splashOut .25s ease-in both; }
   @keyframes splashIn { from { opacity: 0; } to { opacity: 1; } }
