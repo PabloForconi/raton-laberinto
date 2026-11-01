@@ -1831,6 +1831,8 @@ const SHADOW_SOFT = 5;   // esfumado del borde de las sombras (unidades de mundo
 const WALL_SOFT = 8;     // esfumado del borde de la luz sobre las paredes
 const WALL_LIGHT = 0.6;   // cuánto de la linterna llega a las paredes (sus cantos se veían más brillantes que el piso)
 let scale = 1;
+let lightBox = [0, 0, 0, 0];   // recuadro de pantalla donde se dibujó la luz en el último cuadro (para limpiar solo eso)
+let menuSig = '';              // firma del último fondo de menú dibujado (ver renderScene)
 
 function makeFloorTile() {
   const S = 512, [c, x] = mk(S, S);
@@ -1892,8 +1894,11 @@ function resize() {
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
   // tamaño real visible del canvas (en el celular 100vh incluye la barra del navegador y descentraba la cámara)
   const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
+  safeZone.cssW = cv.clientWidth;
   for (const c of [cv, wallCv, lightCv, aCv, bCv, litCv, mouseCv, topCv]) { c.width = w; c.height = h; }
-  blurCv.width = Math.max(1, w >> 1); blurCv.height = Math.max(1, h >> 1);  computeScale();
+  blurCv.width = Math.max(1, (w + 1) >> 1); blurCv.height = Math.max(1, (h + 1) >> 1);   // media resolución (redondeada para arriba)
+  lightBox = [0, 0, w, h]; menuSig = '';   // capas recién vaciadas (y el canvas del juego también: hay que redibujar)
+  computeScale();
 }
 function computeScale() {
   const vc = viewCells(G.viewLevel || G.level) * C;
@@ -4722,7 +4727,7 @@ function update(dt) {
 // Zona de pantalla (en píxeles del canvas) donde tiene que quedar el ratón.
 // En el celular: debajo del HUD y por encima del tercio de abajo (donde suele estar el dedo del joystick).
 function safeZone() {
-  const w = cv.width, h = cv.height, dpr = cv.width / (cv.clientWidth || cv.width);
+  const w = cv.width, h = cv.height, dpr = cv.width / (safeZone.cssW || cv.width);   // (el ancho CSS se guarda en resize: leerlo en cada cuadro obligaba a recalcular el diseño)
   let y0 = h * 0.15, y1 = h * 0.85;
   if (isTouch) {
     if (!safeZone.at || G.time - safeZone.at > 0.5) {   // medir el HUD cuesta: se renueva cada medio segundo
@@ -5659,11 +5664,24 @@ function drawMouse(c, alpha) {
   c.restore();
 }
 
-function render() {
+// El HUD se toca en cada cuadro: solo se escribe en el DOM si cambió (escribir lo mismo igual obliga al navegador a
+// recalcular estilos y diseño, que en el celular cuesta)
+function setText(el, s) { if (el.textContent !== s) el.textContent = s; }
+function setDisplay(el, d) { if (el.style.display !== d) el.style.display = d; }
+function render() { renderScene(); renderHud(); }
+// Rendimiento: el fondo de los menús (portada, niveles, "tocá para entrar") no cambia mientras el foco está apagado, que
+// es casi siempre: si nada cambió desde el último cuadro, el canvas ya tiene la imagen y no se vuelve a dibujar
+function renderScene() {
   const w = cv.width, h = cv.height;
+  const sig = isMenu() && G.maze && G.light <= 0 && G.siren <= 0.01 && !G.shake && G.iris >= 1 ? [w, h, scale, cam.x, cam.y, G.titleSize, Lang.cur, G.rects.length].join() : '';
+  if (sig && sig === menuSig) return;
+  menuSig = sig;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
   if (!G.maze) return;
+  // cortina cerrada del todo (detrás del cartel de inicio y del de nivel ganado): la pantalla queda negra, no hace falta
+  // dibujar el laberinto
+  if (G.iris <= 0) return;
   // temblor suave de cámara (solo al dibujar, no mueve la cámara real)
   const shx = G.shake * G.shake * 3 * Math.sin(G.time * 63), shy = G.shake * G.shake * 3 * Math.cos(G.time * 51);
   cam.x += shx; cam.y += shy;
@@ -5680,60 +5698,85 @@ function render() {
     wctx.setTransform(1, 0, 0, 1, 0, 0); wctx.clearRect(0, 0, w, h); wctx.setTransform(...T6); drawWalls(wctx, v);
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(wallCv, 0, 0);
 
-    // 2) mapa de luz: haz recortado por las sombras de las paredes
-    const ox = menu ? MenuFl.x : M.x + Math.cos(M.a) * 4, oy = menu ? MenuFl.y : M.y + Math.sin(M.a) * 4;
-    const light = menu ? drawBulb : roomLit ? () => {} : drawCone;   // con la luz prendida no hay linterna
-    castRays(ox, oy);
-    actx.setTransform(1, 0, 0, 1, 0, 0); actx.clearRect(0, 0, w, h); actx.setTransform(...T6);
-    light(actx, ox, oy);
-    actx.globalCompositeOperation = 'destination-in'; actx.fillStyle = '#000'; actx.beginPath();
-    for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * HITS[i], y = oy + SIN[i] * HITS[i]; i ? actx.lineTo(x, y) : actx.moveTo(x, y); }
-    actx.closePath(); actx.fill(); actx.globalCompositeOperation = 'source-over';
-    // la luz del piso no cae sobre las paredes (sus cantos se proyectan encima del piso): las paredes se iluminan solo
-    // con la suya, más tenue (WALL_LIGHT), así el borde de arriba no queda más brillante que el piso
-    if (!menu) {
-      actx.setTransform(1, 0, 0, 1, 0, 0); actx.globalCompositeOperation = 'destination-out';
-      actx.drawImage(wallCv, 0, 0); actx.globalCompositeOperation = 'source-over';
-    }
-
-    // las paredes se iluminan un poco más allá del impacto (su canto y su cara proyectada)
-    bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(0, 0, w, h); bctx.setTransform(...T6);
-    light(bctx, ox, oy);
-    bctx.globalCompositeOperation = 'destination-in'; bctx.fillStyle = '#000'; bctx.beginPath();
-    const ext = T + 6, s = 1 + K;
-    for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * (HITS[i] + ext), y = oy + SIN[i] * (HITS[i] + ext); i ? bctx.lineTo(x, y) : bctx.moveTo(x, y); }
-    bctx.closePath();
-    for (let i = 0; i < RAYS; i++) {
-      const x = cam.x + (ox + COS[i] * (HITS[i] + ext) - cam.x) * s, y = cam.y + (oy + SIN[i] * (HITS[i] + ext) - cam.y) * s;
-      i ? bctx.lineTo(x, y) : bctx.moveTo(x, y);
-    }
-    bctx.closePath(); bctx.fill('nonzero');
-    bctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (CAN_BLUR) {
-      // borde suave también en la luz de las paredes (antes se veía un círculo de borde duro)
-      const bw = blurCv.width, bh = blurCv.height;
-      blurCtx.setTransform(1, 0, 0, 1, 0, 0); blurCtx.clearRect(0, 0, bw, bh);
-      blurCtx.filter = `blur(${(WALL_SOFT * scale / 2).toFixed(1)}px)`;
-      blurCtx.drawImage(bCv, 0, 0, bw, bh); blurCtx.filter = 'none';
-      bctx.globalCompositeOperation = 'copy'; bctx.drawImage(blurCv, 0, 0, w, h);
-      bctx.globalCompositeOperation = 'destination-in';
-    }
-    bctx.drawImage(wallCv, 0, 0);
-    bctx.globalCompositeOperation = 'source-over';
-
     lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.globalCompositeOperation = 'source-over'; lctx.globalAlpha = 1;
     lctx.fillStyle = '#000'; lctx.fillRect(0, 0, w, h);
-    lctx.globalCompositeOperation = 'lighter'; lctx.globalAlpha = G.light;
-    if (CAN_BLUR) {
-      // sombras esfumadas: la luz del piso se desenfoca (a media resolución, para que sea barato)
-      const bw = blurCv.width, bh = blurCv.height;
-      blurCtx.setTransform(1, 0, 0, 1, 0, 0); blurCtx.clearRect(0, 0, bw, bh);
-      blurCtx.filter = `blur(${(SHADOW_SOFT * scale / 2).toFixed(1)}px)`;
-      blurCtx.drawImage(aCv, 0, 0, bw, bh); blurCtx.filter = 'none';
-      lctx.drawImage(blurCv, 0, 0, w, h);
-    } else lctx.drawImage(aCv, 0, 0);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
-    lctx.globalAlpha = G.light * WALL_LIGHT; lctx.drawImage(bCv, 0, 0);   // las paredes, menos iluminadas que el piso
-    lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
+    // 2) mapa de luz: haz recortado por las sombras de las paredes. Con la luz del laberinto prendida no hay linterna, y en
+    //    la portada el foco casi siempre está apagado: ahí el mapa de luz es solo el ambiente parejo y todo esto se saltea
+    if (!roomLit && G.light > 0) {
+      const ox = menu ? MenuFl.x : M.x + Math.cos(M.a) * 4, oy = menu ? MenuFl.y : M.y + Math.sin(M.a) * 4;
+      const light = menu ? drawBulb : drawCone;
+      castRays(ox, oy);
+      // Rendimiento: la luz solo cae dentro del polígono de visibilidad (y su versión agrandada y proyectada para las
+      // paredes), así que las capas de luz se limpian, desenfocan y mezclan solo en ese recuadro de pantalla (más el margen
+      // del desenfoque), no en toda la pantalla. Afuera quedan transparentes, igual que antes
+      const ext = T + 6, s = 1 + K;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < RAYS; i++) {
+        const x = ox + COS[i] * (HITS[i] + ext), y = oy + SIN[i] * (HITS[i] + ext);
+        const px = cam.x + (x - cam.x) * s, py = cam.y + (y - cam.y) * s;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+      }
+      const mg = Math.ceil(3 * Math.max(SHADOW_SOFT, WALL_SOFT) * scale) + 4;   // lo que se desparrama el desenfoque
+      // en píxeles de pantalla, con las esquinas en números pares (la capa del desenfoque es de media resolución)
+      const bx = clamp(Math.floor((w / 2 + (x0 - cam.x) * scale - mg) / 2) * 2, 0, w), by = clamp(Math.floor((h / 2 + (y0 - cam.y) * scale - mg) / 2) * 2, 0, h);
+      const bx1 = clamp(Math.ceil((w / 2 + (x1 - cam.x) * scale + mg) / 2) * 2, 0, w), by1 = clamp(Math.ceil((h / 2 + (y1 - cam.y) * scale + mg) / 2) * 2, 0, h);
+      const bw = bx1 - bx, bh = by1 - by;
+      // se limpia lo que se usó en el cuadro anterior y lo de este (afuera de los dos ya está transparente)
+      const P = lightBox, cx0 = Math.min(P[0], bx), cy0 = Math.min(P[1], by), cw = Math.max(P[0] + P[2], bx1) - cx0, ch = Math.max(P[1] + P[3], by1) - cy0;
+      lightBox = [bx, by, bw, bh];
+      actx.setTransform(1, 0, 0, 1, 0, 0); actx.clearRect(cx0, cy0, cw, ch);
+      bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.clearRect(cx0, cy0, cw, ch);
+      if (bw > 0 && bh > 0) {
+        actx.save(); actx.beginPath(); actx.rect(bx, by, bw, bh); actx.clip(); actx.setTransform(...T6);
+        light(actx, ox, oy);
+        actx.globalCompositeOperation = 'destination-in'; actx.fillStyle = '#000'; actx.beginPath();
+        for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * HITS[i], y = oy + SIN[i] * HITS[i]; i ? actx.lineTo(x, y) : actx.moveTo(x, y); }
+        actx.closePath(); actx.fill(); actx.globalCompositeOperation = 'source-over';
+        // la luz del piso no cae sobre las paredes (sus cantos se proyectan encima del piso): las paredes se iluminan solo
+        // con la suya, más tenue (WALL_LIGHT), así el borde de arriba no queda más brillante que el piso
+        if (!menu) {
+          actx.setTransform(1, 0, 0, 1, 0, 0); actx.globalCompositeOperation = 'destination-out';
+          actx.drawImage(wallCv, bx, by, bw, bh, bx, by, bw, bh); actx.globalCompositeOperation = 'source-over';
+        }
+        actx.restore();
+
+        // las paredes se iluminan un poco más allá del impacto (su canto y su cara proyectada)
+        bctx.save(); bctx.beginPath(); bctx.rect(bx, by, bw, bh); bctx.clip(); bctx.setTransform(...T6);
+        light(bctx, ox, oy);
+        bctx.globalCompositeOperation = 'destination-in'; bctx.fillStyle = '#000'; bctx.beginPath();
+        for (let i = 0; i < RAYS; i++) { const x = ox + COS[i] * (HITS[i] + ext), y = oy + SIN[i] * (HITS[i] + ext); i ? bctx.lineTo(x, y) : bctx.moveTo(x, y); }
+        bctx.closePath();
+        for (let i = 0; i < RAYS; i++) {
+          const x = cam.x + (ox + COS[i] * (HITS[i] + ext) - cam.x) * s, y = cam.y + (oy + SIN[i] * (HITS[i] + ext) - cam.y) * s;
+          i ? bctx.lineTo(x, y) : bctx.moveTo(x, y);
+        }
+        bctx.closePath(); bctx.fill('nonzero');
+        bctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (CAN_BLUR) {
+          // borde suave también en la luz de las paredes (antes se veía un círculo de borde duro)
+          blurCtx.setTransform(1, 0, 0, 1, 0, 0); blurCtx.clearRect(bx / 2, by / 2, bw / 2 + 1, bh / 2 + 1);
+          blurCtx.filter = `blur(${(WALL_SOFT * scale / 2).toFixed(1)}px)`;
+          blurCtx.drawImage(bCv, bx, by, bw, bh, bx / 2, by / 2, bw / 2, bh / 2); blurCtx.filter = 'none';
+          bctx.globalCompositeOperation = 'source-over'; bctx.clearRect(bx, by, bw, bh); bctx.drawImage(blurCv, bx / 2, by / 2, bw / 2, bh / 2, bx, by, bw, bh);
+          bctx.globalCompositeOperation = 'destination-in';
+        } else bctx.globalCompositeOperation = 'destination-in';
+        bctx.drawImage(wallCv, bx, by, bw, bh, bx, by, bw, bh);
+        bctx.globalCompositeOperation = 'source-over';
+        bctx.restore();
+
+        lctx.globalCompositeOperation = 'lighter'; lctx.globalAlpha = G.light;
+        if (CAN_BLUR) {
+          // sombras esfumadas: la luz del piso se desenfoca (a media resolución, para que sea barato)
+          blurCtx.clearRect(bx / 2, by / 2, bw / 2 + 1, bh / 2 + 1);
+          blurCtx.filter = `blur(${(SHADOW_SOFT * scale / 2).toFixed(1)}px)`;
+          blurCtx.drawImage(aCv, bx, by, bw, bh, bx / 2, by / 2, bw / 2, bh / 2); blurCtx.filter = 'none';
+          lctx.drawImage(blurCv, bx / 2, by / 2, bw / 2, bh / 2, bx, by, bw, bh);
+        } else lctx.drawImage(aCv, bx, by, bw, bh, bx, by, bw, bh);   // sin filter (iPhone): sombras de borde duro (el desenfoque alternativo vibraba)
+        lctx.globalAlpha = G.light * WALL_LIGHT; lctx.drawImage(bCv, bx, by, bw, bh, bx, by, bw, bh);   // las paredes, menos iluminadas que el piso
+        lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over';
+      }
+    }
     const amb = menu ? MENU_AMBIENT : roomLit ? ROOM_AMBIENT : G.dark ? DARK_AMBIENT * G.light : 0;   // menús: fondo tenue
     if (amb) { lctx.globalCompositeOperation = 'lighter'; lctx.fillStyle = 'rgba(255,240,215,' + amb + ')'; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'source-over'; }
     if (G.siren > 0.01) drawSiren(lctx, T6);
@@ -5825,16 +5868,16 @@ function render() {
     ctx.fill('evenodd');
   }
   cam.x -= shx; cam.y -= shy;
-
-  // HUD
+}
+function renderHud() {
   if (!isMenu()) {
-    $level.textContent = say('NIVEL ', 'LEVEL ') + G.level;
+    setText($level, say('NIVEL ', 'LEVEL ') + G.level);
     // El reloj sube (lo que vas tardando), igual que los resultados y los objetivos; el límite se ve en la batería de la
     // linterna y en la sirena
-    $timer.textContent = fmtMS(G.elapsed);
+    setText($timer, fmtMS(G.elapsed));
     $timer.classList.toggle('warn', G.lamp && G.timeLeft <= WARN_T && G.state === 'play');
     $cheese.classList.toggle('hidden', !G.cheeseTotal || ['won', 'lost'].includes(G.state));   // detrás del cartel de fin de nivel, no (ya está en el cartel)
-    $cheeseN.textContent = `${G.cheese}/${G.cheeseTotal}`;
+    setText($cheeseN, `${G.cheese}/${G.cheeseTotal}`);
     // batería de la linterna: un bloque prendido por cada 15 s que quedan (en Desafío, por cada cuarto del tiempo del nivel;
     // el que se está gastando también); el color de todos depende de cuántos quedan, y en los últimos WARN_T s titila
     $lamp.classList.toggle('hidden', !G.lamp || ['won', 'lost'].includes(G.state));
@@ -5842,12 +5885,16 @@ function render() {
     if (G.lamp) {
       const n = lampBlocks(), crit = G.timeLeft <= WARN_T;
       const blink = crit && G.state === 'play' && Math.sin(G.time * 14) < -0.3;
-      $lampCells.forEach((el, k) => { el.className = k < n ? 'on' + (blink && k === n - 1 ? ' blink' : '') : ''; el.style.background = k < n ? LAMP_COLORS[n - 1] : ''; });
+      $lampCells.forEach((el, k) => {
+        const cls = k < n ? 'on' + (blink && k === n - 1 ? ' blink' : '') : '', bg = k < n ? LAMP_COLORS[n - 1] : '';
+        if (el.className !== cls) el.className = cls;
+        if (el._bg !== bg) { el._bg = bg; el.style.background = bg; }
+      });
     }
   }
   const showHint = G.state === 'play' && G.level <= 2;
-  $hint.style.display = showHint ? '' : 'none';
-  $hintTouch.style.display = showHint && Stick.id === null ? '' : 'none';
+  setDisplay($hint, showHint ? '' : 'none');
+  setDisplay($hintTouch, showHint && Stick.id === null ? '' : 'none');
 }
 
 // ===================== GALERÍA (index.html?galeria) =====================
@@ -6350,7 +6397,10 @@ function frame(now) {
   if (FRONT_GALLERY) { G.time += dt; renderFrontGallery(); return; }
   if (PORTRAIT_GALLERY) { G.time += dt; renderPortraitGallery(); return; }
   if (libOn) { G.time += dt; renderLib(dt); return; }
-  update(dt); render();
+  update(dt);
+  // con el Bioterio o la Máquina abiertos el laberinto queda tapado del todo (pantalla negra opaca): no se dibuja, así esas
+  // pantallas (la máquina tiene su propia animación) tienen el celular para ellas solas
+  if (!(G.screen && $scr.classList.contains('open'))) render();
 }
 resize();
 if ((Snd.muted && Music.muted) || GALLERY || RAT_GALLERY || FRONT_GALLERY || PORTRAIT_GALLERY || LIB) showTitle(); else showSplash();
