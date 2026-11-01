@@ -974,6 +974,22 @@ const Snd = {
   },
   // moneda: "bling" de dos notas, como en los juegos de siempre
   coin() { this.tone(988, 988, 0.06, 'square', 0.05); this.tone(1319, 1319, 0.2, 'square', 0.05, 0.06); },
+  // moneda de los botones de la máquina, al estilo de la moneda clásica de Nintendo sin ser la misma (lo pidió el usuario):
+  // onda de pulso angosta como la de las consolas viejas, una nota cortita y otra una cuarta arriba que queda sonando y se
+  // apaga (la/re en vez de si/mi)
+  coinBtn() {
+    const c = this.ctx; if (!c) return;
+    if (!this.pulseW) {   // pulso del 25%
+      const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+      for (let k = 1; k < n; k++) { re[k] = 2 / (k * Math.PI) * Math.sin(2 * Math.PI * k * 0.25); im[k] = 2 / (k * Math.PI) * (1 - Math.cos(2 * Math.PI * k * 0.25)); }
+      this.pulseW = c.createPeriodicWave(re, im);
+    }
+    const t = c.currentTime + 0.01, o = c.createOscillator(), g = c.createGain();
+    o.setPeriodicWave(this.pulseW); o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1175, t + 0.075);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.09, t + 0.004); g.gain.setValueAtTime(0.09, t + 0.075);
+    g.gain.linearRampToValueAtTime(0.085, t + 0.08); g.gain.setValueAtTime(0.085, t + 0.22); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.8);
+  },
   // máquina de ratitas: matraca de la manija, la cápsula que cae, el traqueteo y el "pop" al abrirse
   crank() { this.noise(0.02, 2600, 3, 0.22); this.tone(900, 700, 0.03, 'square', 0.03); },
   thunk() { this.tone(170, 70, 0.16, 'sine', 0.4); this.noise(0.07, 600, 0.8, 0.3, 'lowpass'); },
@@ -1119,10 +1135,10 @@ const Snd = {
   // un brillito (de los que suben alrededor de la ratita)
   twinkle() { const f = 2400 + Math.random() * 2400; this.ring(f, 0.35, 0.012 + Math.random() * 0.01, 1.5); },
   // traqueteo de la cápsula en el aire: la cáscara de plástico y algo que suena adentro
-  rattle() {
-    const f = 1300 + Math.random() * 900;
-    this.noise(0.03, f, 3, 0.16, 'bandpass'); this.tone(f * 0.35, f * 0.3, 0.04, 'triangle', 0.04);
-    this.noise(0.015, 3500 + Math.random() * 1500, 5, 0.07, 'bandpass', 0.03 + Math.random() * 0.02);
+  rattle(a = 1) {   // a: qué tan fuerte es el sacudón (0..1), así suena tan grande como se ve
+    const f = 1300 + Math.random() * 900, v = 0.3 + 0.7 * a;
+    this.noise(0.03, f, 3, 0.16 * v, 'bandpass'); this.tone(f * 0.35, f * 0.3, 0.04, 'triangle', 0.04 * v);
+    this.noise(0.015, 3500 + Math.random() * 1500, 5, 0.07 * v, 'bandpass', 0.03 + Math.random() * 0.02);
   },
   // se abre: se corta la tensión, chasquido del plástico, un golpe de aire grave y un destello con campanitas en la sala
   revealHit() {
@@ -3127,7 +3143,7 @@ function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
   // moneda clásica de juego al tocar Activar u Otra vez (lo pidió el usuario) y después entra por la ranura y rueda
-  Snd.machStop(0.1); Snd.coin(); setTimeout(() => Snd.coinDrop(), 220); Music.duck(0.3, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (más tensión)
+  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450); Music.duck(0.3, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (más tensión)
   Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
@@ -3320,8 +3336,10 @@ function gachaUpdate(dt) {
   } else if (P.phase === 'clack') { L.tubeL = L.tubeR = 1; on('beacon', 0.3, 0.9); on('inner', 1, 6); }
   else if (P.phase === 'door') { on('door', 1, 4); on('beacon', 0.3, 0.9); }
   else if (P.phase === 'hover') {   // la cápsula traquetea en cada golpe de la sacudida
-    const ph = capShake(P.t)[3], prev = capShake(Math.max(0, P.t - dt))[3];
-    if (ph > 0 && Math.floor(ph / Math.PI) !== Math.floor(prev / Math.PI)) Snd.rattle();
+    // (cada golpe es cuando vuelve a tocar abajo; los primeros, con el sacudón todavía chiquito, no se veían y sonaban
+    // igual de fuerte: el usuario oía el traqueteo antes de ver la sacudida. Ahora suena recién cuando se nota y crece con él)
+    const [, , , ph, a] = capShake(P.t), prev = capShake(Math.max(0, P.t - dt))[3];
+    if (ph > 0 && a > 0.2 && Math.floor(ph / Math.PI) !== Math.floor(prev / Math.PI)) Snd.rattle(a);
   }   // la baliza se sigue apagando despacio
   machineSfx(P, t, dt);
   if (dur && P.t >= dur) gachaStage(GACHA_STAGES[GACHA_STAGES.indexOf(P.phase) + 1]);
@@ -3405,7 +3423,7 @@ const CAP_SHAKE0 = 0.3;
 function capShake(t) {   // [corrimiento x, salto, giro, fase de los golpes] en el instante t de hover
   const T = GACHA_T.hover - CAP_SHAKE0, u = clamp((t - CAP_SHAKE0) / T, 0, 1); if (u <= 0) return [0, 0, 0, 0];
   const tt = u * T, ph = Math.PI * 2 * (5 * tt + 5 * tt * tt / T), a = u * u * (3 - 2 * u);   // de 5 a 15 golpes por segundo
-  return [6 * a * Math.sin(ph), -7 * a * Math.abs(Math.sin(ph)), 0.2 * a * Math.sin(ph + 0.6), ph];
+  return [6 * a * Math.sin(ph), -7 * a * Math.abs(Math.sin(ph)), 0.2 * a * Math.sin(ph + 0.6), ph, a];
 }
 function prizeCapsule(t) {
   const [dx, dy] = MACHINE_DOOR, ease = p => p * p * (3 - 2 * p);
