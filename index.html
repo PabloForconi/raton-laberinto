@@ -754,7 +754,7 @@ const BAT_CELLS = 26;   // pilas: como mucho tantas celdas de camino entre una y
 // luz pareja de fondo: con la luz del laberinto prendida (sin linterna) y, muy tenue, a oscuras (sigue a la linterna:
 // cuando se apaga, se apaga)
 const ROOM_AMBIENT = 0.85, DARK_AMBIENT = 0.1;
-const UNLOCK_ALL = false;   // true: todos los niveles de Historia desbloqueados (para probar)
+const UNLOCK_ALL = true;    // true: todos los niveles de Historia desbloqueados (para probar)
 
 // Progreso de Historia (niveles desbloqueados, mejores estrellas y mejor tiempo de cada nivel), guardado en el navegador
 const Story = {
@@ -779,7 +779,7 @@ const Story = {
 // de 5 a 13; los niveles 1 a 3 dan 18), o sea hasta 15 giros, uno cada 2 o 3 niveles, y el primero después del nivel 3;
 // juntar las 20 ratitas lleva unos 100 giros (~1200 monedas con lo que devuelven las repetidas), así que el resto sale
 // del Desafío (el nivel N da N monedas)
-const COIN_PRICE = 20, FREE_SPIN = false;   // FREE_SPIN: true para probar la máquina gratis; false = cobra COIN_PRICE
+const COIN_PRICE = 20, FREE_SPIN = true;   // FREE_SPIN: true para probar la máquina gratis; false = cobra COIN_PRICE
 const COIN_SPIN = FREE_SPIN ? 0 : COIN_PRICE, COIN_DUP = COIN_SPIN / 2;   // la repetida devuelve la mitad
 const Wallet = {
   coins: (() => { try { return +localStorage.getItem('raton.coins') || 0; } catch (_) { return 0; } })(),
@@ -1328,7 +1328,7 @@ const CH = {
 // pizzicato y cuerdas en staccato que hacen "um-pa-pa", una melodía de celesta que sube y baja por semitonos, el coro
 // que respira cada dos compases, metales que golpean al empezar la frase y timbales que la cierran con un redoble
 const MUS_MENU = {
-  bpm: 136, steps: 96, gain: 1.35,
+  bpm: 136, steps: 96, gain: 1.0,   // (antes 1,35: el usuario la pidió un poco más baja que la de los laberintos)
   chords: [CH.Dm, CH.Dm, CH.Gm, CH.A7, CH.Dm, CH.Bb, CH.Edim, CH.A7],
   mel: [[[0, 74], [2, 77], [4, 81], [6, 80], [8, 81], [10, 77]], [[0, 76], [2, 77], [4, 76], [6, 73], [8, 74]],
     [[0, 79], [2, 82], [4, 86], [6, 85], [8, 86], [10, 82]], [[0, 81], [2, 79], [4, 76], [6, 73], [8, 76], [10, 79]],
@@ -1451,7 +1451,7 @@ const MUS_DARK = {
 };
 // Remate al perder (al estilo de un dibujito de Elfman): metales que caen por semitonos con vibrato triste, un timbal, la
 // celesta que se desliza hacia abajo y un acorde grave de re menor con el coro
-MUS_STING.gain = 1.5;   // (volumen del remate, parejo con las pistas)
+MUS_STING.gain = 1.1;   // (volumen del remate; antes 1,5, bajado junto con la música de menú)
 function MUS_STING(t) {
   [69, 68, 67].forEach((n, k) => MN.brass(t + k * 0.18, hz(n), 0.24, { gain: 0.05 }));
   MN.tone(t + 0.54, hz(66), 0.9, { to: hz(62), type: 'sawtooth', gain: 0.035, decay: 0.3, vib: 5, filter: 1400, wet: 0.4 });
