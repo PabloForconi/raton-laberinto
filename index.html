@@ -393,7 +393,7 @@
   #screen .inner > .scrbg.dark { opacity: 0; }
   #screen .inner > .labbg { position: absolute !important; inset: -12px; z-index: 0 !important; pointer-events: none; opacity: 0; will-change: opacity; }   /* el laboratorio de la ratita del premio (en su propia capa: aparecer cambiándole la opacidad cuadro a cuadro no lo vuelve a pintar) */
   #screen .inner > .scrbg { will-change: opacity; }   /* el fondo se corta donde termina el deslizamiento */
-  .biohead { position: absolute; top: calc(12px + var(--sat)); left: 0; right: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .biohead { position: absolute; top: 12px; left: 0; right: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
   #screen .bionav { margin-top: auto; }
   /* la casita (a la portada) va abajo, cuadrada, a la izquierda del botón Máquina / Bioterio: así las monedas quedan
      siempre arriba a la izquierda, en el mismo lugar que en el juego */
@@ -978,14 +978,6 @@ const Snd = {
   crank() { this.noise(0.02, 2600, 3, 0.22); this.tone(900, 700, 0.03, 'square', 0.03); },
   thunk() { this.tone(170, 70, 0.16, 'sine', 0.4); this.noise(0.07, 600, 0.8, 0.3, 'lowpass'); },
   ru(v = 1) { this.tone(95, 60, 0.07, 'sine', 0.08 + 0.12 * v); this.noise(0.05, 260, 0.9, 0.05 + 0.08 * v, 'lowpass'); },   // un pulso del motor
-  hiss(d = 1.1) {   // "psssssst": aire que se escapa al abrirse la compuerta
-    const c = this.ctx; if (!c) return; const t = c.currentTime;
-    const s = c.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true;
-    const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3200;
-    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.08);
-    g.gain.setValueAtTime(0.14, t + Math.max(0.1, d - 0.18)); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-    s.connect(f).connect(g).connect(this.master); s.start(t); s.stop(t + d + 0.05);
-  },
   thump(v = 1) { this.tone(80, 42, 0.18, 'sine', 0.18 + 0.2 * v); this.noise(0.06, 300, 0.8, 0.12 * v, 'lowpass'); },   // golpe del motor
   clunk() { this.tone(120, 60, 0.12, 'square', 0.08); this.noise(0.05, 900, 1, 0.25, 'lowpass'); },   // se detiene de golpe
   whoosh() { this.sweep(400, 2400, 0.35, 0.14, 1.5); this.tone(300, 700, 0.3, 'sine', 0.05); },   // la cápsula salta al frente
@@ -1069,8 +1061,8 @@ const Snd = {
   // el servo de la rampa que baja hasta el golpecito (RAMP_HIT)
   doorOpen(d = 2, hit = 1.95) {
     const c = this.ctx; if (!c) return; const t = c.currentTime;
-    this.hiss(0.9);
-    this.noise(0.4, 300, 0.7, 0.12, 'lowpass');   // el "puf" grave del aire
+    // (sin el "pssst" de aire comprimido: el usuario lo sacó, no le gustaba) la luz de adentro se prende con un zumbido
+    this.relay(); this.tone(60, 120, 0.5, 'sawtooth', 0.03); this.ring(3300, 0.15, 0.02, 0.6, 0.06);
     for (let k = 0, x = 0.15; x < d - 0.05; k++, x += 0.1 + 0.03 * Math.sin(k * 1.7)) {
       this.noise(0.018, 2600 + (k % 3) * 400, 4, 0.09, 'bandpass', x); this.tone(380, 260, 0.03, 'triangle', 0.025, x);
     }
@@ -1098,6 +1090,34 @@ const Snd = {
       const k = x / d; this.noise(0.05, 1900, 0.9, 0.06 + 0.2 * k * k, 'bandpass', x); this.tone(190, 150, 0.03, 'triangle', 0.04 + 0.08 * k, x);
     }
   },
+  // la cápsula llega al frente y hace un rebotecito en el aire: un "boing" de resorte cortito
+  boing() { this.tone(260, 520, 0.12, 'triangle', 0.06); this.tone(520, 300, 0.18, 'sine', 0.04, 0.1); },
+  // la baliza: un "uii-uuu" de alarma suave en cada vuelta mientras anda el motor (tensión)
+  beacon(v = 1) {
+    const c = this.ctx; if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(640, t); o.frequency.linearRampToValueAtTime(920, t + 0.35); o.frequency.linearRampToValueAtTime(640, t + 0.8);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.03 * v, t + 0.2); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+    o.connect(g).connect(this.master); const w = c.createGain(); w.gain.value = 0.8; g.connect(w).connect(this.room()); o.start(t); o.stop(t + 0.9);
+  },
+  // la cúpula se suma al temblor: un "clanc" metálico del cierre
+  domeClank() { this.ring(1250, 0.3, 0.03, 0.5); this.ring(1870, 0.2, 0.02, 0.5); this.noise(0.03, 2600, 3, 0.08, 'bandpass'); this.tone(180, 90, 0.08, 'sine', 0.08); },
+  // los tubitos crujen en su enganche cuando se bambolean
+  creak() {
+    const c = this.ctx; if (!c) return; const t = c.currentTime, f = 700 + Math.random() * 500, o = c.createOscillator(), l = c.createOscillator(), lg = c.createGain(), fl = c.createBiquadFilter(), g = c.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * (0.8 + Math.random() * 0.5), t + 0.18);
+    l.frequency.value = 40 + Math.random() * 30; lg.gain.value = f * 0.03; l.connect(lg).connect(o.frequency);
+    fl.type = 'bandpass'; fl.frequency.value = f * 2; fl.Q.value = 4;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.025, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    o.connect(fl).connect(g).connect(this.master); o.start(t); o.stop(t + 0.22); l.start(t); l.stop(t + 0.22);
+  },
+  // la ratita salta de la cápsula: un "fiuu" que sube y un chillido contento
+  ratJump() { this.sweep(500, 1800, 0.3, 0.07, 1.5); this.tone(700, 1400, 0.18, 'sine', 0.03); setTimeout(() => this.squeak(), 120); },
+  // aterriza en la mesada: un golpecito blando y el rebote
+  ratLand() { this.tone(150, 70, 0.12, 'sine', 0.16); this.noise(0.06, 500, 0.8, 0.12, 'lowpass'); this.tone(110, 60, 0.08, 'sine', 0.06, 0.16); },
+  // los textos del premio aparecen con un "pop" de burbuja
+  textPop(k = 0) { const f = k ? 660 : 880; this.tone(f * 0.6, f * 1.4, 0.07, 'sine', 0.06); this.noise(0.02, 3000, 2, 0.04, 'bandpass'); },
+  // un brillito (de los que suben alrededor de la ratita)
+  twinkle() { const f = 2400 + Math.random() * 2400; this.ring(f, 0.35, 0.012 + Math.random() * 0.01, 1.5); },
   // traqueteo de la cápsula en el aire: la cáscara de plástico y algo que suena adentro
   rattle() {
     const f = 1300 + Math.random() * 900;
@@ -1109,6 +1129,7 @@ const Snd = {
     if (!this.ctx) return;
     for (const k of ['rise', 'tense']) if (this.mv[k]) { this.mv[k].stop(0.04); delete this.mv[k]; }
     this.noise(0.03, 5000, 0.8, 0.35, 'highpass'); this.noise(0.12, 1300, 0.8, 0.3, 'bandpass'); this.tone(160, 50, 0.3, 'sine', 0.3);
+    this.sweep(1800, 500, 0.35, 0.06, 1.2, 0.02); this.sweep(1500, 420, 0.4, 0.05, 1.2, 0.05);   // las dos mitades salen volando
     this.noise(0.35, 400, 0.7, 0.18, 'lowpass', 0.01);
     this.sweep(1500, 7000, 0.6, 0.06, 1, 0.02);
     [1175, 1480, 1760, 2349, 2960].forEach((f, k) => this.ring(f, 1.2, 0.05, 1.8, 0.05 + k * 0.045));
@@ -2559,10 +2580,12 @@ function layoutRack() {
   const B = BIO_BG, k = Math.min(rack.clientWidth * 0.96 / B.fitW, 1);   // (en la PC no tan grande)
   const h2 = head.querySelector('.stitle'), ty = head.offsetTop + h2.offsetTop + h2.offsetHeight / 2;   // centro del título
   const cw = B.cageW * k, ch = cw * CAGE_H / CAGE_W;
-  // el ancla (el título invisible) baja con la zona del reloj en pantalla completa, como las monedas; y por las dudas la
-  // primera fila de jaulas nunca empieza arriba del contador de monedas (en el iPhone a pantalla completa quedaba encima)
+  // la primera fila de jaulas nunca empieza arriba del contador de monedas: en el iPhone a pantalla completa las monedas
+  // bajan con la zona del reloj y quedaban encima de las jaulas; ahí la fila (y el fondo con ella) baja lo justo para
+  // quedar con la tapa de la caja apenas detrás del borde de abajo de las monedas, sin taparle el cartelito del nombre
+  // (primero bajaba toda la zona del reloj y después quedaba 8 px debajo: el usuario la pidió dos veces más arriba)
   const coinsB = $coins.getBoundingClientRect().bottom - rack.getBoundingClientRect().top + rack.scrollTop;
-  const top = Math.max(ty - B.titleY * k, coinsB + 12 - ((B.shelves[0] - 2.5) * k - 0.86 * ch));
+  const top = Math.max(ty - B.titleY * k, coinsB - 8 - ((B.shelves[0] - 2.5) * k - 0.86 * ch));
   const [bt, bb] = bandHeights();   // las franjas oscuras
   rack.querySelector('.bandtop').style.height = bt + 'px'; rack.querySelector('.bandtop').style.marginBottom = -bt + 'px';
   $scr.querySelector('.bandbot').style.height = bb + 'px';
@@ -3103,7 +3126,8 @@ function gachaButtons(after) {
 function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
-  Snd.machStop(0.1); Snd.coinDrop(); Music.duck(0.3, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (más tensión)
+  // moneda clásica de juego al tocar Activar u Otra vez (lo pidió el usuario) y después entra por la ranura y rueda
+  Snd.machStop(0.1); Snd.coin(); setTimeout(() => Snd.coinDrop(), 220); Music.duck(0.3, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (más tensión)
   Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
@@ -3124,7 +3148,7 @@ function gachaSpin() {
 }
 // Empieza una etapa: sonidos y efectos de arranque, y aviso al juego
 function gachaStage(id) {
-  const P = Gacha; P.phase = id; P.t = 0; P.tick = 0;
+  const P = Gacha; P.phase = id; P.t = 0; P.tick = 0; P.sfx = {};   // sfx: los sonidos de esta etapa que ya sonaron
   if (id === 'wake') Snd.powerUp();
   else if (id === 'run') { if (P.mach) P.mach.ph = 0; Snd.motorStart(); }   // el vaivén del motor arranca desde abajo (si seguía de la vuelta anterior, la base saltaba de golpe)
   else if (id === 'clack') {
@@ -3299,6 +3323,7 @@ function gachaUpdate(dt) {
     const ph = capShake(P.t)[3], prev = capShake(Math.max(0, P.t - dt))[3];
     if (ph > 0 && Math.floor(ph / Math.PI) !== Math.floor(prev / Math.PI)) Snd.rattle();
   }   // la baliza se sigue apagando despacio
+  machineSfx(P, t, dt);
   if (dur && P.t >= dur) gachaStage(GACHA_STAGES[GACHA_STAGES.indexOf(P.phase) + 1]);
   // destellos alrededor de la ratita: blancos, y mientras se apagan suben muy despacio (lo pidió el usuario); la nube entera
   // está corrida SPARK_UP unidades hacia arriba (también a pedido suyo), sin cambiar cómo se mueven
@@ -3316,6 +3341,28 @@ function gachaUpdate(dt) {
   P.spark = P.spark.filter(s => s.t < s.life);
   for (const f of P.conf) { f.vy += 320 * dt; f.vx *= 1 - dt * 0.8; f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.vr * dt; }
   P.conf = P.conf.filter(f => f.y < 330);
+}
+// Sonidos de lo que va haciendo la máquina, en su momento (cada uno una vez por etapa, salvo los que se repiten): la
+// baliza en cada vuelta, el clanc de la cúpula al sumarse al temblor, los crujidos de los tubitos, el rebote de la cápsula
+// en el aire, el salto y el aterrizaje de la ratita, los textos y los brillitos
+function machineSfx(P, t, dt) {
+  const once = (k, cond, fn) => { if (cond && !P.sfx[k]) { P.sfx[k] = true; fn(); } };
+  const m = P.mach;
+  if (P.phase === 'run') {
+    const ph = P.beaconPh || 0;   // una alarma por vuelta de la baliza (su fase vuelve a 0 en cada vuelta)
+    if (P.sfx.bp != null && ph < P.sfx.bp) Snd.beacon(0.6 + 0.4 * (m ? m.I : 0));
+    P.sfx.bp = ph;
+    once('dome', m && m.cpl > 0.05, () => Snd.domeClank());
+    if (m && m.tub > 0.2 && Math.random() < dt * 2.5 * m.I) Snd.creak();
+  }
+  if (P.phase === 'launch') once('boing', t > GACHA_T.launch * 0.72, () => Snd.boing());
+  if (P.phase === 'reveal') {
+    once('jump', t > 0.08, () => Snd.ratJump());
+    once('land', t > JUMP_AIR, () => Snd.ratLand());
+    once('name', t > TXT_AT[0], () => Snd.textPop(0));
+    once('sub', t > TXT_AT[1], () => Snd.textPop(1));
+    if (t < 1.6 && Math.random() < dt * 5) Snd.twinkle();
+  }
 }
 function gachaResult() {
   Snd.prize(Gacha.dup);   // acorde con eco (más chico si es repetida)
@@ -4515,7 +4562,7 @@ function fadeTo(fn) {
 // Botones de los carteles (data-act); los que cambian de pantalla pasan por el fundido
 const FADE_ACTS = ['story', 'challenge', 'level', 'next', 'levels', 'back', 'menu', 'ratitas', 'machine', 'use'];
 function act(a, el) {
-  Snd.init(); if (a !== 'start') Snd.tap();   // (Jugar ya tiene su click)
+  Snd.init(); if (a !== 'start' && a !== 'spin') Snd.tap();   // (Jugar ya tiene su click; Activar / Otra vez, su moneda)
   if (a === 'story' || a === 'challenge') firstGesture();   // la música tiene que arrancar en el mismo toque
   if (FADE_ACTS.includes(a)) fadeTo(() => actNow(a, el)); else actNow(a, el);
 }
