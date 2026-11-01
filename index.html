@@ -17,18 +17,23 @@
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   /* lo que tapan la barra de estado (arriba) y la rayita de inicio (abajo) cuando el juego ocupa toda la pantalla: lo de
      arriba (monedas, engranaje, HUD, títulos) baja eso; abajo los botones quedan donde estaban (ya tenían su margen) */
-  :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --vfix: 0px; }
-  /* --vfix: en el iPhone, abierto desde el ícono con la barra translúcida (iOS 26.1+), la ventana mide la pantalla menos
-     la barra de estado y abajo quedaba una franja negra; las capas de pantalla completa se estiran eso para abajo (fixGap).
-     Como en Growcore: ahí el iPhone recorta lo que es "fixed", así que (solo en ese caso, html.gapfix) la página se hace
-     más alta y esas capas van dentro de la página (absolute) en vez de fijas; no se desplaza (fixGap la deja arriba) */
+  :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
+  /* En el iPhone, abierto desde el ícono con la barra translúcida (iOS 26.1+), la ventana mide la pantalla menos la barra
+     de estado y abajo quedaba una franja negra; además el iPhone recorta ahí lo que es "fixed". Como en Growcore: en la
+     app del ícono (html.gapfix, que pone fixGap una vez y no se saca) la página mide siempre el alto de la pantalla
+     (--fullh) y las capas de pantalla completa van dentro de la página (absolute) con ese alto, sin depender del alto de
+     la ventana (cambiarlo con la ventana hacía un ciclo: el juego saltaba de un tamaño a otro sin parar) */
   html.gapfix, html.gapfix body { overflow: visible; }
-  html.gapfix { min-height: calc(100% + var(--vfix)); }
-  html.gapfix :is(canvas#game, #vignette, #screen, #opts, #splash, #fade, #stickZone, #credit, #hintTouch) { position: absolute; }
+  html.gapfix { min-height: var(--fullh); }
+  html.gapfix :is(canvas#game, #vignette, #screen, #opts, #splash, #fade, #stickZone) { position: absolute; top: 0; bottom: auto; height: var(--fullh); }
+  html.gapfix :is(#credit, #hintTouch) { position: absolute; top: auto; }
+  html.gapfix #credit { bottom: calc(max(10px, calc(var(--sab) - 24px)) + 100% - var(--fullh)); }
+  html.gapfix #hintTouch { bottom: calc(max(14px, calc(var(--sab) - 20px)) + 100% - var(--fullh)); }
+  html.gapfix #card { position: absolute; top: calc((var(--fullh) + var(--sat)) / 2); }
   #hud { position: fixed; top: var(--sat); left: 0; right: 0; height: 0; }
   body { font-family: 'Kalam', cursive; font-weight: 700; color: #2a1a0c; user-select: none; }
-  canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: calc(100% + var(--vfix)); }
-  #vignette { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); pointer-events: none;
+  canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+  #vignette { position: fixed; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.65) 100%); }
   .tape { position: absolute; background: #d9cfb2; padding: 4px 16px 2px;
     box-shadow: 0 2px 6px rgba(0,0,0,.6); font-family: 'Kalam', cursive;
@@ -361,7 +366,7 @@
   .ci { width: 1em; height: 1em; vertical-align: -0.14em; }
   #card .menu.sub { margin-top: 10px; }
   /* pantallas a pantalla completa (Ratitas, Máquina): fondo negro que entra y sale con un círculo desde el botón */
-  #screen { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 7; background: #000; pointer-events: none;
+  #screen { position: fixed; inset: 0; z-index: 7; background: #000; pointer-events: none;
     clip-path: circle(0px at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
     transition: clip-path .45s ease-in-out, -webkit-clip-path .45s ease-in-out; }
   #screen.open { pointer-events: auto; clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); }
@@ -438,7 +443,7 @@
   #topbtns { position: fixed; top: calc(12px + var(--sat)); right: 14px; display: flex; gap: 8px; z-index: 8; }
   #btnGear svg { width: 27px; height: 27px; }
   /* ventana de pausa / opciones: Música y Sonido con interruptores, y abajo la casita y Reanudar (o Cerrar) */
-  #opts { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 10; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
+  #opts { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
   #opts.hidden { display: none; }
   /* pausa / opciones: con el formato de los carteles nuevos (cartón claro, título de papel que asoma arriba, caja de papel
      encintada con Música y Sonido, y botones grandes: la casita y Reanudar en verde, o Cerrar) */
@@ -452,16 +457,16 @@
   /* fundido a negro entre pantallas (fadeTo): por encima de todo menos la librería */
   /* crédito al pie de la portada (lo pidió el usuario): chiquito pero legible, en un gris claro */
   /* pantalla previa "TOCÁ PARA ENTRAR": solo el fondo del juego y el texto, que aparece suave y queda latiendo */
-  #splash { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 5; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; pointer-events: none; }
-  #splash span { font: 700 26px/1 'Kalam', cursive; letter-spacing: .12em; color: #f3e4c4; text-shadow: 0 2px 6px rgba(0,0,0,.9);
+  #splash { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; pointer-events: none; }
+  #splash span { font: 700 22px/1 'Kalam', cursive; letter-spacing: .12em; color: #f3e4c4;   /* (sin sombra y un poco más chico, a pedido del usuario)
     animation: splashIn .9s ease-out both, splashBeat 1.6s ease-in-out .9s infinite; }
   #splash.out span { animation: splashOut .25s ease-in both; }
   @keyframes splashIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes splashBeat { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
   @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
-  #credit { position: fixed; left: 0; right: 0; bottom: calc(max(10px, calc(var(--sab) - 24px)) - var(--vfix)); z-index: 5; text-align: center; pointer-events: none;
+  #credit { position: fixed; left: 0; right: 0; bottom: max(10px, calc(var(--sab) - 24px)); z-index: 5; text-align: center; pointer-events: none;
     font: 700 13px/1 'Kalam', cursive; color: #b8b8b8; letter-spacing: .02em; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
-  #fade { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
+  #fade { position: fixed; inset: 0; z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
   #fade.on { opacity: 1; pointer-events: auto; }
   #opts:not(.hidden) { animation: optsBgIn .18s ease-out both; }
   #opts.closing { animation: optsBgOut .16s ease-in both; pointer-events: none; }
@@ -500,10 +505,10 @@
   /* controles táctiles */
   body:not(.touch) #hintTouch { display: none; }
   body.touch #hint { display: none !important; }
-  #hintTouch { position: fixed; bottom: calc(max(14px, calc(var(--sab) - 20px)) - var(--vfix)); left: 0; right: 0; text-align: center;
+  #hintTouch { position: fixed; bottom: max(14px, calc(var(--sab) - 20px)); left: 0; right: 0; text-align: center;
     font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; padding: 0 120px; }
   /* joystick flotante: aparece donde apoyás el dedo */
-  #stickZone { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 3; display: none; touch-action: none; }
+  #stickZone { position: fixed; inset: 0; z-index: 3; display: none; touch-action: none; }
   body.touch.playing #stickZone { display: block; }
   #stick { position: fixed; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; pointer-events: none;
     background: rgba(217,207,178,.10); border: 2px solid rgba(217,207,178,.38); display: none; z-index: 4; }
@@ -1030,10 +1035,11 @@ const Snd = {
 // ===================== MÚSICA (sintetizada, como la de Growcore) =====================
 // Cuatro piezas hechas con osciladores y ruido, sin archivos. Reemplazan la canción en mp3 (audio/laberinto-de-circuitos.mp3,
 // que ya no se carga), de la que toman el tempo, unos 100 bpm, y la tonalidad, re menor:
-//   MUS_MENU  portada, niveles, cartel de inicio, Bioterio y Máquina: tranquila, de laboratorio, con campanitas
-//   MUS_PLAY  niveles con la luz prendida: con pulso, un bajo saltarín y una melodía de "andar a escondidas"
-//   MUS_DARK  niveles a oscuras (y Desafío): un zumbido grave, un corazón que late y un reloj; con la última pila (WARN_T)
-//             se acelera y suma un trémolo tenso
+// después el usuario las pidió más frenéticas, al estilo de Danny Elfman mezclado con electrónico:
+//   MUS_MENU  portada, niveles, cartel de inicio, resultados, Bioterio y Máquina: sinfónica, un vals rápido de cuento raro
+//   MUS_PLAY  laberintos con luz: electrónica con cuerdas y celesta, frenética
+//   MUS_DARK  laberintos a oscuras (y Desafío): electrónica oscura y frenética, con bajo distorsionado y coro en racimo;
+//             con la última pila (WARN_T) se acelera y suma un trémolo y una alarma que sube
 //   MUS_STING un remate corto al perder (startDie)
 // Cada pista es un loop de semicorcheas: un temporizador programa las notas un poquito antes de que suenen (el patrón de
 // siempre en Web Audio), así no se atrasan aunque un cuadro se trabe. Va por su propio volumen (Music.bus, con una sala
@@ -1071,87 +1077,152 @@ const MN = {
   },
   kick(t, gain = 0.22) { this.tone(t, 150, 0.22, { to: 42, type: 'sine', gain, attack: 0.003, decay: 0.07 }); this.noise(t, 0.012, 2500, { gain: gain * 0.15 }); },
   snare(t, gain = 0.06) { this.noise(t, 0.16, 1800, { type: 'bandpass', q: 0.8, gain, wet: 0.25 }); this.tone(t, 210, 0.08, { to: 130, type: 'triangle', gain: gain * 0.7, decay: 0.03 }); },
+  // --- orquesta (el estilo que pidió el usuario: Danny Elfman, mezclado con electrónico) ---
+  filt(type, f, q = 0.8) { const fl = Snd.ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; return fl; },
+  osc(type, f, t, dur, detune = 0) { const o = Snd.ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune; o.start(t); o.stop(t + dur + 0.15); return o; },
+  // cuerdas: dos sierras un poquito desafinadas, filtradas (staccato si dur es corta, colchón si es larga)
+  strings(t, f, dur, { gain = 0.02, attack = 0.012, decay, filter = 2400, wet = 0.35 } = {}) {
+    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', filter);
+    for (const d of [-8, 8]) this.osc('sawtooth', f, t, dur, d).connect(fl);
+    fl.connect(g); this.env(g, t, gain, attack, dur, decay); this.send(g, wet);
+  },
+  // pizzicato: un pellizco corto y redondo
+  pizz(t, f, gain = 0.05) {
+    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', 1600);
+    this.osc('triangle', f, t, 0.3).connect(fl); this.osc('sine', f * 2, t, 0.2).connect(fl);
+    fl.connect(g); this.env(g, t, gain, 0.003, 0.3, 0.07); this.send(g, 0.3);
+  },
+  // coro "aaa": una sierra por dos filtros de formante, con un vibrato lento
+  choir(t, f, dur, { gain = 0.02, attack = 0.5, decay, wet = 0.7 } = {}) {
+    const c = Snd.ctx, g = c.createGain(), o = this.osc('sawtooth', f, t, dur), l = c.createOscillator(), lg = c.createGain();
+    l.frequency.value = 4.8; lg.gain.value = f * 0.006; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + 0.15);
+    for (const [ff, q] of [[730, 7], [1100, 8], [2450, 9]]) o.connect(this.filt('bandpass', ff, q)).connect(g);
+    this.env(g, t, gain, attack, dur, decay != null ? decay : dur / 3); this.send(g, wet);
+  },
+  // metales: sierra con el filtro que se abre al soplar
+  brass(t, f, dur, { gain = 0.04, wet = 0.35 } = {}) {
+    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', 300, 1.2);
+    fl.frequency.setValueAtTime(300, t); fl.frequency.linearRampToValueAtTime(2200, t + 0.06); fl.frequency.setTargetAtTime(900, t + 0.08, dur / 2);
+    for (const d of [-5, 5]) this.osc('sawtooth', f, t, dur, d).connect(fl);
+    fl.connect(g); this.env(g, t, gain, 0.025, dur, dur / 2.5); this.send(g, wet);
+  },
+  // timbal: un golpe grave afinado
+  timp(t, f, gain = 0.12) {
+    this.tone(t, f * 1.06, 0.9, { to: f, type: 'sine', gain, attack: 0.003, decay: 0.28, wet: 0.4 });
+    this.noise(t, 0.12, 380, { type: 'lowpass', gain: gain * 0.5, wet: 0.3 });
+  },
+  // celesta: campanita brillante (la de siempre, con un parcial más arriba)
+  celesta(t, f, gain = 0.03, dur = 0.9) {
+    this.bell(t, f, { gain, dur, wet: 0.5 });
+    this.tone(t, f * 4, dur * 0.25, { type: 'sine', gain: gain * 0.2, attack: 0.002, decay: dur / 16, wet: 0.5 });
+  },
+  // bajo electrónico con distorsión (para el laberinto a oscuras)
+  dist(t, f, dur, { gain = 0.04, filter = 900 } = {}) {
+    const c = Snd.ctx; if (!this.curve) { const n = 256, cu = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; cu[i] = Math.tanh(x * 4); } this.curve = cu; }
+    const ws = c.createWaveShaper(), fl = this.filt('lowpass', filter, 2), g = c.createGain(); ws.curve = this.curve;
+    this.osc('sawtooth', f, t, dur).connect(ws); this.osc('square', f / 2, t, dur).connect(ws);
+    ws.connect(fl).connect(g); this.env(g, t, gain, 0.004, dur, dur / 3); this.send(g, 0.1);
+  },
+  // bajo electrónico limpio (sierra filtrada que se abre un poco)
+  synthBass(t, f, dur, { gain = 0.05, filter = 900 } = {}) {
+    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', filter * 0.5, 4);
+    fl.frequency.setValueAtTime(filter * 0.5, t); fl.frequency.linearRampToValueAtTime(filter, t + 0.02); fl.frequency.setTargetAtTime(filter * 0.4, t + 0.03, dur / 2);
+    this.osc('sawtooth', f, t, dur).connect(fl); fl.connect(g); this.env(g, t, gain, 0.004, dur, dur / 2.5); this.send(g, 0.05);
+  },
+  hat(t, gain = 0.015, open = false) { this.noise(t, open ? 0.12 : 0.03, 8000, { gain }); },
+  clap(t, gain = 0.05) { for (const k of [0, 0.012, 0.024]) this.noise(t + k, 0.05, 1300, { type: 'bandpass', q: 1.2, gain, wet: 0.3 }); },
 };
-// acordes (MIDI): la raíz grave y tres notas del medio
+// acordes (MIDI): la raíz grave y las notas del medio
 const CH = {
-  Dm: { r: 38, n: [62, 65, 69] }, Bb: { r: 46, n: [58, 62, 65] }, F: { r: 41, n: [60, 65, 69] }, C: { r: 48, n: [60, 64, 67] },
-  Gm: { r: 43, n: [62, 67, 70] }, A: { r: 45, n: [61, 64, 69] },
+  Dm: { r: 38, n: [62, 65, 69] }, Gm: { r: 43, n: [62, 67, 70] }, A7: { r: 45, n: [61, 64, 67] }, Bb: { r: 46, n: [62, 65, 70] },
+  Edim: { r: 40, n: [64, 67, 70] }, Eb: { r: 39, n: [63, 67, 70] }, A: { r: 45, n: [61, 64, 69] }, F: { r: 41, n: [60, 65, 69] },
 };
-// Portada y menús: 84 bpm, 8 compases (re menor, si bemol, fa, do; dos compases cada uno), un colchón suave, el bajo en
-// los tiempos fuertes, una melodía lenta de campanitas y un "blip" de laboratorio que cuenta corcheas
+// Portada y resultados (sinfónica, al estilo Danny Elfman): un vals rápido en 6/8 (compás de 12 semicorcheas, 136 bpm),
+// 8 compases en re menor con acordes de cuento raro (re menor, sol menor, la séptima, si bemol, mi disminuido): bajo en
+// pizzicato y cuerdas en staccato que hacen "um-pa-pa", una melodía de celesta que sube y baja por semitonos, el coro
+// que respira cada dos compases, metales que golpean al empezar la frase y timbales que la cierran con un redoble
 const MUS_MENU = {
-  bpm: 84, steps: 128, gain: 1.7,
-  mel: { 0: [[0, 81], [6, 77], [10, 79]], 1: [[0, 76], [8, 74]], 2: [[0, 77], [6, 74], [10, 77]], 3: [[0, 82], [8, 81]],
-    4: [[0, 81], [6, 84], [10, 81]], 5: [[0, 79], [8, 77]], 6: [[0, 79], [6, 76], [10, 72]], 7: [[0, 76], [8, 74], [12, 73]] },
+  bpm: 136, steps: 96, gain: 1.35,
+  chords: [CH.Dm, CH.Dm, CH.Gm, CH.A7, CH.Dm, CH.Bb, CH.Edim, CH.A7],
+  mel: [[[0, 74], [2, 77], [4, 81], [6, 80], [8, 81], [10, 77]], [[0, 76], [2, 77], [4, 76], [6, 73], [8, 74]],
+    [[0, 79], [2, 82], [4, 86], [6, 85], [8, 86], [10, 82]], [[0, 81], [2, 79], [4, 76], [6, 73], [8, 76], [10, 79]],
+    [[0, 81], [2, 80], [4, 81], [6, 84], [8, 81], [10, 77]], [[0, 77], [2, 74], [4, 70], [6, 74], [8, 77], [10, 82]],
+    [[0, 79], [2, 76], [4, 82], [6, 79], [8, 76], [10, 73]], [[0, 81], [3, 80], [4, 79], [5, 78], [6, 77], [7, 76], [8, 75], [9, 74], [10, 73]]],
   step(i, t, sd) {
-    const bar = i >> 4, s = i & 15, ch = [CH.Dm, CH.Bb, CH.F, CH.C][bar >> 1], bd = sd * 16;
-    if (s === 0 && bar % 2 === 0) for (const n of ch.n) {
-      MN.tone(t, hz(n), bd * 2.2, { gain: 0.016, attack: 1.2, decay: bd * 0.8, filter: 1500, wet: 0.6 });
-      MN.tone(t, hz(n + 12), bd * 2, { type: 'sine', gain: 0.006, attack: 1.6, decay: bd * 0.7, wet: 0.8 });
-    }
-    if (s === 0) MN.tone(t, hz(ch.r + 12), bd * 0.9, { type: 'sine', gain: 0.07, attack: 0.05, decay: bd * 0.3 });
-    if (s === 8) MN.tone(t, hz(ch.r + 19), bd * 0.45, { type: 'sine', gain: 0.045, attack: 0.04, decay: bd * 0.15 });
-    for (const [k, n] of this.mel[bar] || []) if (k === s) MN.bell(t, hz(n), { gain: 0.032, dur: 2.2, wet: 0.7 });
-    if (s % 4 === 2) MN.tone(t, hz(ch.n[(i >> 2) % 3] + 24), 0.12, { type: 'sine', gain: 0.009, decay: 0.04, wet: 0.5 });
-    if (s % 2 === 1) MN.noise(t, 0.03, 8500, { gain: 0.006 });
+    const bar = Math.floor(i / 12), s = i % 12, ch = this.chords[bar], bd = sd * 12;
+    if (s === 0) this.pizzBass(t, ch.r + 12);
+    if (s === 6) MN.pizz(t, hz(ch.r + 19), 0.05);
+    if (s === 2 || s === 4 || s === 8 || s === 10) for (const n of ch.n) MN.strings(t, hz(n), 0.13, { gain: 0.007, decay: 0.04, filter: 2600, wet: 0.25 });
+    for (const [k, n] of this.mel[bar]) if (k === s) MN.celesta(t, hz(n), 0.032, s % 2 ? 0.5 : 0.9);
+    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 2.2, { gain: 0.012, attack: 0.6, decay: bd * 0.7 });
+    if (s === 0 && bar % 4 === 0) for (const n of [ch.r + 12, ch.r + 19, ch.r + 24]) MN.brass(t, hz(n), 0.45, { gain: 0.022 });
+    if (bar % 4 === 3 && s >= 6) MN.timp(t, hz(45), 0.03 + (s - 6) * 0.012);   // redoble que crece hacia la frase siguiente
+    if (s === 0 && bar % 4 === 0) MN.timp(t, hz(38), 0.13);
   },
+  pizzBass(t, n) { MN.pizz(t, hz(n), 0.07); MN.tone(t, hz(n - 12), 0.35, { type: 'sine', gain: 0.05, decay: 0.12 }); },
 };
-// Niveles con luz: 100 bpm (el tempo de la canción de antes), 8 compases (re menor, si bemol, fa, do, re menor, si bemol,
-// sol menor, la): bombo y caja, platillos, un bajo de corcheas saltarín, un arpegio de campanitas y, en la segunda mitad,
-// una melodía de "andar a escondidas"
+// Laberintos con luz (electrónico con orquesta, frenético): 138 bpm, 8 compases (re menor, si bemol, sol menor, la; dos
+// compases cada uno): bombo en negras, palmas, platillos en semicorcheas, un bajo de sierra en semicorcheas que salta de
+// octava, cuerdas en staccato que empujan las corcheas y una melodía de celesta y "chip" que se escurre por semitonos;
+// al final de cada vuelta, un barrido de ruido que sube
 const MUS_PLAY = {
-  bpm: 100, steps: 128, gain: 1.6,
-  lead: { 4: [[0, 74], [2, 77], [4, 81], [6, 79], [8, 77], [12, 76]], 5: [[0, 74], [4, 77], [8, 82], [10, 81]],
-    6: [[0, 79], [4, 81], [6, 82], [8, 81], [12, 79]], 7: [[0, 76], [4, 73], [8, 76], [12, 81]] },
+  bpm: 138, steps: 128, gain: 1.6,
+  chords: [CH.Dm, CH.Dm, CH.Bb, CH.Bb, CH.Gm, CH.Gm, CH.A, CH.A],
+  lead: [[[0, 74], [3, 77], [6, 81], [8, 80], [10, 81], [12, 77], [14, 74]], [[0, 76], [4, 77], [8, 73], [12, 74]],
+    [[0, 77], [3, 82], [6, 86], [8, 85], [10, 86], [12, 82], [14, 77]], [[0, 79], [4, 77], [8, 74], [12, 70]],
+    [[0, 79], [2, 78], [4, 79], [6, 82], [8, 86], [10, 85], [12, 86], [14, 82]], [[0, 81], [4, 79], [8, 77], [12, 74]],
+    [[0, 73], [2, 74], [4, 76], [6, 77], [8, 79], [10, 80], [12, 81], [14, 83]], [[0, 85], [4, 81], [8, 76], [12, 73]]],
   step(i, t, sd) {
-    const bar = i >> 4, s = i & 15, ch = [CH.Dm, CH.Bb, CH.F, CH.C, CH.Dm, CH.Bb, CH.Gm, CH.A][bar];
-    if (s === 0 || s === 8 || (bar % 2 && s === 14)) MN.kick(t, s === 14 ? 0.07 : 0.11);
-    if (s === 4 || s === 12) MN.snare(t, 0.045);
-    if (s % 2 === 0) MN.noise(t, s % 4 === 2 ? 0.05 : 0.025, 9000, { gain: s % 4 === 2 ? 0.022 : 0.012 });
-    if (s % 2 === 0) {   // bajo: raíz, raíz, octava, raíz, quinta, raíz, octava, quinta
-      const off = [0, 0, 12, 0, 7, 0, 12, 7][s / 2];
-      MN.tone(t, hz(ch.r + 12 + off), sd * 1.8, { type: 'sawtooth', gain: 0.065, decay: sd * 0.7, filter: 650 });
+    const bar = i >> 4, s = i & 15, ch = this.chords[bar];
+    if (s % 4 === 0) MN.kick(t, 0.11);
+    if (bar % 2 && s === 14) MN.kick(t, 0.07);
+    if (s === 4 || s === 12) MN.clap(t, 0.045);
+    MN.hat(t, s % 4 === 2 ? 0.02 : 0.008, s % 4 === 2);
+    const off = [0, 12, 7, 12][s % 4];
+    MN.synthBass(t, hz(ch.r + 12 + off), sd * 0.9, { gain: 0.045, filter: 700 + (s / 16) * 900 });
+    if (s % 2 === 0) { const n = ch.n[[2, 1, 2, 0][(s >> 1) % 4]] + 12; MN.strings(t, hz(n), sd * 1.2, { gain: 0.012, decay: sd * 0.4, filter: 3000, wet: 0.2 }); }
+    for (const [k, n] of this.lead[bar]) if (k === s) {
+      MN.celesta(t, hz(n), 0.022, 0.5);
+      MN.tone(t, hz(n), sd * 1.6, { type: 'square', gain: 0.012, decay: sd * 0.5, filter: 2600, wet: 0.2 });
     }
-    if (s === 0) for (const n of ch.n) MN.tone(t, hz(n), sd * 15, { gain: 0.018, attack: 0.08, decay: sd * 6, filter: 1100, wet: 0.4 });
-    if (s % 2 === 1 && bar < 4) {   // primera mitad: arpegio de campanitas a contratiempo
-      const arp = [ch.n[0] + 12, ch.n[1] + 12, ch.n[2] + 12, ch.n[1] + 12];
-      MN.bell(t, hz(arp[(s >> 1) % 4]), { gain: 0.014, dur: 0.45, wet: 0.4 });
-    }
-    for (const [k, n] of this.lead[bar] || []) if (k === s)
-      MN.tone(t, hz(n), sd * 1.8, { type: 'square', gain: 0.022, decay: sd * 0.7, filter: 2200, vib: 3, wet: 0.35 });
+    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), sd * 30, { gain: 0.007, attack: 0.4 });
+    if (bar === 7 && s >= 8) MN.noise(t, sd * 1.1, 2000 + (s - 8) * 900, { type: 'bandpass', q: 2, gain: 0.006 + (s - 8) * 0.004, wet: 0.3 });
   },
 };
-// Niveles a oscuras: 88 bpm (98 con la última pila), 4 compases (re menor, si bemol, sol menor, la): un zumbido grave,
-// un corazón ("pum-pum") en cada compás, el tic-tac de un reloj, campanas lejanas con mucho eco y, a veces, un mi bemol
-// que roza contra el re; con la última pila (level 1) el corazón late el doble, el bajo pulsa en corcheas y entra un
-// trémolo tenso
+// Laberintos a oscuras (electrónico, frenético y oscuro): 146 bpm (162 con la última pila), 4 compases (re menor, mi bemol,
+// re menor, la; el mi bemol frigio roza contra el re): un bombo quebrado, un bajo distorsionado en semicorcheas con
+// segunda menor, platillos metálicos, una caja seca, un coro grave en racimo (re y mi bemol juntos), golpes de cuerdas
+// y un corazón; con la última pila (level 1) entra el bombo en negras, un trémolo de cuerdas arriba y una nota que sube
+// de a semitono como una alarma
 const MUS_DARK = {
-  bpm: 88, bpmUp: 10, steps: 64, gain: 1.9,
+  bpm: 146, bpmUp: 16, steps: 64, gain: 1.25,
+  chords: [CH.Dm, CH.Eb, CH.Dm, CH.A],
   step(i, t, sd, lvl) {
-    const bar = i >> 4, s = i & 15, ch = [CH.Dm, CH.Bb, CH.Gm, CH.A][bar], bd = sd * 16;
-    if (s === 0 && bar % 2 === 0) {
-      MN.tone(t, hz(38), bd * 2.1, { type: 'sawtooth', gain: 0.03, attack: 0.6, decay: bd * 0.8, filter: 260, wet: 0.3 });
-      MN.tone(t, hz(45), bd * 2.1, { type: 'sawtooth', gain: 0.018, attack: 0.8, decay: bd * 0.8, filter: 300, wet: 0.3 });
-    }
-    if (s === 0) for (const n of ch.n) MN.tone(t, hz(n - 12), bd, { gain: 0.01, attack: 0.5, decay: bd * 0.35, filter: 700, wet: 0.6 });
-    const beats = lvl ? [0, 2, 8, 10] : [0, 2];
-    if (beats.includes(s)) MN.tone(t, s % 8 ? 70 : 85, 0.2, { to: 38, type: 'sine', gain: s % 8 ? 0.12 : 0.18, attack: 0.004, decay: 0.06 });
-    if (s % 4 === 0) MN.noise(t, 0.02, s % 8 ? 2600 : 3800, { type: 'bandpass', q: 9, gain: 0.03, wet: 0.3 });
-    if (s === 6 && bar % 2 === 0) MN.bell(t, hz(ch.n[2] + 12), { gain: 0.026, dur: 3.2, wet: 0.9 });
-    if (s === 12 && bar === 3) MN.bell(t, hz(75), { gain: 0.016, dur: 2.5, wet: 0.9 });
+    const bar = i >> 4, s = i & 15, ch = this.chords[bar];
+    if ([0, 3, 6, 10].includes(s) || (lvl && s % 4 === 0)) MN.kick(t, 0.12);
+    if (s === 4 || s === 12) MN.snare(t, 0.04);
+    MN.noise(t, 0.025, 7000, { type: 'bandpass', q: 6, gain: s % 2 ? 0.007 : 0.013 });
+    const off = [0, 0, 12, 0, 1, 0, 12, 7][s % 8];
+    MN.dist(t, hz(ch.r + 12 + off), sd * 0.95, { gain: 0.035, filter: 650 + (lvl ? 500 : 0) });
+    if (s === 0 && bar % 2 === 0) for (const n of [50, 51, 57]) MN.choir(t, hz(n), sd * 34, { gain: 0.012, attack: 0.3, decay: sd * 12, wet: 0.8 });
+    if (s === 0 || s === 7) for (const n of ch.n) MN.strings(t, hz(n - 12), 0.16, { gain: 0.012, decay: 0.05, filter: 1500, wet: 0.3 });
+    if (s === 0 || s === 2) MN.tone(t, s ? 70 : 85, 0.2, { to: 38, type: 'sine', gain: s ? 0.08 : 0.12, attack: 0.004, decay: 0.06 });
     if (lvl) {
-      if (s % 2 === 0) MN.tone(t, hz(ch.r + 12), sd * 1.2, { type: 'sine', gain: 0.045, decay: sd * 0.4 });
-      MN.tone(t, hz(ch.n[2]), sd * 0.9, { type: 'sawtooth', gain: 0.008, decay: sd * 0.3, filter: 1400, wet: 0.2 });
-    } else if (s === 6 || s === 14) MN.tone(t, hz(ch.r + 12), sd * 2, { type: 'sine', gain: 0.04, decay: sd * 0.6 });
+      MN.strings(t, hz(ch.n[2] + 12), sd * 0.8, { gain: 0.006, decay: sd * 0.25, filter: 3500, wet: 0.2 });
+      if (s === 0) MN.brass(t, hz(74 + bar), sd * 14, { gain: 0.012 });
+    }
   },
 };
-// Remate al perder: tres notas que caen (con un vibrato triste) y un acorde grave de re menor que se apaga
-MUS_STING.gain = 2.6;   // (volumen del remate, parejo con las pistas)
+// Remate al perder (al estilo de un dibujito de Elfman): metales que caen por semitonos con vibrato triste, un timbal, la
+// celesta que se desliza hacia abajo y un acorde grave de re menor con el coro
+MUS_STING.gain = 1.5;   // (volumen del remate, parejo con las pistas)
 function MUS_STING(t) {
-  [69, 68, 67].forEach((n, k) => MN.tone(t + k * 0.2, hz(n), 0.3, { type: 'triangle', gain: 0.06, decay: 0.1, vib: 4, wet: 0.3 }));
-  MN.tone(t + 0.6, hz(66), 0.9, { to: hz(62), type: 'triangle', gain: 0.06, decay: 0.3, vib: 5, wet: 0.4 });
-  for (const n of [38, 50, 53, 57]) MN.tone(t + 0.62, hz(n), 1.6, { type: n < 45 ? 'sine' : 'triangle', gain: n < 45 ? 0.09 : 0.025, decay: 0.5, filter: 900, wet: 0.6 });
-  MN.noise(t + 0.6, 0.6, 500, { type: 'lowpass', gain: 0.03, wet: 0.5 });
+  [69, 68, 67].forEach((n, k) => MN.brass(t + k * 0.18, hz(n), 0.24, { gain: 0.05 }));
+  MN.tone(t + 0.54, hz(66), 0.9, { to: hz(62), type: 'sawtooth', gain: 0.035, decay: 0.3, vib: 5, filter: 1400, wet: 0.4 });
+  [86, 84, 82, 81, 79, 77, 76, 74].forEach((n, k) => MN.celesta(t + 0.55 + k * 0.035, hz(n), 0.018, 0.5));
+  MN.timp(t + 0.56, hz(38), 0.16);
+  for (const n of [50, 53, 57]) MN.choir(t + 0.6, hz(n), 1.8, { gain: 0.016, attack: 0.15, decay: 0.6 });
+  MN.tone(t + 0.6, hz(26), 1.4, { type: 'sine', gain: 0.1, decay: 0.45 });
 }
 const Music = {
   started: false, vol: 0.5,   // volumen de la música, aparte de los efectos (más o menos como la canción de antes)
@@ -1800,16 +1871,14 @@ const CS = 320, [coneCv, coneCtx] = mk(CS, CS);
 })();
 
 // iPhone abierto desde el ícono (iOS 26.1+, con la barra translúcida): la ventana queda más baja que la pantalla y abajo
-// aparecía una franja negra del alto de la barra de estado; se mide esa diferencia y las capas se estiran hasta abajo
+// aparecía una franja negra; como en Growcore, ahí la página y las capas miden el alto de la pantalla (no el de la
+// ventana, que cambia justamente con eso). La clase se pone una sola vez y no se saca
+const screenH = () => innerHeight > innerWidth ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
 function fixGap() {
-  let gap = 0;
-  if (navigator.standalone && screen.height) {
-    const sh = innerHeight > innerWidth ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    gap = Math.round(sh - innerHeight); if (gap < 0 || gap > 80) gap = 0;
-  }
-  document.documentElement.style.setProperty('--vfix', gap + 'px');
-  document.documentElement.classList.toggle('gapfix', gap > 0);
-  if (gap > 0) scrollTo(0, 0);
+  if (!navigator.standalone || !screen.height) return;
+  document.documentElement.style.setProperty('--fullh', screenH() + 'px');
+  document.documentElement.classList.add('gapfix');
+  if (scrollY) scrollTo(0, 0);
 }
 addEventListener('scroll', () => { if (document.documentElement.classList.contains('gapfix') && scrollY) scrollTo(0, 0); });
 function resize() {
@@ -3939,6 +4008,8 @@ function machButton() {
 // quedaba cortado y el tiempo pegado al borde); en las pantallas más anchas no cambia nada
 const CARD_REF_W = 390;
 // cuánto tapa la barra de estado arriba (0 salvo a pantalla completa en el celular): se mide con un elemento que la usa
+// alto visible: el de la pantalla en la app del ícono del iPhone (gapfix), si no el de la ventana
+const viewH = () => document.documentElement.classList.contains('gapfix') ? screenH() : innerHeight;
 function safeTop() {
   let p = safeTop.el;
   if (!p) { p = safeTop.el = document.createElement('div'); p.style.cssText = 'position:fixed;left:0;top:0;width:0;height:var(--sat);visibility:hidden;pointer-events:none'; document.body.appendChild(p); }
@@ -3958,7 +4029,7 @@ function fitWin() {
     }
   }
   const zW = Math.min(1, innerWidth / CARD_REF_W, fit);
-  const side = innerWidth - $card.offsetWidth < 150, avail = innerHeight - safeTop() - (side ? 130 : 30);   // (sin lo que tapa la barra de estado)
+  const side = innerWidth - $card.offsetWidth < 150, avail = viewH() - safeTop() - (side ? 130 : 30);   // (sin lo que tapa la barra de estado)
   // niveles en PC: la grilla ocupa el alto que queda y termina con la última fila cortada por la mitad, así se ve que
   // sigue (no hay barra de desplazamiento); en el celular queda como estaba (el usuario lo ve bien así)
   const L = w.classList.contains('wsel') && w.querySelector('.levels'), t0 = L && L.firstElementChild;
