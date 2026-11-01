@@ -1020,25 +1020,203 @@ const Snd = {
 };
 
 // Música de fondo (archivo mp3): suena solo dentro del laberinto, con su propio botón de silencio
-const Music = {
-  el: null, started: false, vol: 0.28,   // volumen bajo para que no tape los efectos
-  muted: (() => { try { return localStorage.getItem('raton.musicMuted') === '1'; } catch (_) { return false; } })(),
-  start() {
-    if (!this.el) {
-      this.el = new Audio('audio/laberinto-de-circuitos.mp3');
-      this.el.loop = true; this.el.volume = 0; this.el.muted = this.muted;
-    }
-    this.started = true;
-    this.el.play().catch(() => {});
+// ===================== MÚSICA (sintetizada, como la de Growcore) =====================
+// Cuatro piezas hechas con osciladores y ruido, sin archivos. Reemplazan la canción en mp3 (audio/laberinto-de-circuitos.mp3,
+// que ya no se carga), de la que toman el tempo, unos 100 bpm, y la tonalidad, re menor:
+//   MUS_MENU  portada, niveles, cartel de inicio, Bioterio y Máquina: tranquila, de laboratorio, con campanitas
+//   MUS_PLAY  niveles con la luz prendida: con pulso, un bajo saltarín y una melodía de "andar a escondidas"
+//   MUS_DARK  niveles a oscuras (y Desafío): un zumbido grave, un corazón que late y un reloj; con la última pila (WARN_T)
+//             se acelera y suma un trémolo tenso
+//   MUS_STING un remate corto al perder (startDie)
+// Cada pista es un loop de semicorcheas: un temporizador programa las notas un poquito antes de que suenen (el patrón de
+// siempre en Web Audio), así no se atrasan aunque un cuadro se trabe. Va por su propio volumen (Music.bus, con una sala
+// de eco), aparte de los efectos: el switch de Música la apaga sin tocar los efectos.
+const hz = m => 440 * 2 ** ((m - 69) / 12);
+// instrumentos: cada uno arma sus nodos para sonar en el instante t (segundos del reloj de audio) y se conecta a la
+// pista que está sonando (Music.out, seco, y Music.wet, a la sala)
+const MN = {
+  env(g, t, gain, attack, dur, decay) {   // sube en attack y se apaga sola, más rápido o más lento según decay
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + attack);
+    g.gain.setTargetAtTime(0, t + attack, decay != null ? decay : Math.max(0.02, (dur - attack) / 3));
   },
-  pause() { if (this.el) this.el.pause(); },
-  resume() { if (this.el && this.started) this.el.play().catch(() => {}); },
+  send(node, wet) {
+    node.connect(Music.out);
+    if (wet) { const w = Snd.ctx.createGain(); w.gain.value = wet; node.connect(w).connect(Music.wet); }
+  },
+  tone(t, f, dur, { to, type = 'triangle', gain = 0.05, attack = 0.008, decay, filter, wet = 0, vib = 0 } = {}) {
+    const c = Snd.ctx, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    if (vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 5.5; lg.gain.value = vib; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + 0.1); }
+    this.env(g, t, gain, attack, dur, decay);
+    let n = o.connect(g);
+    if (filter) { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = filter; n = g.connect(fl); }
+    this.send(n, wet); o.start(t); o.stop(t + dur + 0.1);
+  },
+  noise(t, dur, freq, { type = 'highpass', q = 1, gain = 0.03, wet = 0 } = {}) {
+    const c = Snd.ctx, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = Snd.noiseBuf; fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+    this.env(g, t, gain, 0.003, dur, dur / 3);
+    this.send(s.connect(fl).connect(g), wet); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  },
+  bell(t, f, { gain = 0.03, dur = 1.5, wet = 0.6 } = {}) {   // campanita: un seno y un parcial inarmónico que se apaga antes
+    this.tone(t, f, dur, { type: 'sine', gain, attack: 0.004, decay: dur / 4, wet });
+    this.tone(t, f * 2.76, dur * 0.4, { type: 'sine', gain: gain * 0.35, attack: 0.002, decay: dur / 12, wet });
+  },
+  kick(t, gain = 0.22) { this.tone(t, 150, 0.22, { to: 42, type: 'sine', gain, attack: 0.003, decay: 0.07 }); this.noise(t, 0.012, 2500, { gain: gain * 0.15 }); },
+  snare(t, gain = 0.06) { this.noise(t, 0.16, 1800, { type: 'bandpass', q: 0.8, gain, wet: 0.25 }); this.tone(t, 210, 0.08, { to: 130, type: 'triangle', gain: gain * 0.7, decay: 0.03 }); },
+};
+// acordes (MIDI): la raíz grave y tres notas del medio
+const CH = {
+  Dm: { r: 38, n: [62, 65, 69] }, Bb: { r: 46, n: [58, 62, 65] }, F: { r: 41, n: [60, 65, 69] }, C: { r: 48, n: [60, 64, 67] },
+  Gm: { r: 43, n: [62, 67, 70] }, A: { r: 45, n: [61, 64, 69] },
+};
+// Portada y menús: 84 bpm, 8 compases (re menor, si bemol, fa, do; dos compases cada uno), un colchón suave, el bajo en
+// los tiempos fuertes, una melodía lenta de campanitas y un "blip" de laboratorio que cuenta corcheas
+const MUS_MENU = {
+  bpm: 84, steps: 128, gain: 1.7,
+  mel: { 0: [[0, 81], [6, 77], [10, 79]], 1: [[0, 76], [8, 74]], 2: [[0, 77], [6, 74], [10, 77]], 3: [[0, 82], [8, 81]],
+    4: [[0, 81], [6, 84], [10, 81]], 5: [[0, 79], [8, 77]], 6: [[0, 79], [6, 76], [10, 72]], 7: [[0, 76], [8, 74], [12, 73]] },
+  step(i, t, sd) {
+    const bar = i >> 4, s = i & 15, ch = [CH.Dm, CH.Bb, CH.F, CH.C][bar >> 1], bd = sd * 16;
+    if (s === 0 && bar % 2 === 0) for (const n of ch.n) {
+      MN.tone(t, hz(n), bd * 2.2, { gain: 0.016, attack: 1.2, decay: bd * 0.8, filter: 1500, wet: 0.6 });
+      MN.tone(t, hz(n + 12), bd * 2, { type: 'sine', gain: 0.006, attack: 1.6, decay: bd * 0.7, wet: 0.8 });
+    }
+    if (s === 0) MN.tone(t, hz(ch.r + 12), bd * 0.9, { type: 'sine', gain: 0.07, attack: 0.05, decay: bd * 0.3 });
+    if (s === 8) MN.tone(t, hz(ch.r + 19), bd * 0.45, { type: 'sine', gain: 0.045, attack: 0.04, decay: bd * 0.15 });
+    for (const [k, n] of this.mel[bar] || []) if (k === s) MN.bell(t, hz(n), { gain: 0.032, dur: 2.2, wet: 0.7 });
+    if (s % 4 === 2) MN.tone(t, hz(ch.n[(i >> 2) % 3] + 24), 0.12, { type: 'sine', gain: 0.009, decay: 0.04, wet: 0.5 });
+    if (s % 2 === 1) MN.noise(t, 0.03, 8500, { gain: 0.006 });
+  },
+};
+// Niveles con luz: 100 bpm (el tempo de la canción de antes), 8 compases (re menor, si bemol, fa, do, re menor, si bemol,
+// sol menor, la): bombo y caja, platillos, un bajo de corcheas saltarín, un arpegio de campanitas y, en la segunda mitad,
+// una melodía de "andar a escondidas"
+const MUS_PLAY = {
+  bpm: 100, steps: 128, gain: 1.6,
+  lead: { 4: [[0, 74], [2, 77], [4, 81], [6, 79], [8, 77], [12, 76]], 5: [[0, 74], [4, 77], [8, 82], [10, 81]],
+    6: [[0, 79], [4, 81], [6, 82], [8, 81], [12, 79]], 7: [[0, 76], [4, 73], [8, 76], [12, 81]] },
+  step(i, t, sd) {
+    const bar = i >> 4, s = i & 15, ch = [CH.Dm, CH.Bb, CH.F, CH.C, CH.Dm, CH.Bb, CH.Gm, CH.A][bar];
+    if (s === 0 || s === 8 || (bar % 2 && s === 14)) MN.kick(t, s === 14 ? 0.07 : 0.11);
+    if (s === 4 || s === 12) MN.snare(t, 0.045);
+    if (s % 2 === 0) MN.noise(t, s % 4 === 2 ? 0.05 : 0.025, 9000, { gain: s % 4 === 2 ? 0.022 : 0.012 });
+    if (s % 2 === 0) {   // bajo: raíz, raíz, octava, raíz, quinta, raíz, octava, quinta
+      const off = [0, 0, 12, 0, 7, 0, 12, 7][s / 2];
+      MN.tone(t, hz(ch.r + 12 + off), sd * 1.8, { type: 'sawtooth', gain: 0.065, decay: sd * 0.7, filter: 650 });
+    }
+    if (s === 0) for (const n of ch.n) MN.tone(t, hz(n), sd * 15, { gain: 0.018, attack: 0.08, decay: sd * 6, filter: 1100, wet: 0.4 });
+    if (s % 2 === 1 && bar < 4) {   // primera mitad: arpegio de campanitas a contratiempo
+      const arp = [ch.n[0] + 12, ch.n[1] + 12, ch.n[2] + 12, ch.n[1] + 12];
+      MN.bell(t, hz(arp[(s >> 1) % 4]), { gain: 0.014, dur: 0.45, wet: 0.4 });
+    }
+    for (const [k, n] of this.lead[bar] || []) if (k === s)
+      MN.tone(t, hz(n), sd * 1.8, { type: 'square', gain: 0.022, decay: sd * 0.7, filter: 2200, vib: 3, wet: 0.35 });
+  },
+};
+// Niveles a oscuras: 88 bpm (98 con la última pila), 4 compases (re menor, si bemol, sol menor, la): un zumbido grave,
+// un corazón ("pum-pum") en cada compás, el tic-tac de un reloj, campanas lejanas con mucho eco y, a veces, un mi bemol
+// que roza contra el re; con la última pila (level 1) el corazón late el doble, el bajo pulsa en corcheas y entra un
+// trémolo tenso
+const MUS_DARK = {
+  bpm: 88, bpmUp: 10, steps: 64, gain: 1.9,
+  step(i, t, sd, lvl) {
+    const bar = i >> 4, s = i & 15, ch = [CH.Dm, CH.Bb, CH.Gm, CH.A][bar], bd = sd * 16;
+    if (s === 0 && bar % 2 === 0) {
+      MN.tone(t, hz(38), bd * 2.1, { type: 'sawtooth', gain: 0.03, attack: 0.6, decay: bd * 0.8, filter: 260, wet: 0.3 });
+      MN.tone(t, hz(45), bd * 2.1, { type: 'sawtooth', gain: 0.018, attack: 0.8, decay: bd * 0.8, filter: 300, wet: 0.3 });
+    }
+    if (s === 0) for (const n of ch.n) MN.tone(t, hz(n - 12), bd, { gain: 0.01, attack: 0.5, decay: bd * 0.35, filter: 700, wet: 0.6 });
+    const beats = lvl ? [0, 2, 8, 10] : [0, 2];
+    if (beats.includes(s)) MN.tone(t, s % 8 ? 70 : 85, 0.2, { to: 38, type: 'sine', gain: s % 8 ? 0.12 : 0.18, attack: 0.004, decay: 0.06 });
+    if (s % 4 === 0) MN.noise(t, 0.02, s % 8 ? 2600 : 3800, { type: 'bandpass', q: 9, gain: 0.03, wet: 0.3 });
+    if (s === 6 && bar % 2 === 0) MN.bell(t, hz(ch.n[2] + 12), { gain: 0.026, dur: 3.2, wet: 0.9 });
+    if (s === 12 && bar === 3) MN.bell(t, hz(75), { gain: 0.016, dur: 2.5, wet: 0.9 });
+    if (lvl) {
+      if (s % 2 === 0) MN.tone(t, hz(ch.r + 12), sd * 1.2, { type: 'sine', gain: 0.045, decay: sd * 0.4 });
+      MN.tone(t, hz(ch.n[2]), sd * 0.9, { type: 'sawtooth', gain: 0.008, decay: sd * 0.3, filter: 1400, wet: 0.2 });
+    } else if (s === 6 || s === 14) MN.tone(t, hz(ch.r + 12), sd * 2, { type: 'sine', gain: 0.04, decay: sd * 0.6 });
+  },
+};
+// Remate al perder: tres notas que caen (con un vibrato triste) y un acorde grave de re menor que se apaga
+MUS_STING.gain = 2.6;   // (volumen del remate, parejo con las pistas)
+function MUS_STING(t) {
+  [69, 68, 67].forEach((n, k) => MN.tone(t + k * 0.2, hz(n), 0.3, { type: 'triangle', gain: 0.06, decay: 0.1, vib: 4, wet: 0.3 }));
+  MN.tone(t + 0.6, hz(66), 0.9, { to: hz(62), type: 'triangle', gain: 0.06, decay: 0.3, vib: 5, wet: 0.4 });
+  for (const n of [38, 50, 53, 57]) MN.tone(t + 0.62, hz(n), 1.6, { type: n < 45 ? 'sine' : 'triangle', gain: n < 45 ? 0.09 : 0.025, decay: 0.5, filter: 900, wet: 0.6 });
+  MN.noise(t + 0.6, 0.6, 500, { type: 'lowpass', gain: 0.03, wet: 0.5 });
+}
+const Music = {
+  started: false, vol: 0.5,   // volumen de la música, aparte de los efectos (más o menos como la canción de antes)
+  muted: (() => { try { return localStorage.getItem('raton.musicMuted') === '1'; } catch (_) { return false; } })(),
+  bus: null, rev: null, track: null, out: null, wet: null, step: 0, nextAt: 0, level: 0, paused: false, holdUntil: 0,
+  setup() {   // el volumen y la sala de eco, la primera vez que hay audio
+    const c = Snd.ctx; if (!c) return false; if (this.bus) return true;
+    // (con un compresor a la salida, como en una mezcla: los golpes no sobresalen y todas las pistas suenan parejas)
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.2;
+    const mk = c.createGain(); mk.gain.value = 1; comp.connect(mk).connect(c.destination);
+    this.bus = c.createGain(); this.bus.gain.value = this.muted ? 0 : this.vol; this.bus.connect(comp);
+    const len = Math.round(c.sampleRate * 2.4), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let k = 0; k < 2; k++) { const d = ir.getChannelData(k); let lp = 0; for (let j = 0; j < len; j++) { const x = j / len; lp += (Math.random() * 2 - 1 - lp) * (0.55 - 0.45 * x); d[j] = lp * (1 - x) ** 3; } }
+    this.rev = c.createConvolver(); this.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = 0.5; this.rev.connect(rg).connect(this.bus);
+    return true;
+  },
+  start() { this.started = true; Snd.init(); this.setup(); },
+  // cambia de pista (si ya suena esa, no hace nada): la de antes se apaga y la nueva entra en `fade` segundos
+  play(track, fade = 0.8) {
+    if (this.track === track) return;
+    const c = Snd.ctx; if (track && !this.setup()) return;   // todavía sin audio: se intenta de nuevo en el próximo cuadro
+    this.release(0.5); this.track = track; this.step = 0;
+    if (!track) return;
+    const now = c.currentTime;
+    this.out = c.createGain(); this.wet = c.createGain();
+    for (const [g, to] of [[this.out, this.bus], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
+    this.nextAt = now + 0.05;
+  },
+  release(fade) {
+    const c = Snd.ctx, gs = [this.out, this.wet]; this.out = this.wet = null;
+    if (!c) return; const now = c.currentTime;
+    for (const g of gs) if (g) { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(g.gain.value, now); g.gain.linearRampToValueAtTime(0, now + fade); setTimeout(() => g.disconnect(), (fade + 0.8) * 1000); }
+  },
+  sting() {   // al perder: la pista se corta y suena el remate; la de menú vuelve un rato después
+    if (!this.setup()) return;
+    this.play(null); this.holdUntil = performance.now() + 3600;
+    const c = Snd.ctx, out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = MUS_STING.gain; out.connect(this.bus); wet.connect(this.rev);
+    this.out = out; this.wet = wet; MUS_STING(c.currentTime + 0.05); this.out = this.wet = null;
+    setTimeout(() => { out.disconnect(); wet.disconnect(); }, 4000);
+  },
+  sched() {
+    const c = Snd.ctx, tr = this.track;
+    if (!c || !tr || !this.out || this.paused || c.state !== 'running') return;
+    const now = c.currentTime;
+    if (this.nextAt < now - 0.05) this.nextAt = now + 0.02;   // (pestaña en segundo plano: las notas perdidas se saltean)
+    const sd = 60 / (tr.bpm + (tr.bpmUp || 0) * this.level) / 4;
+    while (this.nextAt < now + 0.15) { tr.step(this.step % tr.steps, this.nextAt, sd, this.level); this.nextAt += sd; this.step++; }
+  },
+  // qué tiene que sonar según la pantalla (se mira en cada cuadro)
+  want() {
+    if (!this.started || G.state === 'splash') return null;
+    if (G.screen) return MUS_MENU;
+    const st = G.state;
+    if (st === 'play' || st === 'paused') return G.mode === 'story' && !G.dark ? MUS_PLAY : MUS_DARK;
+    if (st === 'dying') return null;   // suena el remate (sting, desde startDie)
+    if ((st === 'lost' || st === 'won') && performance.now() < this.holdUntil) return null;   // después del remate o del jingle de ganar
+    return MUS_MENU;
+  },
+  pause() { this.paused = true; this.fadeBus(0, 0.25); },
+  resume() { if (!this.paused) return; this.paused = false; const c = Snd.ctx; if (c) this.nextAt = c.currentTime + 0.05; this.fadeBus(this.muted ? 0 : this.vol, 0.3); },
+  fadeBus(v, s) { const c = Snd.ctx; if (!c || !this.bus) return; const now = c.currentTime; this.bus.gain.cancelScheduledValues(now); this.bus.gain.setValueAtTime(this.bus.gain.value, now); this.bus.gain.linearRampToValueAtTime(v, now + s); },
   toggle() {
-    this.muted = !this.muted; if (this.el) this.el.muted = this.muted;
+    this.muted = !this.muted; if (!this.paused) this.fadeBus(this.muted ? 0 : this.vol, 0.15);
     try { localStorage.setItem('raton.musicMuted', this.muted ? '1' : '0'); } catch (_) {}
   },
-  tick(dt) { if (this.el && this.el.volume < this.vol) this.el.volume = Math.min(this.vol, this.el.volume + dt * this.vol / 1.5); },   // entra suave
+  tick() {
+    const w = this.want();
+    if (w !== this.track) this.play(w, w === MUS_MENU ? 1.4 : 0.5);
+    this.level = this.track === MUS_DARK && G.state === 'play' && G.lamp && G.timeLeft <= WARN_T ? 1 : 0;
+  },
 };
+setInterval(() => Music.sched(), 25);
 
 // ===================== LABERINTO =====================
 function genMaze(W, H, rng, loopFrac) {
@@ -3663,7 +3841,7 @@ function startPlay() {
   Music.start();                  // por si todavía no arrancó (normalmente ya suena desde la portada)
 }
 function win() {
-  G.state = 'won'; Snd.win();
+  G.state = 'won'; Snd.win(); Music.holdUntil = performance.now() + 2200;   // (la música de menú vuelve después del jingle)
   G.irisTarget = 0; G.winCard = false;   // se cierra en un círculo negro; el cartel aparece al terminar
   updateButtons();
 }
@@ -3874,7 +4052,7 @@ function showWinCard() {
 function startDie(reason = 'time') {
   G.state = 'dying'; G.dieReason = reason; G.dieT = 0;
   if (reason === 'time') G.timeLeft = 0;
-  Snd.lose(); updateButtons();
+  Snd.lose(); Music.sting(); updateButtons();
 }
 function lost() {
   G.state = 'lost';
