@@ -17,11 +17,18 @@
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   /* lo que tapan la barra de estado (arriba) y la rayita de inicio (abajo) cuando el juego ocupa toda la pantalla: lo de
      arriba (monedas, engranaje, HUD, títulos) baja eso; abajo los botones quedan donde estaban (ya tenían su margen) */
-  :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
+  :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --vfix: 0px; }
+  /* --vfix: en el iPhone, abierto desde el ícono con la barra translúcida (iOS 26.1+), la ventana mide la pantalla menos
+     la barra de estado y abajo quedaba una franja negra; las capas de pantalla completa se estiran eso para abajo (fixGap).
+     Como en Growcore: ahí el iPhone recorta lo que es "fixed", así que (solo en ese caso, html.gapfix) la página se hace
+     más alta y esas capas van dentro de la página (absolute) en vez de fijas; no se desplaza (fixGap la deja arriba) */
+  html.gapfix, html.gapfix body { overflow: visible; }
+  html.gapfix { min-height: calc(100% + var(--vfix)); }
+  html.gapfix :is(canvas#game, #vignette, #screen, #opts, #splash, #fade, #stickZone, #credit, #hintTouch) { position: absolute; }
   #hud { position: fixed; top: var(--sat); left: 0; right: 0; height: 0; }
   body { font-family: 'Kalam', cursive; font-weight: 700; color: #2a1a0c; user-select: none; }
-  canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
-  #vignette { position: fixed; inset: 0; pointer-events: none;
+  canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: calc(100% + var(--vfix)); }
+  #vignette { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); pointer-events: none;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.65) 100%); }
   .tape { position: absolute; background: #d9cfb2; padding: 4px 16px 2px;
     box-shadow: 0 2px 6px rgba(0,0,0,.6); font-family: 'Kalam', cursive;
@@ -354,7 +361,7 @@
   .ci { width: 1em; height: 1em; vertical-align: -0.14em; }
   #card .menu.sub { margin-top: 10px; }
   /* pantallas a pantalla completa (Ratitas, Máquina): fondo negro que entra y sale con un círculo desde el botón */
-  #screen { position: fixed; inset: 0; z-index: 7; background: #000; pointer-events: none;
+  #screen { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 7; background: #000; pointer-events: none;
     clip-path: circle(0px at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
     transition: clip-path .45s ease-in-out, -webkit-clip-path .45s ease-in-out; }
   #screen.open { pointer-events: auto; clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); -webkit-clip-path: circle(150vmax at var(--x, 50%) var(--y, 50%)); }
@@ -431,7 +438,7 @@
   #topbtns { position: fixed; top: calc(12px + var(--sat)); right: 14px; display: flex; gap: 8px; z-index: 8; }
   #btnGear svg { width: 27px; height: 27px; }
   /* ventana de pausa / opciones: Música y Sonido con interruptores, y abajo la casita y Reanudar (o Cerrar) */
-  #opts { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
+  #opts { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 10; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; background: rgba(0,0,0,.72); }   /* oscurece bien lo de atrás */
   #opts.hidden { display: none; }
   /* pausa / opciones: con el formato de los carteles nuevos (cartón claro, título de papel que asoma arriba, caja de papel
      encintada con Música y Sonido, y botones grandes: la casita y Reanudar en verde, o Cerrar) */
@@ -445,16 +452,16 @@
   /* fundido a negro entre pantallas (fadeTo): por encima de todo menos la librería */
   /* crédito al pie de la portada (lo pidió el usuario): chiquito pero legible, en un gris claro */
   /* pantalla previa "TOCÁ PARA ENTRAR": solo el fondo del juego y el texto, que aparece suave y queda latiendo */
-  #splash { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; pointer-events: none; }
+  #splash { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 5; display: grid; place-items: center; padding-top: var(--sat); box-sizing: border-box; pointer-events: none; }
   #splash span { font: 700 26px/1 'Kalam', cursive; letter-spacing: .12em; color: #f3e4c4; text-shadow: 0 2px 6px rgba(0,0,0,.9);
     animation: splashIn .9s ease-out both, splashBeat 1.6s ease-in-out .9s infinite; }
   #splash.out span { animation: splashOut .25s ease-in both; }
   @keyframes splashIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes splashBeat { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
   @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
-  #credit { position: fixed; left: 0; right: 0; bottom: max(10px, calc(var(--sab) - 24px)); z-index: 5; text-align: center; pointer-events: none;
+  #credit { position: fixed; left: 0; right: 0; bottom: calc(max(10px, calc(var(--sab) - 24px)) - var(--vfix)); z-index: 5; text-align: center; pointer-events: none;
     font: 700 13px/1 'Kalam', cursive; color: #b8b8b8; letter-spacing: .02em; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
-  #fade { position: fixed; inset: 0; z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
+  #fade { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
   #fade.on { opacity: 1; pointer-events: auto; }
   #opts:not(.hidden) { animation: optsBgIn .18s ease-out both; }
   #opts.closing { animation: optsBgOut .16s ease-in both; pointer-events: none; }
@@ -493,10 +500,10 @@
   /* controles táctiles */
   body:not(.touch) #hintTouch { display: none; }
   body.touch #hint { display: none !important; }
-  #hintTouch { position: fixed; bottom: max(14px, calc(var(--sab) - 20px)); left: 0; right: 0; text-align: center;
+  #hintTouch { position: fixed; bottom: calc(max(14px, calc(var(--sab) - 20px)) - var(--vfix)); left: 0; right: 0; text-align: center;
     font-size: 13px; color: #a08060; opacity: .75; pointer-events: none; padding: 0 120px; }
   /* joystick flotante: aparece donde apoyás el dedo */
-  #stickZone { position: fixed; inset: 0; z-index: 3; display: none; touch-action: none; }
+  #stickZone { position: fixed; inset: 0; bottom: calc(-1 * var(--vfix)); z-index: 3; display: none; touch-action: none; }
   body.touch.playing #stickZone { display: block; }
   #stick { position: fixed; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; pointer-events: none;
     background: rgba(217,207,178,.10); border: 2px solid rgba(217,207,178,.38); display: none; z-index: 4; }
@@ -1792,7 +1799,21 @@ const CS = 320, [coneCv, coneCtx] = mk(CS, CS);
   coneCtx.putImageData(img, 0, 0);
 })();
 
+// iPhone abierto desde el ícono (iOS 26.1+, con la barra translúcida): la ventana queda más baja que la pantalla y abajo
+// aparecía una franja negra del alto de la barra de estado; se mide esa diferencia y las capas se estiran hasta abajo
+function fixGap() {
+  let gap = 0;
+  if (navigator.standalone && screen.height) {
+    const sh = innerHeight > innerWidth ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    gap = Math.round(sh - innerHeight); if (gap < 0 || gap > 80) gap = 0;
+  }
+  document.documentElement.style.setProperty('--vfix', gap + 'px');
+  document.documentElement.classList.toggle('gapfix', gap > 0);
+  if (gap > 0) scrollTo(0, 0);
+}
+addEventListener('scroll', () => { if (document.documentElement.classList.contains('gapfix') && scrollY) scrollTo(0, 0); });
 function resize() {
+  fixGap();
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
   // tamaño real visible del canvas (en el celular 100vh incluye la barra del navegador y descentraba la cámara)
   const w = Math.max(1, Math.floor((cv.clientWidth || innerWidth) * dpr)), h = Math.max(1, Math.floor((cv.clientHeight || innerHeight) * dpr));
