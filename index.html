@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" style="background:#000">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -9,12 +9,17 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
+<!-- al abrir el juego en el celular se veía un flash blanco antes de la primera imagen (el usuario lo vio): es el fondo
+     del navegador mientras la página todavía no se pintó (baja la fuente de Google). Avisando que la página es oscura,
+     ese fondo ya es negro; después el CSS vuelve a light (:root) para que los controles se vean como siempre -->
+<meta name="color-scheme" content="dark">
 <title>Maze Mouse</title>
 <link rel="preload" as="image" href="img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  :root { color-scheme: light; }
   /* lo que tapan la barra de estado (arriba) y la rayita de inicio (abajo) cuando el juego ocupa toda la pantalla: lo de
      arriba (monedas, engranaje, HUD, títulos) baja eso; abajo los botones quedan donde estaban (ya tenían su margen) */
   :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
@@ -181,6 +186,8 @@
   @media (max-width: 480px) { #card .wg { gap: 6px; } #card .wg > svg { width: 44px; height: 44px; } #card .wg .num { font-size: 30px; } #card .wg small { font-size: 11.5px; } }
   /* entrada animada de los carteles (animIn): cada parte entra a su turno (--ad); se usan translate / scale / rotate
      sueltos, así no pisan los transform (las inclinaciones) que ya tienen las piezas */
+  .anim [data-a]:not([data-on]) { pointer-events: none; }   /* (animIn: hasta que empieza a aparecer) */
+  .anim.skip [data-a] { pointer-events: auto; }
   .anim [data-a] { animation-duration: .38s; animation-timing-function: cubic-bezier(.2, .9, .3, 1.3); animation-fill-mode: both; animation-delay: var(--ad, 0s); }
   .anim [data-a="up"] { animation-name: aUp; }
   .anim [data-a="drop"] { animation-name: aDrop; }
@@ -1233,19 +1240,16 @@ const Snd = {
     this.rev = c.createConvolver(); this.rev.buffer = ir; const g = c.createGain(); g.gain.value = 0.8; this.rev.connect(g).connect(this.master);
     return this.rev;
   },
-  // queso: una mordida de manzana (el usuario la pidió así; antes era un "ñam" de dientes y mandíbula que no le gustó):
-  // el crack seco de la cáscara al romperse, un crujido denso de granitos agudos que se apagan en poco más de un décimo
-  // de segundo, el "toc" hueco de la pulpa y un chorrito de jugo muy suave arriba de todo
+  // queso: un "ñam ñam" de videojuego clásico, dos chirridos de onda cuadrada que suben rápido (el usuario lo pidió así
+  // después de probar un "ñam" de dientes, una mordida de manzana y un chomp de dibujito copiado de una referencia)
   cheese() {
-    const r = Math.random;
-    this.noise(0.014, 3800, 0.9, 0.42, 'highpass');   // la cáscara se parte
-    this.noise(0.045, 650, 3, 0.26);   // el toc de la pulpa
-    this.tone(240, 120, 0.05, 'sine', 0.16);
-    for (let i = 0; i < 16; i++) {   // el crujido
-      const at = 0.004 + (i / 16) ** 1.4 * 0.14 + r() * 0.006;
-      this.noise(0.006 + r() * 0.012, 2200 + r() * 4500, 1.2 + r() * 1.5, (0.32 - i * 0.017) * (0.6 + r() * 0.4), 'bandpass', at);
+    const c = this.ctx; if (!c) return; const t0 = c.currentTime + 0.005;
+    for (const [at, f0, f1, d] of [[0, 330, 880, 0.06], [0.08, 440, 1320, 0.075]]) {
+      const t = t0 + at, o = c.createOscillator(), g = c.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d * 0.8);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 0.004); g.gain.setValueAtTime(0.05, t + d * 0.6); g.gain.linearRampToValueAtTime(0, t + d);
+      o.connect(g).connect(this.master); o.start(t); o.stop(t + d + 0.02);
     }
-    this.noise(0.13, 7500, 0.7, 0.05, 'highpass', 0.02);   // el jugo
   },
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
   gateLand() { this.tone(110, 55, 0.14, 'sine', 0.22); this.noise(0.07, 450, 0.8, 0.18, 'lowpass'); this.noise(0.03, 380, 0.8, 0.06, 'lowpass', 0.16); },   // la compuerta toca abajo y rebota blandito
@@ -1373,12 +1377,12 @@ const CH = {
   Dm: { r: 38, n: [62, 65, 69] }, Gm: { r: 43, n: [62, 67, 70] }, A7: { r: 45, n: [61, 64, 67] }, Bb: { r: 46, n: [62, 65, 70] },
   Edim: { r: 40, n: [64, 67, 70] }, Eb: { r: 39, n: [63, 67, 70] }, A: { r: 45, n: [61, 64, 69] }, F: { r: 41, n: [60, 65, 69] },
 };
-// Portada y resultados (sinfónica, al estilo Danny Elfman): un vals rápido en 6/8 (compás de 12 semicorcheas, 136 bpm),
+// Portada y resultados (sinfónica, al estilo Danny Elfman): un vals rápido en 6/8 (compás de 12 semicorcheas, 126 bpm),
 // 8 compases en re menor con acordes de cuento raro (re menor, sol menor, la séptima, si bemol, mi disminuido): bajo en
 // pizzicato y cuerdas en staccato que hacen "um-pa-pa", una melodía de celesta que sube y baja por semitonos, el coro
 // que respira cada dos compases, metales que golpean al empezar la frase y timbales que la cierran con un redoble
 const MUS_MENU = {
-  bpm: 136, steps: 96, gain: 1.0,   // (antes 1,35: el usuario la pidió un poco más baja que la de los laberintos)
+  bpm: 126, steps: 96, gain: 1.0,   // (antes 1,35: el usuario la pidió un poco más baja que la de los laberintos; y más lenta, antes 136)
   chords: [CH.Dm, CH.Dm, CH.Gm, CH.A7, CH.Dm, CH.Bb, CH.Edim, CH.A7],
   mel: [[[0, 74], [2, 77], [4, 81], [6, 80], [8, 81], [10, 77]], [[0, 76], [2, 77], [4, 76], [6, 73], [8, 74]],
     [[0, 79], [2, 82], [4, 86], [6, 85], [8, 86], [10, 82]], [[0, 81], [2, 79], [4, 76], [6, 73], [8, 76], [10, 79]],
@@ -1409,15 +1413,19 @@ const MUS_MENU = {
   },
   land(t) { MN.noise(t, 1.0, 6000, { gain: 0.012, wet: 0.5 }); },   // platillo (el timbal y los metales ya están en el paso 0)
 };
-// Laberintos con luz (electrónico con orquesta, frenético): 138 bpm, 8 compases (re menor, si bemol, sol menor, la; dos
+// Laberintos con luz (electrónico con orquesta, frenético): 146 bpm, 8 compases (re menor, si bemol, sol menor, la; dos
 // compases cada uno): bombo en negras, palmas, platillos en semicorcheas, un bajo de sierra en semicorcheas que salta de
 // octava, cuerdas en staccato que empujan las corcheas y una melodía de celesta y "chip" que se escurre por semitonos;
 // al final de cada vuelta, un barrido de ruido que sube
 // bombo de los dos laberintos: el mismo golpe en los dos, así suenan parejos (el usuario lo oía fuerte; antes 0,11 con luz
 // y 0,12 a oscuras, medido offline: unos 3 dB menos, y los dos al mismo nivel)
 const KICK = 0.08;
+// el bombo de la música con luz con la capa grave del "corazón" de la oscura (85 → 38 Hz, el mismo golpe que cae junto al
+// bombo en el primer tiempo de esa música): el usuario quiso probar que los dos bombos suenen igual. Más bajita que allá
+// (0,065 en vez de 0,12) porque acá cae en los cuatro tiempos y no en uno: medido offline, los dos bombos quedan parejos
+const kickDeep = (t, v = 1) => { MN.kick(t, KICK * v); MN.tone(t, 85, 0.2, { to: 38, type: 'sine', gain: 0.065 * v, attack: 0.004, decay: 0.06 }); };
 const MUS_PLAY = {
-  bpm: 158, steps: 128, gain: 1.6,   // (más rápida, a pedido del usuario; antes 138)
+  bpm: 146, steps: 128, gain: 1.6,   // (más rápida, a pedido del usuario: antes 138; después la pidió más lenta, 158 → 150 → 146, la misma que la de oscuro)
   chords: [CH.Dm, CH.Dm, CH.Bb, CH.Bb, CH.Gm, CH.Gm, CH.A, CH.A],
   lead: [[[0, 74], [3, 77], [6, 81], [8, 80], [10, 81], [12, 77], [14, 74]], [[0, 76], [4, 77], [8, 73], [12, 74]],
     [[0, 77], [3, 82], [6, 86], [8, 85], [10, 86], [12, 82], [14, 77]], [[0, 79], [4, 77], [8, 74], [12, 70]],
@@ -1425,8 +1433,8 @@ const MUS_PLAY = {
     [[0, 73], [2, 74], [4, 76], [6, 77], [8, 79], [10, 80], [12, 81], [14, 83]], [[0, 85], [4, 81], [8, 76], [12, 73]]],
   step(i, t, sd) {
     const bar = i >> 4, s = i & 15, ch = this.chords[bar];
-    if (s % 4 === 0) MN.kick(t, KICK);
-    if (bar % 2 && s === 14) MN.kick(t, KICK * 0.65);
+    if (s % 4 === 0) kickDeep(t);
+    if (bar % 2 && s === 14) kickDeep(t, 0.65);
     if (s === 4 || s === 12) MN.clap(t, 0.045);
     MN.hat(t, s % 4 === 2 ? 0.02 : 0.008, s % 4 === 2);
     const off = [0, 12, 7, 12][s % 4];
@@ -1436,7 +1444,11 @@ const MUS_PLAY = {
       MN.celesta(t, hz(n), 0.022, 0.5);
       MN.tone(t, hz(n), sd * 1.6, { type: 'square', gain: 0.012, decay: sd * 0.5, filter: 2600, wet: 0.2 });
     }
-    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), sd * 30, { gain: 0.007, attack: 0.4 });
+    // coros (el usuario los pidió): el acorde en "aaa" cada dos compases, en la octava de la melodía de abajo y bastante más
+    // fuerte que el colchón que había (0,007 una octava más abajo), y una segunda voz que canta notas largas de la melodía
+    // (la del tiempo 1 y la del 3 de cada compás) una octava abajo
+    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n), sd * 30, { gain: 0.022, attack: 0.35, decay: sd * 10 });
+    if (s === 0 || s === 8) { const n = this.lead[bar].filter(([k]) => k <= s).pop(); if (n) MN.choir(t, hz(n[1] - 12), sd * 7.5, { gain: 0.028, attack: 0.08, decay: sd * 3, wet: 0.5 }); }
     if (bar === 7 && s >= 8) MN.noise(t, sd * 1.1, 2000 + (s - 8) * 900, { type: 'bandpass', q: 2, gain: 0.006 + (s - 8) * 0.004, wet: 0.3 });
   },
   // intro de un compás al empezar el nivel (el usuario la pidió, bien cortita): el bajo late en corcheas con el filtro
@@ -4481,6 +4493,10 @@ function animIn(root, a, track = true) {
   let end = 0;
   for (const [sel, type, at, step = 0, cap = 99] of a.seq || CARD_SEQ[a.kind]) root.querySelectorAll(sel).forEach((el, k) => {
     const d = Math.min(cap, at + k * step); el.dataset.a = type; el.style.setProperty('--ad', d + 's'); end = Math.max(end, d + 0.4);
+    // no se puede tocar hasta que empieza a aparecer (el usuario tocaba sin querer botones del cartel de resultados que
+    // todavía no se veían): el toque cae en el cartel y lo completa. Por las dudas, se habilita igual un rato después
+    delete el.dataset.on; const on = () => { el.dataset.on = '1'; };
+    el.addEventListener('animationstart', e => { if (e.target === el) on(); }); setTimeout(on, (d + 1.5) * 1000);
   });
   root.classList.add('anim');
   if (!track) return;
