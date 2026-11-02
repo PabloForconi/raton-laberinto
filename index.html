@@ -385,7 +385,7 @@
   #screen .sbtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; flex: 0 0 auto; }
   /* ratitas: estantes de metal de punta a punta de la pantalla, sobre el negro; las jaulas centradas en cada estante */
   /* Bioterio: el fondo, las jaulas y el título se deslizan juntos detrás de los botones, que quedan fijos (sin barra) */
-  #screen .inner > .rack { position: absolute !important; inset: 0; z-index: 0 !important; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+  #screen .inner > .rack { position: absolute !important; inset: 0; z-index: 0 !important; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; overscroll-behavior: contain; }   /* (contain: al llegar al final no arrastra la página) */
   .rackin { position: relative; overflow: hidden; }
   /* franjas oscuras: la de arriba queda pegada arriba mientras se desliza (por encima de las jaulas, debajo del título) */
   .bandtop { position: sticky; top: 0; z-index: 1; pointer-events: none; background: linear-gradient(rgba(0,0,0,.9), rgba(0,0,0,0)); }
@@ -930,9 +930,9 @@ const Snd = {
   // paso: cada uno distinto (volumen, tono, duración y "brillo" al azar) para que suene orgánico
   step() {   // apagado: ruido filtrado con pasabajos (sin los agudos) y un golpecito grave, como una patita sobre cartón
     const r = Math.random;
-    // (más fuertes desde que hay música: no se oían; el usuario pidió que al menos se sientan)
-    this.noise(0.03 + r() * 0.03, 1150 + r() * 1000, 0.6 + r() * 0.5, 0.11 + r() * 0.1, 'lowpass');
-    this.tone(300 + r() * 110, 145 + r() * 50, 0.04 + r() * 0.02, 'sine', 0.09 + r() * 0.05);
+    // (más fuertes desde que hay música: no se oían; el usuario pidió que al menos se sientan, y después un poquito más bajos)
+    this.noise(0.03 + r() * 0.03, 1150 + r() * 1000, 0.6 + r() * 0.5, 0.085 + r() * 0.075, 'lowpass');
+    this.tone(300 + r() * 110, 145 + r() * 50, 0.04 + r() * 0.02, 'sine', 0.07 + r() * 0.04);
   },
   // chillido de rata asustada: tres chirridos agudos con vibrato, el tono sube y baja
   squeal() {
@@ -1188,7 +1188,7 @@ const Snd = {
   // bip seco y la primera, la más grave, casi no se oía): un golpecito al apoyarse, la nota con un parcial brillante y un
   // destello agudo, todo mandado también a la sala (room). La primera suena un poco más fuerte para compensar que es más grave
   star(k = 0) {
-    const f = [784, 988, 1175][k] || 1175, v = ([1.5, 1.15, 1][k] || 1) * 0.6;
+    const f = [740, 880, 1175][k] || 1175, v = ([1.5, 1.15, 1][k] || 1) * 0.6;
     this.tone(f, f * 1.5, 0.12, 'triangle', 0.14 * v);
     this.ring(f, 0.9, 0.12 * v, 1.6);
     this.ring(f * 2.76, 0.35, 0.035 * v, 1.6);
@@ -1212,7 +1212,17 @@ const Snd = {
     this.rev = c.createConvolver(); this.rev.buffer = ir; const g = c.createGain(); g.gain.value = 0.8; this.rev.connect(g).connect(this.master);
     return this.rev;
   },
-  cheese() { this.tone(880, 1320, 0.1, 'triangle', 0.18); this.tone(1320, 1760, 0.12, 'triangle', 0.15, 0.08); },
+  // queso: una mordida, como el clásico "ñam" de los juegos (lo pidió el usuario; antes eran dos notas que subían): el
+  // chasquido de los dientes, un crujido de granitos de ruido que se apagan y el golpe grave de la mandíbula, y otro
+  // mordisco más chico enseguida
+  cheese() {
+    const r = Math.random;
+    for (const [at, v] of [[0, 1], [0.13, 0.6]]) {
+      this.noise(0.012, 3800, 2, 0.35 * v, 'bandpass', at);   // los dientes
+      for (let i = 0; i < 6; i++) this.noise(0.018 + r() * 0.015, 1400 + r() * 2400, 1.5, (0.32 - i * 0.045) * v, 'bandpass', at + 0.008 + i * 0.016 + r() * 0.006);
+      this.tone(240, 110, 0.07, 'sine', 0.22 * v, at);   // la mandíbula
+    }
+  },
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
   gateLand() { this.tone(110, 55, 0.14, 'sine', 0.22); this.noise(0.07, 450, 0.8, 0.18, 'lowpass'); this.noise(0.03, 380, 0.8, 0.06, 'lowpass', 0.16); },   // la compuerta toca abajo y rebota blandito
   tap() { this.noise(0.03, 1400, 1.2, 0.22); this.tone(520, 380, 0.05, 'triangle', 0.05); },
@@ -1468,6 +1478,23 @@ const MUS_DARK = {
 // Remate al perder (al estilo de un dibujito de Elfman): metales que caen por semitonos con vibrato triste, un timbal, la
 // celesta que se desliza hacia abajo y un acorde grave de re menor con el coro
 MUS_STING.gain = 1.1;   // (volumen del remate; antes 1,5, bajado junto con la música de menú)
+// Remate al ganar (el usuario pidió un stinger en vez de una música propia de resultados): tres la cortitos de los metales
+// que llevan a un acorde de re mayor (la música está en re menor: suena a final feliz) con timbal, platillo, una corrida de
+// la celesta hacia arriba, cuerdas y coro que quedan sonando mientras caen las estrellas (que suenan en ese mismo acorde)
+MUS_WIN.gain = 1.1;
+function MUS_WIN(t) {
+  [0, 0.1, 0.2].forEach(d => { MN.brass(t + d, hz(69), 0.08, { gain: 0.045 }); MN.noise(t + d, 0.05, 2600, { type: 'bandpass', gain: 0.02 }); });
+  MN.timp(t + 0.2, hz(33), 0.07);
+  const T = t + 0.3;
+  MN.brass(T, hz(74), 1.0, { gain: 0.05 });
+  for (const n of [62, 66, 69]) MN.brass(T, hz(n), 0.85, { gain: 0.03 });
+  MN.timp(T, hz(38), 0.11);
+  MN.noise(T, 1.5, 6000, { gain: 0.028, wet: 0.5 });   // platillo
+  [74, 76, 78, 79, 81, 83, 85, 86].forEach((n, k) => MN.celesta(T + 0.05 + k * 0.035, hz(n), 0.02, 0.6));
+  for (const n of [50, 57, 62, 66, 69]) MN.strings(T, hz(n), 1.8, { gain: 0.012, attack: 0.02, decay: 0.7 });
+  for (const n of [62, 66, 69]) MN.choir(T + 0.05, hz(n), 1.9, { gain: 0.015, attack: 0.12, decay: 0.7 });
+  MN.tone(T, hz(38), 1.3, { type: 'sine', gain: 0.06, decay: 0.45 });
+}
 function MUS_STING(t) {
   [69, 68, 67].forEach((n, k) => MN.brass(t + k * 0.18, hz(n), 0.24, { gain: 0.05 }));
   MN.tone(t + 0.54, hz(66), 0.9, { to: hz(62), type: 'sawtooth', gain: 0.035, decay: 0.3, vib: 5, filter: 1400, wet: 0.4 });
@@ -1513,13 +1540,15 @@ const Music = {
     if (!c) return; const now = c.currentTime;
     for (const g of gs) if (g) { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(g.gain.value, now); g.gain.linearRampToValueAtTime(0, now + fade); setTimeout(() => g.disconnect(), (fade + 0.8) * 1000); }
   },
-  sting() {   // al perder: la pista se corta y suena el remate; la de menú vuelve un rato después
+  sting(fn = MUS_STING, hold = 3600) {   // al perder: la pista se corta y suena el remate; la de menú vuelve un rato después
     if (!this.setup()) return;
-    this.play(null); this.holdUntil = performance.now() + 3600;
-    const c = Snd.ctx, out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = MUS_STING.gain; out.connect(this.bus); wet.connect(this.rev);
-    this.out = out; this.wet = wet; MUS_STING(c.currentTime + 0.05); this.out = this.wet = null;
+    this.play(null); this.holdUntil = performance.now() + hold;
+    const c = Snd.ctx, out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = fn.gain; out.connect(this.bus); wet.connect(this.rev);
+    this.out = out; this.wet = wet; fn(c.currentTime + 0.05); this.out = this.wet = null;
     setTimeout(() => { out.disconnect(); wet.disconnect(); }, 4000);
   },
+  // al ganar: el remate de victoria, y la música de menú entra pegada, apenas se apaga su acorde (con las estrellas)
+  win() { this.sting(MUS_WIN, 2800); },
   sched() {
     const c = Snd.ctx, tr = this.track;
     if (!c || !tr || !this.out || this.paused || c.state !== 'running') return;
@@ -2147,6 +2176,24 @@ function fixGap() {
   if (scrollY) scrollTo(0, 0);
 }
 addEventListener('scroll', () => { if (document.documentElement.classList.contains('gapfix') && scrollY) scrollTo(0, 0); });
+// Por lo mismo la página es más alta que la ventana: en el Bioterio, arrastrar el dedo cuando las jaulas ya no se podían
+// deslizar más (o entraban todas) movía la página entera, y la línea de arriba la devolvía de golpe: daba saltos (el
+// usuario lo vio; en la portada no pasaba porque ahí nada se desliza). Ahora el dedo solo desliza lo que todavía puede
+// deslizarse en esa dirección, y nunca la página
+let touchY = 0;
+addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
+addEventListener('touchmove', e => {
+  if (!document.documentElement.classList.contains('gapfix') || e.touches.length !== 1) return;
+  const y = e.touches[0].clientY, dy = y - touchY; touchY = y;
+  for (let el = e.target; el && el !== document.body; el = el.parentElement) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+      if (dy >= 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return;   // todavía se desliza
+      break;
+    }
+  }
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
 function resize() {
   fixGap();
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
@@ -4261,7 +4308,8 @@ function startPlay() {
   Music.start();                  // por si todavía no arrancó (normalmente ya suena desde la portada)
 }
 function win() {
-  G.state = 'won'; Snd.win(); Music.holdUntil = performance.now() + 2200;   // (la música de menú vuelve después del jingle)
+  G.state = 'won';
+  if (Music.muted) Snd.win(); else { Music.win(); setTimeout(() => Snd.squeak(), 520); }   // (con la música apagada, el jingle de antes)
   G.irisTarget = 0; G.winCard = false;   // se cierra en un círculo negro; el cartel aparece al terminar
   updateButtons();
 }
@@ -4381,10 +4429,16 @@ addEventListener('resize', fitWin);
 // Cada cartel tiene su secuencia (CARD_SEQ: [selector, cómo entra, cuándo, paso entre varios, tope]): "drop" cae y se
 // asienta, "up" sube desde abajo, "pop" aparece chico y crece con rebote. En el de resultados además los números
 // cuentan (counters) y hay sonidos y efectos en su momento (cues). Tocar el cartel mientras se arma lo completa de una.
-const STAR_AT = [0.35, 0.55, 0.75];   // cuándo cae cada estrella
+// El de resultados va por partes, con aire entre una y otra (el usuario lo sentía todo junto): primero las estrellas, de a
+// una y con tiempo; después los rayos, los quesos y el tiempo contando, el sello del récord, la recompensa y al final la
+// máquina y los botones. Con menos estrellas, lo que sigue se adelanta (s: lo que no hace falta esperar)
+const STAR_AT = [0.45, 0.9, 1.35];   // cuándo empieza a caer cada estrella (aterriza 0,3 s después)
+const WIN_AT = { rays: 1.75, cheese: 2.0, time: 2.3, reward: 2.95, stamp: 3.15, machine: 3.95, btns: 4.15 };
+const winSeq = (s = 0) => [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.15], ['.wstars .wray', 'pop', WIN_AT.rays - s, 0.05],
+  ['.wstat.q', 'up', WIN_AT.cheese - s], ['.wstat:not(.q)', 'up', WIN_AT.time - s], ['.wreward', 'up', WIN_AT.reward - s],
+  ['.win > p', 'up', WIN_AT.reward + 0.35 - s], ['#machSlot', 'up', WIN_AT.machine - s], ['.wbtns > *', 'pop', WIN_AT.btns - s, 0.07]];
 const CARD_SEQ = {
-  win: [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.12], ['.wstars .wray', 'pop', 0.95, 0.05], ['.wstat.q', 'up', 0.9],
-    ['.wstat:not(.q)', 'up', 1.05], ['.wreward', 'up', 1.35], ['.win > p', 'up', 1.7], ['#machSlot', 'up', 1.85], ['.wbtns > *', 'pop', 2.05, 0.07]],
+  win: winSeq(),
   lose: [['.wtitle', 'drop', 0.08], ['.wlose', 'up', 0.2], ['#machSlot', 'up', 0.42], ['.wbtns > *', 'pop', 0.56, 0.07]],
   intro: [['.wtitle', 'drop', 0.08], ['.wgoal', 'up', 0.2], ['.wg', 'pop', 0.36, 0.1], ['.wbtns > *', 'pop', 0.56, 0.07]],
   select: [['.wtitle', 'drop', 0.06], ['.wlevels', 'up', 0.14], ['.lvl', 'pop', 0.22, 0.018, 0.9], ['.wbtns > *', 'pop', 0.45, 0.07]],
@@ -4398,7 +4452,7 @@ function animIn(root, a, track = true) {
   if (!root || !a || !CARD_SEQ[a.kind]) return;
   if (track) cardAnimStop();
   let end = 0;
-  for (const [sel, type, at, step = 0, cap = 99] of CARD_SEQ[a.kind]) root.querySelectorAll(sel).forEach((el, k) => {
+  for (const [sel, type, at, step = 0, cap = 99] of a.seq || CARD_SEQ[a.kind]) root.querySelectorAll(sel).forEach((el, k) => {
     const d = Math.min(cap, at + k * step); el.dataset.a = type; el.style.setProperty('--ad', d + 's'); end = Math.max(end, d + 0.4);
   });
   root.classList.add('anim');
@@ -4445,27 +4499,28 @@ function showWinCard() {
     const cheeseIco = cheeseSvg();
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
     const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k])).join('');
+    const s = STAR_AT[2] - STAR_AT[Math.max(st, 1) - 1], at = k => WIN_AT[k] - s;   // con menos estrellas, todo antes
     G.winBuild = () => card(`<div class="win">
       <div class="wtitle"><b>${story ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${say('¡Completado!', 'Complete!')}</span></div>
       <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         <i class="wray l">${RAYS_SVG}</i><i class="wray r">${RAYS_SVG}</i>${stars}</div>
       <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
         ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>${say('Quesos', 'Cheese')}</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
-        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div><span class="wtag wobj${time <= G.star3 ? ' ok' : ''}">${say('Objetivo', 'Goal')} ${fmtMS(G.star3)}</span>${record && G.cheeseTotal ? `${STAMP_IMG()}` : ''}</div>
+        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div><span class="wtag wobj${time <= G.star3 ? ' ok' : ''}">${say('Objetivo', 'Goal')} ${fmtMS(G.star3)}</span>${record && G.cheeseTotal ? `${STAMP_IMG(at('stamp'))}` : ''}</div>
       </div>
-      <div class="wbox wreward">${record && !G.cheeseTotal ? `${STAMP_IMG()}` : ''}<span class="wtag">${say('Recompensa', 'Reward')}</span><i class="wray">${RAYS_SIDE_SVG}</i>
+      <div class="wbox wreward">${record && !G.cheeseTotal ? `${STAMP_IMG(at('stamp'))}` : ''}<span class="wtag">${say('Recompensa', 'Reward')}</span><i class="wray">${RAYS_SIDE_SVG}</i>
         <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SIDE_SVG}</i></div>
       <div id="machSlot">${machButton()}</div>
       ${last ? `<p>${say('¡Completaste la Historia! Escapaste del laboratorio.', 'You finished the Story! You escaped the lab.')}</p>` : ''}
       <div class="wbtns ${last ? 'home' : 'three'}">${exitBtn()}<button class="wbtn re" data-act="retry">${RETRY_SVG}${say('Repetir', 'Replay')}</button>${last ? '' : `<button class="wbtn go" data-act="next">${PLAY_SVG}${say('Siguiente', 'Next')}</button>`}</div>
-    </div>`, { kind: 'win',
+    </div>`, { kind: 'win', seq: winSeq(s),
       // los quesos, el tiempo y la recompensa cuentan desde 0, con un tic (o un tintineo de moneda) cada tanto
       counters: [
-        { sel: '.wstat.q .num', fmt: 'frac', to: Math.min(G.cheese, G.cheeseTotal), of: G.cheeseTotal, at: 1.0, dur: 0.35, gap: 0.05, snd: () => Snd.tick(false) },
-        { sel: '.wstat:not(.q) .num', fmt: 'time', to: time, at: 1.15, dur: 0.55, gap: 0.07, snd: () => Snd.tick(false) },
-        { sel: '.wreward .num', fmt: 'plus', to: G.runCoins, at: 1.45, dur: 0.5, gap: 0.1, snd: () => Snd.coin() }],
+        { sel: '.wstat.q .num', fmt: 'frac', to: Math.min(G.cheese, G.cheeseTotal), of: G.cheeseTotal, at: at('cheese') + 0.1, dur: 0.4, gap: 0.05, snd: () => Snd.tick(false) },
+        { sel: '.wstat:not(.q) .num', fmt: 'time', to: time, at: at('time') + 0.15, dur: 0.6, gap: 0.07, snd: () => Snd.tick(false) },
+        { sel: '.wreward .num', fmt: 'plus', to: G.runCoins, at: at('reward') + 0.45, dur: 0.5, gap: 0.1, snd: () => Snd.coin() }],
       // cada estrella suena al caer (más aguda la siguiente); el récord, con un golpe y un temblorcito
-      cues: STAR_AT.slice(0, st).map((d, k) => [d + 0.3, () => Snd.star(k)]).concat(record ? [[1.85, () => {
+      cues: STAR_AT.slice(0, st).map((d, k) => [d + 0.3, () => Snd.star(k)]).concat(record ? [[at('stamp') + 0.1, () => {
         Snd.thunk(); const w = $card.querySelector('.win'); if (w) { w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 350); } }]] : []) });
     G.winBuild();   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
     updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
@@ -4695,7 +4750,7 @@ $btnBack.addEventListener('click', e => {   // casita (Bioterio, Máquina): a la
 applyLangStatic();
 // el sello del récord: la imagen que mandó el usuario, en castellano o en inglés según el idioma; las dos se bajan de
 // entrada (si no, la primera vez el sello aparecía tarde)
-const STAMP_IMG = () => `<img class="stamp" style="animation-delay:1.75s" src="img/${say('record-nuevo', 'record-new')}.png" alt="${say('Nuevo récord', 'New record')}">`;
+const STAMP_IMG = (d = 1.75) => `<img class="stamp" style="animation-delay:${d}s" src="img/${say('record-nuevo', 'record-new')}.png" alt="${say('Nuevo récord', 'New record')}">`;
 ['img/record-nuevo.png', 'img/record-new.png'].forEach(src => { const im = new Image(); im.src = src; (window.bgKeep = window.bgKeep || []).push(im); });
 
 
@@ -4891,7 +4946,7 @@ function updateItems() {
       }
     } else if (it.type === 'coin' && !it.got) {
       if (Math.hypot(M.x + ca * 6 - it.x, M.y + sa * 6 - it.y) < PICK_COIN) {
-        it.got = true; G.runCoins++; Wallet.add(1); Snd.coin(); pop($coins);
+        it.got = true; G.runCoins++; Wallet.add(1); Snd.coinBtn(); pop($coins);   // (la misma moneda que los botones de la máquina: lo pidió el usuario)
         for (let k = 0; k < 8; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
           G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.3 + Math.random() * 0.25,
