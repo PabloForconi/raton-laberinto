@@ -893,13 +893,16 @@ function mk(w, h) { const c = document.createElement('canvas'); if (w) { c.width
 function fmt(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 
 // ===================== SONIDO (todo sintetizado) =====================
+const COIN_RUN_T = 1.5;   // segundos entre monedas para que la siguiente suene un escalón más arriba
 const Snd = {
   ctx: null, master: null, noiseBuf: null,
   muted: (() => { try { return localStorage.getItem('raton.muted') === '1'; } catch (_) { return false; } })(),
   init() {
-    // en iPhone, con el teléfono en silencio, Web Audio (todos los efectos) no suena aunque la música sí: se pide la
-    // sesión de audio de reproducción, como un video (Safari 17+); si no existe, no pasa nada
-    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (_) {}
+    // en iPhone el juego respeta el modo silencio, como Growcore y casi todos los juegos (el usuario lo pidió): sesión de
+    // audio "ambiente" (Safari 17+), que además no corta la música de otra app. Antes era 'playback' (como un video, que
+    // suena igual en silencio), de cuando la música era un archivo y sonaba en silencio mientras los efectos no; ahora
+    // todo es Web Audio y se calla o suena junto. Si no existe, no pasa nada
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient'; } catch (_) {}
     if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {}); return; }   // (también 'interrupted', en iPhone)
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const ctx = this.ctx = new AC();
@@ -909,6 +912,14 @@ const Snd = {
     const d = this.noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     // (había un ambiente de fondo, ruido grave y un zumbido, que sonaba siempre: el usuario lo sacó)
     this.room();   // la sala de eco de las estrellas, armada de entrada (así la primera no se demora)
+  },
+  // con la pantalla bloqueada o el juego en segundo plano, el audio se frena del todo y vuelve igual al volver: si no,
+  // la música seguía sonando lenta y a los saltos (el navegador frena los temporizadores que programan las notas, pero
+  // no el audio; el usuario lo oyó en el iPhone). Con el reloj del audio frenado, la música sigue justo donde estaba
+  sleep(hide) {
+    const c = this.ctx; if (!c) return;
+    if (hide) { if (c.state === 'running') c.suspend().catch(() => {}); }
+    else if (c.state !== 'running') c.resume().catch(() => {});   // (si iOS no lo deja sin un toque, vuelve con el próximo toque)
   },
   toggle() {
     this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.8;
@@ -982,14 +993,24 @@ const Snd = {
   // moneda de los botones de la máquina, al estilo de la moneda clásica de Nintendo sin ser la misma (lo pidió el usuario;
   // una primera versión con pulso angosto, la/re, no le sonaba a moneda): onda cuadrada brillante, una nota cortita y otra
   // una cuarta arriba que queda sonando y se apaga (do/fa en vez de si/mi), con un "tin" metálico apenas al empezar
-  coinBtn() {
+  // (v: volumen; semi: cuántos semitonos más arriba)
+  coinBtn(v = 1, semi = 0) {
     const c = this.ctx; if (!c) return;
-    const t = c.currentTime + 0.01, o = c.createOscillator(), g = c.createGain();
-    o.type = 'square'; o.frequency.setValueAtTime(1047, t); o.frequency.setValueAtTime(1397, t + 0.06);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + 0.003); g.gain.setValueAtTime(0.06, t + 0.06);
-    g.gain.setValueAtTime(0.06, t + 0.14); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
+    const t = c.currentTime + 0.01, o = c.createOscillator(), g = c.createGain(), k = 2 ** (semi / 12), a = 0.06 * v;
+    o.type = 'square'; o.frequency.setValueAtTime(1047 * k, t); o.frequency.setValueAtTime(1397 * k, t + 0.06);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + 0.003); g.gain.setValueAtTime(a, t + 0.06);
+    g.gain.setValueAtTime(a, t + 0.14); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
     o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.66);
-    this.ring(5600, 0.1, 0.015, 0.4); this.ring(1397 * 2, 0.45, 0.012, 0.6, 0.07);   // el brillo del metal
+    this.ring(5600, 0.1, 0.015 * v, 0.4); this.ring(1397 * 2 * k, 0.45, 0.012 * v, 0.6, 0.07);   // el brillo del metal
+  },
+  // moneda juntada en el laberinto: la misma, más baja (lo pidió el usuario), y si agarrás varias seguidas (menos de
+  // COIN_RUN_T s entre una y otra) cada una sube un escalón de la escala mayor, como en los juegos de plataformas; si
+  // pasa más tiempo, vuelve a empezar desde abajo
+  coinPick() {
+    const now = performance.now();
+    this.coinRun = now - (this.coinLast || -1e9) < COIN_RUN_T * 1000 ? (this.coinRun || 0) + 1 : 0; this.coinLast = now;
+    const sc = [0, 2, 4, 5, 7, 9, 11, 12], i = Math.min(this.coinRun, 10);   // (con tope: no sube para siempre)
+    this.coinBtn(0.65, sc[i % 8] + 12 * Math.floor(i / 8));
   },
   // máquina de ratitas: matraca de la manija, la cápsula que cae, el traqueteo y el "pop" al abrirse
   crank() { this.noise(0.02, 2600, 3, 0.22); this.tone(900, 700, 0.03, 'square', 0.03); },
@@ -1214,13 +1235,14 @@ const Snd = {
   },
   // queso: una mordida, como el clásico "ñam" de los juegos (lo pidió el usuario; antes eran dos notas que subían): el
   // chasquido de los dientes, un crujido de granitos de ruido que se apagan y el golpe grave de la mandíbula, y otro
-  // mordisco más chico enseguida
+  // mordisco más chico enseguida (después, a pedido del usuario, más rápida y más grave: los dos mordiscos más pegados,
+  // granitos más cortos y más juntos, todo más abajo y la mandíbula más honda)
   cheese() {
     const r = Math.random;
-    for (const [at, v] of [[0, 1], [0.13, 0.6]]) {
-      this.noise(0.012, 3800, 2, 0.35 * v, 'bandpass', at);   // los dientes
-      for (let i = 0; i < 6; i++) this.noise(0.018 + r() * 0.015, 1400 + r() * 2400, 1.5, (0.32 - i * 0.045) * v, 'bandpass', at + 0.008 + i * 0.016 + r() * 0.006);
-      this.tone(240, 110, 0.07, 'sine', 0.22 * v, at);   // la mandíbula
+    for (const [at, v] of [[0, 1], [0.085, 0.6]]) {
+      this.noise(0.01, 2200, 2, 0.35 * v, 'bandpass', at);   // los dientes
+      for (let i = 0; i < 5; i++) this.noise(0.012 + r() * 0.01, 700 + r() * 1200, 1.5, (0.34 - i * 0.055) * v, 'bandpass', at + 0.006 + i * 0.011 + r() * 0.004);
+      this.tone(160, 70, 0.06, 'sine', 0.28 * v, at);   // la mandíbula
     }
   },
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
@@ -4474,6 +4496,12 @@ function animIn(root, a, track = true) {
     }, c.at * 1000));
   }
   for (const [at, fn] of a.cues || []) { CardAnim.timers.push(setTimeout(fn, at * 1000)); end = Math.max(end, at + 0.3); }
+  // sonidos atados a la animación misma (las estrellas, el sello): suenan `dt` s después de que esa animación arranca de
+  // verdad. Contados desde que se arma el cartel se adelantaban en el iPhone (el usuario oía las estrellas antes de verlas
+  // asentarse), porque ahí las animaciones arrancan recién cuando se termina de dibujar el cartel, un rato después
+  for (const [sel, dt, fn] of a.lands || []) root.querySelectorAll(sel).forEach((el, k) => el.addEventListener('animationstart', e => {
+    if (e.target === el && gen === CardAnim.gen) CardAnim.timers.push(setTimeout(() => { if (gen === CardAnim.gen) fn(k); }, dt * 1000));
+  }, { once: true }));
   CardAnim.until = performance.now() + end * 1000;
 }
 // tocar el cartel (o ESPACIO) mientras se arma: aparece todo de una con los números finales
@@ -4520,8 +4548,9 @@ function showWinCard() {
         { sel: '.wstat:not(.q) .num', fmt: 'time', to: time, at: at('time') + 0.15, dur: 0.6, gap: 0.07, snd: () => Snd.tick(false) },
         { sel: '.wreward .num', fmt: 'plus', to: G.runCoins, at: at('reward') + 0.45, dur: 0.5, gap: 0.1, snd: () => Snd.coin() }],
       // cada estrella suena al caer (más aguda la siguiente); el récord, con un golpe y un temblorcito
-      cues: STAR_AT.slice(0, st).map((d, k) => [d + 0.3, () => Snd.star(k)]).concat(record ? [[at('stamp') + 0.1, () => {
-        Snd.thunk(); const w = $card.querySelector('.win'); if (w) { w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 350); } }]] : []) });
+      // (al asentarse: la estrella cae, se achica de más a los 0,17 s y queda en su tamaño a los 0,33 s; el sello golpea al 0,1 s)
+      lands: [['.wstar .wgold', 0.3, k => Snd.star(k)], ['.stamp', 0.1, () => {
+        Snd.thunk(); const w = $card.querySelector('.win'); if (w) { w.classList.add('shake'); setTimeout(() => w.classList.remove('shake'), 350); } }]] });
     G.winBuild();   // (sin el cartelito de ESPACIO: igual ESPACIO pasa al siguiente nivel)
     updateButtons();   // muestra la flechita de volver (a los niveles en Historia, a la portada en Desafío)
   }
@@ -4836,7 +4865,9 @@ addEventListener('click', e => {
 });
 function autoPause() { for (const k in keys) keys[k] = false; stickEnd(); if (G.state === 'play') togglePause(); }
 addEventListener('blur', autoPause);
-document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); Snd.sleep(document.hidden); });
+addEventListener('pagehide', () => Snd.sleep(true));
+addEventListener('pageshow', () => { if (!document.hidden) Snd.sleep(false); });
 addEventListener('resize', resize);
 if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 
@@ -4946,7 +4977,7 @@ function updateItems() {
       }
     } else if (it.type === 'coin' && !it.got) {
       if (Math.hypot(M.x + ca * 6 - it.x, M.y + sa * 6 - it.y) < PICK_COIN) {
-        it.got = true; G.runCoins++; Wallet.add(1); Snd.coinBtn(); pop($coins);   // (la misma moneda que los botones de la máquina: lo pidió el usuario)
+        it.got = true; G.runCoins++; Wallet.add(1); Snd.coinPick(); pop($coins);   // (la moneda de los botones de la máquina, que sube si juntás varias seguidas)
         for (let k = 0; k < 8; k++) {
           const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 50;
           G.fx.push({ x: it.x, y: it.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.3 + Math.random() * 0.25,
