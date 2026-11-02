@@ -30,6 +30,11 @@
   html.gapfix #credit { bottom: calc(max(10px, calc(var(--sab) - 24px)) + 100% - var(--fullh)); }
   html.gapfix #hintTouch { bottom: calc(max(14px, calc(var(--sab) - 20px)) + 100% - var(--fullh)); }
   html.gapfix #card { position: absolute; top: calc((var(--fullh) + var(--sat)) / 2); }
+  /* Máquina a pantalla completa: la máquina y su fondo se agrandan alrededor del borde de la mesada y bajan juntos (con
+     Activar) para que la imagen llegue hasta abajo (fitMachFS); #screen recorta lo que sobresale a los costados */
+  html.gapfix #screen { overflow: clip; }
+  html.gapfix #gachaCv { scale: var(--ms, 1); translate: 0 calc(var(--mdy, 0px) - var(--mup, 0px)); transform-origin: 50% 97.9%; }
+  html.gapfix #gachaBtns { translate: 0 var(--mdy, 0px); }
   #hud { position: fixed; top: var(--sat); left: 0; right: 0; height: 0; }
   body { font-family: 'Kalam', cursive; font-weight: 700; color: #2a1a0c; user-select: none; }
   canvas#game { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
@@ -974,21 +979,17 @@ const Snd = {
   },
   // moneda: "bling" de dos notas, como en los juegos de siempre
   coin() { this.tone(988, 988, 0.06, 'square', 0.05); this.tone(1319, 1319, 0.2, 'square', 0.05, 0.06); },
-  // moneda de los botones de la máquina, al estilo de la moneda clásica de Nintendo sin ser la misma (lo pidió el usuario):
-  // onda de pulso angosta como la de las consolas viejas, una nota cortita y otra una cuarta arriba que queda sonando y se
-  // apaga (la/re en vez de si/mi)
+  // moneda de los botones de la máquina, al estilo de la moneda clásica de Nintendo sin ser la misma (lo pidió el usuario;
+  // una primera versión con pulso angosto, la/re, no le sonaba a moneda): onda cuadrada brillante, una nota cortita y otra
+  // una cuarta arriba que queda sonando y se apaga (do/fa en vez de si/mi), con un "tin" metálico apenas al empezar
   coinBtn() {
     const c = this.ctx; if (!c) return;
-    if (!this.pulseW) {   // pulso del 25%
-      const n = 32, re = new Float32Array(n), im = new Float32Array(n);
-      for (let k = 1; k < n; k++) { re[k] = 2 / (k * Math.PI) * Math.sin(2 * Math.PI * k * 0.25); im[k] = 2 / (k * Math.PI) * (1 - Math.cos(2 * Math.PI * k * 0.25)); }
-      this.pulseW = c.createPeriodicWave(re, im);
-    }
     const t = c.currentTime + 0.01, o = c.createOscillator(), g = c.createGain();
-    o.setPeriodicWave(this.pulseW); o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1175, t + 0.075);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.09, t + 0.004); g.gain.setValueAtTime(0.09, t + 0.075);
-    g.gain.linearRampToValueAtTime(0.085, t + 0.08); g.gain.setValueAtTime(0.085, t + 0.22); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
-    o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.8);
+    o.type = 'square'; o.frequency.setValueAtTime(1047, t); o.frequency.setValueAtTime(1397, t + 0.06);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + 0.003); g.gain.setValueAtTime(0.06, t + 0.06);
+    g.gain.setValueAtTime(0.06, t + 0.14); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.66);
+    this.ring(5600, 0.1, 0.015, 0.4); this.ring(1397 * 2, 0.45, 0.012, 0.6, 0.07);   // el brillo del metal
   },
   // máquina de ratitas: matraca de la manija, la cápsula que cae, el traqueteo y el "pop" al abrirse
   crank() { this.noise(0.02, 2600, 3, 0.22); this.tone(900, 700, 0.03, 'square', 0.03); },
@@ -1091,7 +1092,9 @@ const Snd = {
     this.tone(200, 90, 0.1, 'sine', 0.12, hit); this.noise(0.05, 1800, 2, 0.08, 'bandpass', hit); this.noise(0.03, 1800, 2, 0.03, 'bandpass', hit + 0.2);
   },
   // la cápsula salta al frente (el zumbido de la máquina se va con ella) y empieza la tensión: un silbido que sube, un
-  // tono grave que se tensa y un redoble que se acelera hasta que se abre (revealHit lo corta de golpe)
+  // tono grave que se tensa hasta que se abre (revealHit lo corta de golpe). (Tenía además un redoble que se aceleraba, pero
+  // arrancaba con la cápsula todavía volando y sonaba como el sacudón antes de verlo: el usuario lo oía adelantado. El
+  // redoble lo hace el traqueteo de la cápsula, pegado a su movimiento)
   launch(d) {
     const c = this.ctx; if (!c) return; const t = c.currentTime;
     if (this.mv.hum) { this.mv.hum.stop(0.5); delete this.mv.hum; }
@@ -1102,9 +1105,6 @@ const Snd = {
     const o = this.mv.tense = this.voice([['sawtooth', 1], ['sawtooth', 1.06, 0]], 73, 'lowpass', 400, 2);   // re y mi bemol: roce tenso
     o.src.forEach(x => x.frequency.exponentialRampToValueAtTime(x.frequency.value * 2, t + d)); o.fl.frequency.exponentialRampToValueAtTime(1600, t + d);
     o.g.gain.setValueAtTime(0.0001, t); o.g.gain.exponentialRampToValueAtTime(0.07, t + d);
-    for (let x = 0.25, gap = 0.16; x < d - 0.03; x += gap, gap = Math.max(0.035, gap * 0.9)) {   // redoble que se acelera
-      const k = x / d; this.noise(0.05, 1900, 0.9, 0.06 + 0.2 * k * k, 'bandpass', x); this.tone(190, 150, 0.03, 'triangle', 0.04 + 0.08 * k, x);
-    }
   },
   // la cápsula llega al frente y hace un rebotecito en el aire: un "boing" de resorte cortito
   boing() { this.tone(260, 520, 0.12, 'triangle', 0.06); this.tone(520, 300, 0.18, 'sine', 0.04, 0.1); },
@@ -3072,9 +3072,33 @@ function bandHeights() {
   const bot = b ? innerHeight - b.getBoundingClientRect().top + 40 : 110;
   return [Math.round(top), Math.round(bot)];
 }
+// Máquina a pantalla completa en el iPhone (html.gapfix): la imagen del fondo no llegaba hasta abajo (quedaba el color
+// de relleno y parecía cortada; el usuario pidió agrandar todo en esa versión). Se agranda la máquina (y el fondo, que se
+// ubica a partir de ella) alrededor del borde de la mesada, con Activar justo debajo, y se baja todo junto: lo mínimo para
+// que la imagen llegue al pie de la pantalla sin que su borde de arriba quede más abajo que antes. Sin pantalla completa
+// no hace nada. La bajada tiene un tope para no pisar los botones de abajo
+function fitMachFS() {
+  const de = document.documentElement, cv = document.getElementById('gachaCv');
+  if (!de.classList.contains('gapfix') || !cv) return;
+  de.style.setProperty('--ms', 1); de.style.setProperty('--mdy', '0px'); de.style.setProperty('--mup', '0px');
+  const r = cv.getBoundingClientRect(), u = r.width / 300, k = (830 * MS) / (MACH_BG.baseX1 - MACH_BG.baseX0) * u;
+  const yC = r.top + r.height * 0.979, imgTop = r.top + (MY + 1284 * MS) * u - MACH_BG.baseY * k, imgBot = imgTop + MACH_BG.h * k;
+  const H = viewH(), dT = yC - imgTop, dB = imgBot - yC;
+  if (imgBot >= H || dT <= 0 || dB <= 0) return;
+  const btns = document.getElementById('gachaBtns').getBoundingClientRect(), nav = document.getElementById('gachaNav').getBoundingClientRect();
+  const maxDy = Math.max(0, nav.top - 12 - btns.bottom);
+  let s = Math.min(1.4, Math.max(1, (H - imgTop) / (dT + dB))), dy = Math.min(maxDy, Math.max(0, H - yC - s * dB));
+  if (yC + dy + s * dB < H) s = Math.min(1.4, (H - yC - dy) / dB);   // con el tope de la bajada, un poco más grande
+  de.style.setProperty('--ms', s.toFixed(4)); de.style.setProperty('--mdy', dy.toFixed(1) + 'px');
+  // y la máquina con su fondo, un poco más arriba que Activar (el usuario la pidió más alta; los botones quedan donde
+  // estaban). Abajo la imagen queda corta por lo mismo, pero ahí la tapa la franja oscura de abajo
+  de.style.setProperty('--mup', MACH_FS_UP + 'px');
+}
+const MACH_FS_UP = 20;   // cuánto más arriba va la máquina en pantalla completa (px)
 function placeScreenBg() {
   const cv = G.screen === 'machine' && document.getElementById('gachaCv'), bg = $scr.querySelector('.scrbg');
   if (!cv || !bg) return;
+  fitMachFS();
   gachaGeo();   // de paso, las medidas de las capas (no se miden en cada cuadro)
   const r = cv.getBoundingClientRect(), u = r.width / 300;   // px por unidad del canvas de la máquina
   const k = (830 * MS) / (MACH_BG.baseX1 - MACH_BG.baseX0) * u;   // px de pantalla por px de la imagen
