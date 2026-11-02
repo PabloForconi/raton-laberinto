@@ -1233,17 +1233,19 @@ const Snd = {
     this.rev = c.createConvolver(); this.rev.buffer = ir; const g = c.createGain(); g.gain.value = 0.8; this.rev.connect(g).connect(this.master);
     return this.rev;
   },
-  // queso: una mordida, como el clásico "ñam" de los juegos (lo pidió el usuario; antes eran dos notas que subían): el
-  // chasquido de los dientes, un crujido de granitos de ruido que se apagan y el golpe grave de la mandíbula, y otro
-  // mordisco más chico enseguida (después, a pedido del usuario, más rápida y más grave: los dos mordiscos más pegados,
-  // granitos más cortos y más juntos, todo más abajo y la mandíbula más honda)
+  // queso: una mordida de manzana (el usuario la pidió así; antes era un "ñam" de dientes y mandíbula que no le gustó):
+  // el crack seco de la cáscara al romperse, un crujido denso de granitos agudos que se apagan en poco más de un décimo
+  // de segundo, el "toc" hueco de la pulpa y un chorrito de jugo muy suave arriba de todo
   cheese() {
     const r = Math.random;
-    for (const [at, v] of [[0, 1], [0.085, 0.6]]) {
-      this.noise(0.01, 2200, 2, 0.35 * v, 'bandpass', at);   // los dientes
-      for (let i = 0; i < 5; i++) this.noise(0.012 + r() * 0.01, 700 + r() * 1200, 1.5, (0.34 - i * 0.055) * v, 'bandpass', at + 0.006 + i * 0.011 + r() * 0.004);
-      this.tone(160, 70, 0.06, 'sine', 0.28 * v, at);   // la mandíbula
+    this.noise(0.014, 3800, 0.9, 0.42, 'highpass');   // la cáscara se parte
+    this.noise(0.045, 650, 3, 0.26);   // el toc de la pulpa
+    this.tone(240, 120, 0.05, 'sine', 0.16);
+    for (let i = 0; i < 16; i++) {   // el crujido
+      const at = 0.004 + (i / 16) ** 1.4 * 0.14 + r() * 0.006;
+      this.noise(0.006 + r() * 0.012, 2200 + r() * 4500, 1.2 + r() * 1.5, (0.32 - i * 0.017) * (0.6 + r() * 0.4), 'bandpass', at);
     }
+    this.noise(0.13, 7500, 0.7, 0.05, 'highpass', 0.02);   // el jugo
   },
   gate() { this.noise(0.05, 1100, 1.4, 0.3); this.tone(170, 85, 0.12, 'square', 0.07); this.noise(0.04, 700, 1, 0.22, 'bandpass', 0.12); },
   gateLand() { this.tone(110, 55, 0.14, 'sine', 0.22); this.noise(0.07, 450, 0.8, 0.18, 'lowpass'); this.noise(0.03, 380, 0.8, 0.06, 'lowpass', 0.16); },   // la compuerta toca abajo y rebota blandito
@@ -1411,6 +1413,9 @@ const MUS_MENU = {
 // compases cada uno): bombo en negras, palmas, platillos en semicorcheas, un bajo de sierra en semicorcheas que salta de
 // octava, cuerdas en staccato que empujan las corcheas y una melodía de celesta y "chip" que se escurre por semitonos;
 // al final de cada vuelta, un barrido de ruido que sube
+// bombo de los dos laberintos: el mismo golpe en los dos, así suenan parejos (el usuario lo oía fuerte; antes 0,11 con luz
+// y 0,12 a oscuras, medido offline: unos 3 dB menos, y los dos al mismo nivel)
+const KICK = 0.08;
 const MUS_PLAY = {
   bpm: 158, steps: 128, gain: 1.6,   // (más rápida, a pedido del usuario; antes 138)
   chords: [CH.Dm, CH.Dm, CH.Bb, CH.Bb, CH.Gm, CH.Gm, CH.A, CH.A],
@@ -1420,8 +1425,8 @@ const MUS_PLAY = {
     [[0, 73], [2, 74], [4, 76], [6, 77], [8, 79], [10, 80], [12, 81], [14, 83]], [[0, 85], [4, 81], [8, 76], [12, 73]]],
   step(i, t, sd) {
     const bar = i >> 4, s = i & 15, ch = this.chords[bar];
-    if (s % 4 === 0) MN.kick(t, 0.11);
-    if (bar % 2 && s === 14) MN.kick(t, 0.07);
+    if (s % 4 === 0) MN.kick(t, KICK);
+    if (bar % 2 && s === 14) MN.kick(t, KICK * 0.65);
     if (s === 4 || s === 12) MN.clap(t, 0.045);
     MN.hat(t, s % 4 === 2 ? 0.02 : 0.008, s % 4 === 2);
     const off = [0, 12, 7, 12][s % 4];
@@ -1464,7 +1469,7 @@ const MUS_DARK = {
   chords: [CH.Dm, CH.Eb, CH.Dm, CH.A],
   step(i, t, sd, lvl) {
     const bar = i >> 4, s = i & 15, ch = this.chords[bar];
-    if ([0, 3, 6, 10].includes(s) || (lvl && s % 4 === 0)) MN.kick(t, 0.12);
+    if ([0, 3, 6, 10].includes(s) || (lvl && s % 4 === 0)) MN.kick(t, KICK);
     if (s === 4 || s === 12) MN.snare(t, 0.04);
     MN.noise(t, 0.025, 7000, { type: 'bandpass', q: 6, gain: s % 2 ? 0.007 : 0.013 });
     const off = [0, 0, 12, 0, 1, 0, 12, 7][s % 8];
