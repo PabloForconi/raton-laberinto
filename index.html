@@ -127,7 +127,7 @@
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.4), transparent 70%); box-shadow: 0 3px 0 #a07345, 0 6px 14px rgba(0,0,0,.35); }
   :is(#card, #opts) .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; }
   :is(#card, #opts) .wtitle span { display: inline-block; margin-top: 3px; font-size: 25px; border-bottom: 3px solid #2b1a0b; }
-  #card .wstars { position: relative; display: flex; justify-content: center; align-items: center; margin: -24px 4px 12px; padding: 34px 8px 12px;
+  #card .wstars { position: relative; display: flex; justify-content: center; align-items: center; margin: -24px 4px 12px; padding: 34px 2px 12px;
     background: #9a6838 repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 3px, transparent 3px 7px);
     border: 6px solid #ead6ae; box-shadow: 0 3px 0 #8a6236, inset 0 0 18px rgba(40,20,5,.55); }
   :is(#card, #opts) .tp { position: absolute; width: 46px; height: 16px; background: rgba(240,236,225,.55); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
@@ -135,12 +135,11 @@
   :is(#card, #opts) .tp:nth-of-type(2) { right: -18px; top: 2px; transform: rotate(42deg); }
   :is(#card, #opts) .tp:nth-of-type(3) { left: -18px; bottom: 2px; transform: rotate(42deg); }
   :is(#card, #opts) .tp:nth-of-type(4) { right: -18px; bottom: 2px; transform: rotate(-42deg); }
-  #card .wstar { position: relative; width: 31%; max-width: 104px; margin: 0 2px; flex: none; }   /* las de los costados, del mismo tamaño que antes y un poco hacia afuera */
+  #card .wstar { position: relative; width: 34%; max-width: 118px; margin: 0 -4px; flex: none; }   /* las de los costados, del mismo tamaño que antes y un poco hacia afuera */
   #card .wstar svg { display: block; width: 100%; height: auto; }
-  #card .wstar .wsh { transform: translateY(7%) scale(1.16); }   /* un poco más grande y más abajo: asoma por debajo de la dorada */
-  #card .wstar.off .wsh { transform: translateY(1%) scale(1.16); }   /* vacía (sin dorada encima): un poco más arriba, a la altura de las doradas */
-  #card .wstar .wgold { position: absolute; inset: 0; filter: drop-shadow(0 4px 2px rgba(60,30,5,.45)); animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
-  #card .wstar:nth-of-type(2) { top: -14px; width: 36%; max-width: 122px; }   /* la del medio, más grande y más arriba */
+  #card .wstar .wgold { position: absolute; inset: 0; filter: drop-shadow(0 3px 1.5px rgba(40,20,5,.4)); animation: starDrop .42s cubic-bezier(.2, .9, .3, 1.5) var(--d) both; }
+  #card .wstar:nth-of-type(1) { top: 16px; rotate: -12deg; } #card .wstar:nth-of-type(3) { top: 16px; rotate: 12deg; }   /* las de los costados, inclinadas hacia afuera y un poco más abajo */
+  #card .wstar:nth-of-type(2) { top: -6px; width: 39%; max-width: 138px; }   /* la del medio, más grande y más arriba */
   #card .wray { position: absolute; width: 34px; height: 34px; top: 18px; }
   #card .wray svg { display: block; width: 100%; height: 100%; }
   #card .wray.l { left: 6px; } #card .wray.r { right: 6px; transform: scaleX(-1); }
@@ -236,7 +235,7 @@
   #card .wprice { display: inline-flex; align-items: center; gap: 4px; font-size: .8em; }
   #card .wprice b { font-weight: inherit; opacity: .85; }
   /* la moneda más grande y sin transparencia, con el borde tan oscuro y grueso como la del HUD (lo pidió el usuario) */
-  #card .wprice .ci { width: 1.4em; height: 1.4em; } #card .wprice .ci circle:last-child { stroke-width: 1.6; }
+  #card .wprice .ci { width: 1.4em; height: 1.4em; }
   /* selector de niveles: fichas de papel en una caja de papel encintada; las de los niveles a oscuras, oscuras */
   #card .wlevels { margin: 16px 2px 4px; padding: 10px 6px; background-color: #cfa96f; }   /* un marrón un poco más oscuro que el papel: las fichas se despegan del fondo */
   #card .wlevels .levels { margin: 0; }
@@ -248,6 +247,13 @@
   #card:has(.wsel) { width: min(600px, calc(100vw - 24px)); }
   @media (min-width: 561px) { #card .wsel .lvl { aspect-ratio: 1; justify-content: center; } #card .wsel .lvl small { font-size: 16px; } #card .wsel .lvl small.lg { font-size: 14px; } }
   /* carteles de perder (trampa o tiempo): el subtítulo en rojo y una caja con el dibujito y qué pasó */
+  /* cinta roja del cartel de ganar (de una referencia del usuario): el subtítulo va sobre una cinta con las puntas en V
+     hacia adentro, que asoma por abajo de la etiqueta; su forma la dibuja fitRibbons con el tamaño real del texto */
+  #card .wtitle:has(.wrib) { top: -6px; padding-top: 4px; transform: rotate(-1deg); }
+  #card .wtitle:has(.wrib) > * { position: relative; top: 6px; }   /* (la etiqueta sube 6 px y lo que tiene adentro, Nivel N y la cinta, queda donde estaba) */
+  #card .wtitle span.wrib { position: relative; z-index: 0; display: block; width: fit-content; margin: -3px auto -24px; padding: 7px 24px 5px; border: 0; color: #fff;
+    text-shadow: 0 2px 0 rgba(110,0,4,.55); }
+  #card .wrib > svg { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
   :is(#card, #opts) .wtitle.lose span { color: #b3140f; border-color: #b3140f; }
   #card .wlose { display: flex; align-items: center; gap: 14px; margin: 16px 2px 18px; padding: 16px 16px 14px; text-align: left; }
   #card .wlose > svg { flex: none; width: 76px; height: 76px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.3)); }
@@ -267,7 +273,13 @@
      cumpliste, roja si no */
   #card .wtag.wobj { left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 13px; padding: 2px 8px 0; top: -9px; background: #fff6df; border: 1.5px solid rgba(110,75,35,.28);
     border-radius: 4px; color: #c2362b; }
-  #card .wtag.wobj.ok { color: #3f8a2e; }
+  /* cumplido: el texto en el verde de la referencia del usuario (revision/objetivo-ref.png) y, a la derecha, un círculo verde
+     con un reborde del color de la etiqueta y un tilde blanco, un poco más alto que la etiqueta */
+  #card .wtag.wobj { display: inline-flex; align-items: center; gap: 5px; padding-right: 3px; }   /* (no cumplido: rojo y un círculo rojo con una cruz) */
+  #card .wtag.wobj.ok { color: #0b7a0b; }
+  /* (más alto que la etiqueta y centrado en su fondo, así sobresale lo mismo arriba y abajo: la etiqueta tiene 2 px de
+     relleno arriba y 0 abajo, y top: -1px lo compensa) */
+  #card .wtag.wobj .wchk { flex: none; width: 27px; height: 27px; margin: -8px -8px -8px 0; position: relative; top: -1px; }
   #card .wcoins { position: relative; top: -5px; width: 82px; height: 58px; }   /* (un poco más arriba, lo pidió el usuario) */
   #card .wcoins .ci { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
   #card .wcoins .ci:first-child { left: 0; top: 8px; } #card .wcoins .ci:last-child { left: 30px; top: 0; }
@@ -372,6 +384,13 @@
     transform: rotate(-1.5deg); padding: 3px 12px 1px; pointer-events: none; }
 
   #coins .ci { width: 25px; height: 25px; }
+  /* Contornos parejos (lo pidió el usuario): el contorno de cada ícono (class="ol") mide lo mismo en pantalla, sea cual sea
+     el tamaño del ícono (vector-effect: non-scaling-stroke, así no se agranda con el dibujo): STROKE_SMALL en los íconos
+     chicos (la interfaz de arriba y las monedas de los botones y precios) y STROKE_BIG en los grandes de los carteles
+     (queso, reloj, monedas de la recompensa, trampa y linterna). Con el zoom de los carteles en pantallas chicas se achica
+     junto con todo */
+  svg .ol, svg .ol > * { vector-effect: non-scaling-stroke; stroke-width: 1.5px; }
+  #card .wstat > svg .ol, #card .wstat > svg .ol > *, #card .wg > svg .ol, #card .wg > svg .ol > *, #card .wcoins .ci .ol, #card .wlose > svg .ol { stroke-width: 2.5px; }
   #coins.below { top: 64px; }   /* en las pantallas con flechita de volver, debajo de ella */
   #coins.pop { animation: coinPop .25s cubic-bezier(.2, .9, .3, 1.4) both; }
   @keyframes coinPop { from { transform: scale(1.3); } to { transform: scale(1); } }
@@ -588,7 +607,7 @@
   <div id="level" class="tape">NIVEL 1</div>
   <div id="timer" class="tape">0:00</div>
 
-  <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><defs><linearGradient id="chG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8d662"/><stop offset="1" stop-color="#efb53a"/></linearGradient></defs><path d="M2 15.1 L21.25 17.3 L21.25 20.8 L2 18.6 Z" fill="#e0a432" stroke="#8a5b10" stroke-width="1.1" stroke-linejoin="round"/><path d="M17.95 3 L21.25 17.3 L21.25 20.8 L17.95 6.5 Z" fill="#cf8a1f" stroke="#8a5b10" stroke-width="1.1" stroke-linejoin="round"/><path d="M2 15.1 L17.95 3 L21.25 17.3 Z" fill="url(#chG)" stroke="#8a5b10" stroke-width="1.1" stroke-linejoin="round"/><circle cx="8.6" cy="12.7" r="1.45" fill="#c98a1d"/><circle cx="14.4" cy="8.3" r="1.75" fill="#c98a1d"/><circle cx="17.5" cy="13.8" r="1.2" fill="#c98a1d"/><circle cx="11.8" cy="14.9" r=".8" fill="#c98a1d"/><circle cx="18.2" cy="7.9" r=".8" fill="#c98a1d"/></svg><span id="cheeseN">0/5</span></div>
+  <div id="cheese" class="tape hidden"><svg viewBox="0 0 24 24"><defs><linearGradient id="chG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8d662"/><stop offset="1" stop-color="#efb53a"/></linearGradient></defs><path d="M2 15.1 L21.25 17.3 L21.25 20.8 L2 18.6 Z" fill="#e0a432" stroke="#8a5b10" class="ol" stroke-width="1.1" stroke-linejoin="round"/><path d="M17.95 3 L21.25 17.3 L21.25 20.8 L17.95 6.5 Z" fill="#cf8a1f" stroke="#8a5b10" class="ol" stroke-width="1.1" stroke-linejoin="round"/><path d="M2 15.1 L17.95 3 L21.25 17.3 Z" fill="url(#chG)" stroke="#8a5b10" class="ol" stroke-width="1.1" stroke-linejoin="round"/><circle cx="8.6" cy="12.7" r="1.45" fill="#c98a1d"/><circle cx="14.4" cy="8.3" r="1.75" fill="#c98a1d"/><circle cx="17.5" cy="13.8" r="1.2" fill="#c98a1d"/><circle cx="11.8" cy="14.9" r=".8" fill="#c98a1d"/><circle cx="18.2" cy="7.9" r=".8" fill="#c98a1d"/></svg><span id="cheeseN">0/5</span></div>
   <div id="lamp" class="tape hidden"><span class="bat"><i></i><i></i><i></i><i></i></span></div>
 </div>
 <div id="coins" class="tape"><span id="coinsIco"></span><span id="coinsN">0</span></div>
@@ -816,7 +835,7 @@ const RATS = [
   ['Mordisquito', '#ed268c', '#f65cb0', '#1f1d1c', '#4a4f57', '#fefcfd', '#8a2be2'],
   ['Fogui',       '#fb1316', '#fd6660', '#1f1d1c', '#4a4f57', '#fdee09', '#e01f1f'],
   ['Burbuja',     '#29edf3', '#49f7fb', '#12285e', '#1d1e21', '#0331d6', '#2fc9c0'],
-  ['Lila',        '#b7aafc', '#b6a9fc', '#4b2a7a', '#4a4f57', '#3406b2', '#d9cdf2'],
+  ['Lila',        '#b7aafc', '#ccc3fd', '#4b2a7a', '#4a4f57', '#3406b2', '#d9cdf2'],
   ['Bordolín',    '#7f0a28', '#ba3452', '#1f1d1c', '#4a4f57', '#390202', '#5e1020'],
   ['Panchita',    '#9c807d', '#cda19d', '#1f1d1c', '#4a4f57', '#140402', '#cfa59f'],
   ['Wasabi',      '#919110', '#ccc648', '#1d4a1f', '#1d1e21', '#042304', '#c1d268'],
@@ -873,6 +892,29 @@ const curSkin = () => skinOf(skinOverride ?? Skins.data.sel);
 // moneda plateada (según el diseño de referencia): toda del mismo gris claro, con dos ranuras de lado a lado; cada ranura es
 // una línea oscura arriba, el fondo gris y una línea clara abajo. Sin borde. COIN_BANDS: [desde, hasta, color] en
 // fracciones del radio (y para abajo), las usan el ícono y la moneda del laberinto
+// tilde del objetivo cumplido (cartel de resultados): círculo verde con reborde del color de la etiqueta y tilde blanco
+// cinta roja (fitRibbons): la forma se arma con el ancho y el alto reales del texto, así las puntas y las esquinas
+// quedan iguales sea cual sea el largo; RIB_NOTCH es lo que entra la V de cada punta, RIB_R el redondeo de las esquinas
+const RIB_NOTCH = 10, RIB_R = 5, RIB_LINE = 3, RIB_FILL = '#fe1a22', RIB_EDGE = '#b40008';
+function fitRibbons(root) {
+  root.querySelectorAll('.wrib').forEach(el => {
+    const w = el.offsetWidth, h = el.offsetHeight, b = RIB_LINE / 2; if (!w || !h) return;
+    // polígono con las esquinas redondeadas (las de afuera RIB_R, el fondo de la V apenas)
+    const pts = [[b, b, RIB_R], [w - b, b, RIB_R], [w - b - RIB_NOTCH, h / 2, 1.5], [w - b, h - b, RIB_R], [b, h - b, RIB_R], [b + RIB_NOTCH, h / 2, 1.5]];
+    const at = (p, q, r) => { const dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy); return [p[0] + dx / l * r, p[1] + dy / l * r]; };
+    let d = '';
+    pts.forEach((p, i) => {
+      const a = at(p, pts[(i + 5) % 6], p[2]), c = at(p, pts[(i + 1) % 6], p[2]);
+      d += (i ? 'L' : 'M') + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + 'Q' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ' ' + c[0].toFixed(1) + ' ' + c[1].toFixed(1);
+    });
+    let sv = el.querySelector('svg'); if (!sv) { sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); el.prepend(sv); }
+    sv.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    sv.innerHTML = `<path d="${d}Z" fill="${RIB_FILL}" stroke="${RIB_EDGE}" stroke-width="${RIB_LINE}" stroke-linejoin="round"/>`;
+  });
+}
+const CHECK_SVG = '<svg class="wchk" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.6" fill="#2aa10a" stroke="#fff6df" stroke-width="2.4"/><path d="M7 12.4l3.3 3.3L17.2 8.6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// y la cruz del objetivo no cumplido: círculo rojo con el mismo reborde y una cruz blanca
+const CROSS_SVG = '<svg class="wchk" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.6" fill="#d8352a" stroke="#fff6df" stroke-width="2.4"/><path d="M8.4 8.4l7.2 7.2M15.6 8.4l-7.2 7.2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>';
 const COIN_FACE = '#bcc3ca';
 const COIN_BANDS = [[-0.5, -0.43, '#4b515a'], [-0.43, -0.26, '#656c78'], [-0.26, -0.19, '#e1e6ea'],
   [0.25, 0.32, '#4b515a'], [0.32, 0.49, '#656c78'], [0.49, 0.56, '#e1e6ea']];
@@ -888,7 +930,7 @@ const coinBand = (a, b, col) => {
 };
 const COIN_ICON = '<svg class="ci" viewBox="0 0 24 24"><g transform="rotate(-20 12 12)">' +   // girada un poco, con las bandas subiendo hacia la derecha (lo pidió el usuario; la del laberinto no)
   `<circle cx="12" cy="12" r="10.5" fill="${COIN_FACE}"/>` + COIN_BANDS.map(([a, b, col]) => coinBand(a, b, col)).join('') +
-  '<circle cx="12" cy="12" r="10.5" fill="none" stroke="#6b7179" stroke-width="1.3"/></g></svg>';   // borde gris, del mismo ancho que el del queso del HUD
+  '<circle class="ol" cx="12" cy="12" r="10.5" fill="none" stroke="#39464e" stroke-width="1.3"/></g></svg>';   // borde gris oscuro (#39464e, el de una referencia del usuario; era #6b7179), del mismo ancho que el del queso del HUD
 const isMenu = () => ['splash', 'title', 'select'].includes(G.state);   // pantallas de menú: sin rata, fondo tenue
 // Ratitas y Máquina se abren por encima (G.screen) sin cambiar G.state: desde la portada o desde el cartel de fin de nivel
 
@@ -2562,7 +2604,7 @@ function showCard(html, anim = null) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in'); void $card.offsetWidth; $card.classList.add('in');
   $card.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // jaulas de las ratitas
-  fitWin();
+  fitRibbons($card); fitWin();
   animIn($card.querySelector('.win'), anim);
   Snd.cardIn();
 }
@@ -2756,7 +2798,7 @@ const PORTRAIT_COLORS = {
   12: { fur: '#ed268c', ear: '#f65cb0', earDark: '#e74ea0', earIn: '#e74ea0', nose: '#feceef', paws: '#fc6fbd', tail: '#f656ad', earLine: '#f45eb1', line: '#560933' },   // Mordisquito
   13: { fur: '#fb1316', ear: '#fd6660', earDark: '#fc5551', earIn: '#fc5551', nose: '#feceb0', paws: '#fd7d79', tail: '#f85654', earLine: '#fb6460', line: '#5f0d0c' },   // Fogui
   14: { fur: '#29edf3', ear: '#49f7fb', earDark: '#28e0e7', earIn: '#28e0e7', nose: '#bffcfe', paws: '#9cfcfd', tail: '#4ef1f6', earLine: '#67f4f7', line: '#10403a' },   // Burbuja
-  15: { fur: '#b7aafc', ear: '#b6a9fc', earDark: '#9d8cfa', earIn: '#9d8cfa', nose: '#9d8cfa', paws: '#a28dfc', tail: '#b9adf9', earLine: '#806fee', line: '#3a3068' },   // Lila
+  15: { fur: '#b7aafc', ear: '#ccc3fd', earDark: '#9d8cfa', earIn: '#9d8cfa', nose: '#9d8cfa', paws: '#a28dfc', tail: '#b9adf9', earLine: '#806fee', line: '#3a3068' },   // Lila
   16: { fur: '#7f0a28', ear: '#ba3452', earDark: '#952f46', earIn: '#952f46', nose: '#ba3452', paws: '#d84567', tail: '#c03452', earLine: '#772638', line: '#d9909f' },   // Bordolín
   17: { fur: '#9c807d', ear: '#cda19d', earDark: '#b48b88', earIn: '#b48b88', nose: '#eec1c1', paws: '#d2a3a1', tail: '#cda29e', earLine: '#c49a98', line: '#382521' },   // Panchita
   18: { fur: '#919110', ear: '#ccc648', earDark: '#b0ac3a', earIn: '#b0ac3a', nose: '#f7f785', paws: '#cbc641', tail: '#aba930', earLine: '#bebb3a', line: '#363704' },   // Wasabi
@@ -2808,6 +2850,7 @@ function markEye(c, x, y, r) { const m = c.getTransform(), p = m.transformPoint(
 function ratEyes(g) { const m = g.getTransform(), inv = m.inverse(), k = Math.hypot(m.a, m.b) || 1; return ratEyesDev.map(([x, y, r]) => { const p = inv.transformPoint(new DOMPoint(x, y)); return [p.x, p.y, r / k]; }); }
 // ratitas que no parpadean (Fogui: tiene fuego en los ojos)
 const RAT_NOBLINK = new Set([13]);
+const NOSE_SIDE = [0.8, 1.25];   // la nariz de perfil: ancho y largo, en veces la de frente
 function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: cuánto se mueve (0 = quieta, 1 = normal); wag: segundos desde que se la tocó (0 = nada)
   // Dibujo plano de costado, mirando a la izquierda, según la última referencia del usuario (revision/rata-perfil-nueva,
   // 1804 × 872, piso en y = 700), medida píxel por píxel: cuerpo de gota con el lomo alto atrás y la cabeza en cuña, una
@@ -2875,18 +2918,22 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
     c.beginPath(); c.arc(tp[tp.length - 1][0], tp[tp.length - 1][1], 11, 0, Math.PI * 2); c.fill();
   };
   tailPart(0);
-  // oreja de atrás: redonda, del color de adentro de la oreja (la base queda tapada por la cabeza)
-  c.save(); c.translate(436, 356); c.rotate(twitch * 0.5); c.translate(-436, -356);
-  c.fillStyle = P.earDark; c.beginPath(); c.arc(413, 297, 135, 0, Math.PI * 2); c.fill();
+  // oreja de atrás: redonda, del color de adentro de la oreja (la base queda tapada por la cabeza); en noviembre de 2026,
+  // más chica y más arriba y atrás, como la referencia nueva del usuario (revision/rata-perfil-ref3.png, llevada a estas
+  // coordenadas por el ajuste de su silueta: x · 1,928 + 16, y · 1,928 + 51; antes era un círculo de 135 en 413, 297)
+  c.save(); c.translate(470, 380); c.rotate(twitch * 0.5); c.translate(-470, -380);
+  c.fillStyle = P.earDark; c.beginPath(); c.arc(462, 284, 126, 0, Math.PI * 2); c.fill();
   c.restore();
   // cuerpo y cabeza: una sola silueta (cuña adelante, lomo alto y redondo atrás, panza plana en el piso)
   c.save(); c.translate(739, 700); c.scale(1, breath); c.translate(-739, -700);
   const body = new Path2D();
   body.moveTo(78, 612);
   body.bezierCurveTo(140, 515, 280, 390, 420, 336);      // hocico → frente
-  body.bezierCurveTo(600, 272, 850, 196, 1030, 196);     // nuca → lomo (lo más alto, atrás)
-  body.bezierCurveTo(1250, 196, 1434, 370, 1434, 540);   // lomo → anca
-  body.bezierCurveTo(1434, 640, 1360, 700, 1240, 700);   // anca → piso
+  // (el cuello y el lomo siguen el contorno de la referencia nueva: el cuello baja un poco más detrás de la oreja y el lomo
+  // queda un poco más alto y lleno hacia el anca; antes: 600, 272, 850, 196, 1030, 196 y 1250, 196, 1434, 370, 1434, 540)
+  body.bezierCurveTo(720, 340, 710, 178, 1030, 178);     // nuca → lomo (lo más alto, atrás)
+  body.bezierCurveTo(1320, 178, 1436, 386, 1436, 540);   // lomo → anca
+  body.bezierCurveTo(1436, 640, 1360, 700, 1240, 700);   // anca → piso
   body.lineTo(270, 700);                                 // panza plana
   body.bezierCurveTo(180, 698, 110, 682, 85, 655);       // pera
   body.bezierCurveTo(70, 640, 68, 625, 78, 612);         // punta del hocico
@@ -2915,17 +2962,18 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
   paw(475, 688, 631, [[527, 659, 511, 704], [565, 659, 547, 704]]);
   paw(994, 1233, 627, [[1046, 659, 1029, 702], [1083, 659, 1065, 704]]);
   tailPart(Math.round(tp.length * 0.5));   // la punta, por delante del cuerpo
-  // oreja de adelante: redonda, con el interior más oscuro y el pliegue marcado arriba; es la que se mueve
-  c.save(); c.translate(587, 438); c.rotate(twitch); c.translate(-587, -438);
-  c.fillStyle = P.ear; c.beginPath(); c.ellipse(604.5, 342.5, 171.5, 160.5, 0, 0, Math.PI * 2); c.fill();
-  c.fillStyle = P.earIn; c.beginPath(); c.arc(602.5, 371.5, 105, 0, Math.PI * 2); c.fill();
-  c.strokeStyle = P.earLine; c.lineWidth = 8;
-  c.beginPath(); c.arc(602.5, 371.5, 101, Math.PI - 0.28, Math.PI * 2 + 0.28); c.stroke();
+  // oreja de adelante: un óvalo inclinado hacia arriba y atrás, con el interior más oscuro (otro óvalo) y el pliegue
+  // siguiendo su borde por arriba y por atrás; es la que se mueve. Como la referencia nueva (antes era casi un círculo
+  // de 171 × 160 en 604, 342, con el interior redondo y la mejilla que le tapaba la parte de abajo; ahora se ve entera)
+  c.save(); c.translate(510, 470); c.rotate(twitch); c.translate(-510, -470);
+  c.fillStyle = P.ear; c.beginPath(); c.ellipse(552, 333, 164, 142.5, -0.966, 0, Math.PI * 2); c.fill();
+  c.fillStyle = P.earIn; c.beginPath(); c.ellipse(540.5, 360, 105.7, 89.9, -1.058, 0, Math.PI * 2); c.fill();
+  {   // el pliegue: sobre el borde del interior, de arriba a la izquierda, por arriba y atrás, hasta abajo a la derecha
+    const th = -1.058, rx = 101.7, ry = 85.9, par = a => Math.atan2(rx * Math.sin(a - th), ry * Math.cos(a - th));
+    let t0 = par(-2.5), t1 = par(0.9); if (t1 < t0) t1 += Math.PI * 2;
+    c.strokeStyle = P.earLine; c.lineWidth = 8; c.beginPath(); c.ellipse(540.5, 360, rx, ry, th, t0, t1); c.stroke();
+  }
   c.restore();
-  // la mejilla tapa la parte de abajo a la izquierda de la oreja (como en la referencia): pelaje debajo de una línea
-  // que va de donde la frente toca la oreja hasta el borde de abajo de la oreja (no se mueve con la oreja). Sin recorte:
-  // toda esa zona es pelaje (recortada a la oreja dejaba un filito rosa marcado en el borde)
-  c.fillStyle = fur; c.beginPath(); c.moveTo(400, 436); c.lineTo(459, 436); c.quadraticCurveTo(545, 452, 598, 508); c.lineTo(600, 560); c.lineTo(400, 560); c.closePath(); c.fill();
   // ojo grande (con antifaz si es Panchita), con el brillo arriba a la izquierda
   if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(262, 530, 66, 55, 0.2, 0, Math.PI * 2); c.fill(); }
   markEye(c, 266.5, 533.5, 44.5);
@@ -2941,9 +2989,15 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
     c.moveTo(x0, y0); c.quadraticCurveTo(cx, cy, x1, y1);
   }
   c.stroke();
-  c.fillStyle = P.nose; c.beginPath();   // nariz en la punta del hocico: una gota redonda que termina en punta adelante
-  c.moveTo(46, 628); c.bezierCurveTo(52, 604, 70, 594, 84, 595); c.bezierCurveTo(104, 597, 110, 618, 108, 632);
-  c.bezierCurveTo(106, 650, 96, 664, 82, 665); c.bezierCurveTo(66, 664, 52, 648, 46, 628); c.fill();
+  // nariz en la punta del hocico: la misma forma que la de la ratita de frente (lo pidió el usuario), más chica y un poco
+  // girada, con la punta hacia abajo y atrás, donde la tiene la referencia nueva
+  // (un poco más angosta y más larga, con la base donde estaba y la punta llegando al borde de abajo de la cabeza: lo
+  // pidió el usuario; NOSE_SIDE: ancho y largo)
+  c.save(); c.translate(93.7, 627.6); c.rotate(-0.45); c.translate(0, 26 * (NOSE_SIDE[1] - 0.95)); c.scale(NOSE_SIDE[0], NOSE_SIDE[1]); c.translate(-590, -594);
+  c.fillStyle = P.nose; c.beginPath();
+  c.moveTo(560, 578); c.quadraticCurveTo(590, 568, 620, 578); c.quadraticCurveTo(636, 586, 622, 602);
+  c.quadraticCurveTo(598, 628, 590, 628); c.quadraticCurveTo(582, 628, 558, 602); c.quadraticCurveTo(544, 586, 560, 578); c.fill();
+  c.restore();
   c.restore();
 }
 // Ratita hecha una bolita (como la referencia): enroscada de costado, la cabeza metida adelante y abajo, la oreja
@@ -3060,7 +3114,59 @@ function fxEach(seed, n, period, life, t, k, cb) {
     if (a < lf) cb(a / lf, R, j);
   }
 }
-const fxBody = (F, ang, rr) => [F.x + Math.cos(ang) * F.rx * rr, F.y + Math.sin(ang) * F.ry * rr];
+const fxBody = (F, ang, rr) => {
+  if (F.rot === undefined) return [F.x + Math.cos(ang) * F.rx * rr, F.y + Math.sin(ang) * F.ry * rr];
+  const lx = Math.cos(ang) * F.bx * rr, ly = Math.sin(ang) * F.by * rr, c = Math.cos(F.rot), sn = Math.sin(F.rot);   // (de arriba: sobre el cuerpo, que gira)
+  return [F.x + lx * c - ly * sn, F.y + lx * sn + ly * c];
+};
+// Marco de la ratita del laberinto, vista de arriba (en las unidades del mundo, lo pidió el usuario): gira con ella (rot;
+// bx, by: medio largo y medio ancho del cuerpo; rx, ry: la elipse de las órbitas, en pantalla). Su contorno (outline: los
+// puntos de la silueta de drawMouse, ya girados, relativos a ox, oy) sale de las mismas curvas del cuerpo, sin el giro de la cabeza
+const FX_TOP_U = 6;
+let fxTopO = null;
+function fxFrameTop() {
+  if (!fxTopO) {   // muestras de las curvas de la silueta (MOUSE_V2), con su normal hacia afuera
+    const segs = [[18, 0, 16.3, -2.5, 12.6, -5.4, 9.4, -6.5], [9.4, -6.5, 5, -7.7, -4, -8.7, -9, -9.7], [-9, -9.7, -14.2, -10.6, -20.5, -6.4, -20.5, 0]];
+    fxTopO = [];
+    for (const sd of [1, -1]) for (const [x0, y0, x1, y1, x2, y2, x3, y3] of segs) for (let n = 0; n < 12; n++) {
+      const q = (n + 0.5) / 12, m = 1 - q, bx = m * m * m * x0 + 3 * m * m * q * x1 + 3 * m * q * q * x2 + q * q * q * x3;
+      const by = m * m * m * y0 + 3 * m * m * q * y1 + 3 * m * q * q * y2 + q * q * q * y3;
+      const dx = 3 * m * m * (x1 - x0) + 6 * m * q * (x2 - x1) + 3 * q * q * (x3 - x2), dy = 3 * m * m * (y1 - y0) + 6 * m * q * (y2 - y1) + 3 * q * q * (y3 - y2);
+      let nx = dy, ny = -dx; const L = Math.hypot(nx, ny) || 1; nx /= L; ny /= L; if (nx * (bx + 1) + ny * by < 0) { nx = -nx; ny = -ny; }
+      fxTopO.push([bx, by * sd, nx, ny * sd]);
+    }
+  }
+  const ca = Math.cos(M.a), sa = Math.sin(M.a), W = (lx, ly) => [lx * ca - ly * sa, lx * sa + ly * ca];
+  const O = fxTopO.map(([ux, uy, nx, ny]) => { const [wx, wy] = W(ux, uy), [wnx, wny] = W(nx, ny); return [wx, wy, wnx, wny, ux]; });
+  O.withEars = O;
+  const [cx, cy] = W(-1, 0), [hx, hy] = W(12, 0);
+  return { x: M.x + cx, y: M.y + cy, rx: 15, ry: 11, bx: 19.5, by: 9.7, rot: M.a, fx: M.x + hx, fy: M.y + hy, fr: 6, u: FX_TOP_U,
+    view: 'top', ox: M.x, oy: M.y, k: 1, outline: O, eyes: [] };
+}
+// (Toxi de arriba: lugares de los rombos en las unidades de la ratita, x hacia el hocico, recortados a su silueta)
+const TOXI_TOP = [[-14, -4, 5.5], [-7, 5, 5], [0, -4, 5], [7, 3, 4.5], [-18, 4, 4]];
+// lugares de las llamas de Fogui de arriba, en las unidades de la ratita: por el contorno, cada FOGUI_TOP_GAP de largo
+// (sin la punta del hocico ni el tramo de las patas de adelante, que están en x = 5: lo pidió el usuario), una por medio
+// por encima; y FOGUI_TOP_SPINE por el lomo. [x, y, normal x, normal y, por encima, del lomo]
+const FOGUI_TOP_GAP = 7, FOGUI_TOP_SPINE = [[-4, 0], [-11, 0], [-17.5, 0]];
+let fxTopSpots = null;
+function fxTopFlameSpots() {
+  if (fxTopSpots) return fxTopSpots;
+  fxFrameTop(); fxTopSpots = [];
+  const half = fxTopO.length / 2;
+  for (let sd = 0; sd < 2; sd++) {
+    let last = null, n = 0;
+    for (let q = 0; q < half; q++) {
+      const [ux, uy, nx, ny] = fxTopO[sd * half + q];
+      if (ux > 15 || (ux > -1 && ux < 11)) { last = null; continue; }
+      if (last && Math.hypot(ux - last[0], uy - last[1]) < FOGUI_TOP_GAP) continue;
+      fxTopSpots.push([ux, uy, nx, ny, (n + sd) % 2 === 1, false]); last = [ux, uy]; n++;
+    }
+  }
+  for (const [ux, uy] of FOGUI_TOP_SPINE) fxTopSpots.push([ux, uy, 0, 0, true, true]);
+  return fxTopSpots;
+}
+let mouseBody = null, mouseBodyT = null;   // (la silueta de la última ratita del laberinto, y el lienzo donde estaba)
 // delante de la cara se apagan (0 en el medio de la cara, 1 afuera)
 const fxFace = (F, x, y) => smooth(F.fr * 0.55, F.fr, Math.hypot(x - F.fx, y - F.fy));
 function fxStar4(g, x, y, r, col, rot = 0) {   // destello de cuatro puntas
@@ -3151,11 +3257,23 @@ function fxSpot() {
 // layer: 'back' (detrás de la ratita) o 'front'. Cada efecto reparte sus partículas entre las dos capas
 function drawRatFx(g, i, t, F, layer, k = 1) {
   const fx = RAT_FX[i]; if (!fx || k <= 0) return;
-  const back = layer === 'back', u = F.u, seed = i * 1000 + 3, side = j => (j % 2 === 0) === back;
+  const back = layer === 'back', u = F.u, seed = i * 1000 + 3, top = F.view === 'top';
+  // (de arriba, lo de atrás queda debajo de la ratita y casi no se ve: ahí van solo una de cada cuatro)
+  const side = j => top ? (j % 4 === 0) === back : (j % 2 === 0) === back;
   const A = Math.min(1, k);   // los brillos se apagan con k < 1; con k > 1 hay más partículas
   g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
   if (fx === 'glowspots') {   // Toxi: manchas que brillan, por delante, recortadas a la silueta (fxMasks)
-    if (!back && F.view) {
+    if (!back && F.view === 'top' && mouseBody) {   // de arriba: recortadas a la silueta del cuerpo (drawMouse la deja en mouseBody)
+      const sp = fxSpot(); g.save(); g.setTransform(mouseBodyT); g.clip(mouseBody);
+      TOXI_TOP.forEach(([sx, sy, sr], j) => {
+        for (const half of [0, 0.5]) {   // (como de frente: nace chico, crece, se corre un poco hacia la cola y se desvanece)
+          const per = TOXI_T * (0.8 + 0.4 * fxHash(seed + 2, j)), tt = t / per + fxHash(seed + 1, j) + half, cyc = Math.floor(tt), p = tt - cyc;
+          const x = sx + (fxHash(seed + 3 + j * 7, cyc) - 0.5) * sr * 0.5 - TOXI_RISE * sr * p, y = sy + (fxHash(seed + 4 + j * 7, cyc) - 0.5) * sr * 0.4, r = sr * lerp(TOXI_GROW[0], TOXI_GROW[1], p);
+          g.globalAlpha = TOXI_A[1] * A * Math.min(1, p / 0.2) * (1 - smooth(0.25, 1, p)); g.drawImage(sp, x - r, y - r, r * 2, r * 2);
+        }
+      });
+      g.restore();
+    } else if (!back && F.view && F.view !== 'top') {
       fxOutline(F.view); const M = fxMasks[F.view], sp = fxSpot();
       if (!fxSpotTmp || fxSpotTmp.width !== M.cv.width || fxSpotTmp.height !== M.cv.height) fxSpotTmp = mk(M.cv.width, M.cv.height)[0];
       const q = fxSpotTmp.getContext('2d'); q.globalCompositeOperation = 'source-over'; q.globalAlpha = 1; q.clearRect(0, 0, fxSpotTmp.width, fxSpotTmp.height);
@@ -3192,7 +3310,10 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
     fxEach(seed, 12, 1.6, 0.6, t, k, (p, R, j) => {
       if (!side(j)) return;
       const an = -Math.PI * (0.1 + 0.8 * R(2)), [x0, y0] = fxBody(F, an, 0.85), dir = Math.cos(an) + (R(3) - 0.5) * 0.6;
-      const pos = q => [x0 + dir * 2.2 * u * q, y0 - 3.2 * u * q + 4.2 * u * q * q];
+      // (de arriba salen del contorno hacia afuera, frenando: no hay para dónde caer)
+      const o = top && F.outline[Math.floor(R(2) * F.outline.length)], tw = (R(3) - 0.5) * 0.8;
+      const pos = o ? q => { const e = q * (2 - q) * 2.6 * u; return [F.ox + o[0] + (o[2] - o[3] * tw) * e, F.oy + o[1] + (o[3] + o[2] * tw) * e]; }
+        : q => [x0 + dir * 2.2 * u * q, y0 - 3.2 * u * q + 4.2 * u * q * q];
       const [x, y] = pos(p), [xa, ya] = pos(Math.max(0, p - 0.1));
       const a = (1 - p * p) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
       g.globalAlpha = a;
@@ -3219,7 +3340,7 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
         const R = q => fxHash(seed * 131 + j * 17 + q, cyc);
         // de un punto del contorno (fxOutline) a otro cercano, un poquito hacia adentro: así recorren el cuerpo en las dos vistas
         // (también por las orejas, y de frente a veces uno que cruza de oreja a oreja: lo pidió el usuario)
-        const O = fxOutline(F.view).withEars, pt = q => { const o = O[Math.floor(q * O.length)]; return [F.ox + o[0] * F.k - o[2] * 0.35 * u, F.oy + o[1] * F.k - o[3] * 0.35 * u]; };
+        const O = (F.outline || fxOutline(F.view)).withEars, pt = q => { const o = O[Math.floor(q * O.length)]; return [F.ox + o[0] * F.k - o[2] * 0.35 * u, F.oy + o[1] * F.k - o[3] * 0.35 * u]; };
         let xa, ya, xb, yb, seg = 6;
         if (F.view === 'front' && R(30) < 0.3) {   // de oreja a oreja: un punto de arriba de cada oreja
           const E = O.ears || (O.ears = [-1, 1].map(sd => O.filter(q => q[0] * sd > 170 && q[1] < 330 - 624)));
@@ -3265,6 +3386,28 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
     });
   } else if (fx === 'flames') {   // Fogui: llamitas sobre el contorno del cuerpo y la cabeza que crecen y se apagan sin moverse
     // de lugar (la mayoría por detrás, asomando del borde), una que arde siempre en cada ojo (el calorcito de atrás casi no se veía y el usuario lo sacó)
+    if (F.view === 'top') {   // de arriba (el laberinto): llamitas por todo el contorno, con la punta hacia afuera y un poco hacia la
+      // cola (la mayoría por debajo de la ratita, asomando del borde; más chicas en la cabeza), y una en cada ojo hacia atrás
+      // (en lugares fijos y separados, FOGUI_TOP_GAP entre uno y otro por el contorno, así no se monta una sobre otra: lo pidió
+      // el usuario; una por medio va por encima, un poco hacia adentro, y una fila más por el lomo, con la punta hacia la cola)
+      const bkx = -Math.cos(F.rot), bky = -Math.sin(F.rot), ca = Math.cos(F.rot), sa = Math.sin(F.rot);
+      fxTopFlameSpots().forEach(([ux, uy, nx, ny, inFront, spine], j) => {
+        if (inFront === back) return;
+        const per = 1.4 * (0.85 + 0.3 * fxHash(seed + 60, j)), tt = t + fxHash(seed + 61, j) * per, cyc = Math.floor(tt / per), p = tt / per - cyc;
+        const gr = p < 0.3 ? smooth(0, 0.3, p) : 1 - smooth(0.3, 0.95, p), a = Math.min(1, gr * 2) * A; if (a <= 0.01) return;
+        const dd = spine ? 0 : (inFront ? -0.15 : -0.05) * u, lx = ux + nx * dd, ly = uy + ny * dd;
+        const x = F.ox + lx * ca - ly * sa, y = F.oy + lx * sa + ly * ca, wnx = nx * ca - ny * sa, wny = nx * sa + ny * ca;
+        const dx = spine ? bkx : wnx + bkx * 0.6, dy = spine ? bky : wny + bky * 0.6, sz = ux > 8 ? 0.55 : ux < -17 ? 0.8 : 1;
+        g.save(); g.translate(x, y); g.rotate(Math.atan2(dx, -dy)); g.globalAlpha = a;
+        fxFlame(g, 0, 0, (0.34 + fxHash(seed + j, cyc) * 0.13) * FOGUI_FLAME[0] * u * (0.25 + 0.75 * gr) * sz,   // (la más grande, 0,47 en vez de 0,62: lo pidió el usuario)
+          Math.sin(t * 23 + j * 2), FOGUI_FLAME[1]); g.restore();
+      });
+      if (!back) for (const [ex, ey, er] of F.eyes || []) {
+        const fl = Math.sin(t * 19 + ex) * 0.6 + Math.sin(t * 31 + ey) * 0.4;
+        g.save(); g.translate(ex, ey); g.rotate(F.rot - Math.PI / 2); g.globalAlpha = A; fxFlameEye(g, 0, 0, er * 1.5, fl); g.restore();
+      }
+      g.restore(); return;
+    }
     const O = F.view ? fxOutline(F.view) : null;
     if (O && O.length) fxEach(seed, 20, 1.4, 1, t, k, (p, R, j) => {
       if (F.view === 'front') return;   // (de frente van en lugares fijos: fxFoguiFront, abajo)
@@ -3539,6 +3682,14 @@ const MACH_FS_REF = { h: 1232, baseX0: 763.2, baseX1: 1153.9, baseY: 920.2 };
 // ocultarlas en noviembre de 2026, con los fondos nuevos); con BANDS en true vuelven
 const BANDS = false;
 const BAND_DARK = BANDS ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0)';
+// la de abajo volvió, solo en PC (sin pantalla táctil) y solo en la Máquina y el laboratorio del premio (lo pidió el
+// usuario; en el celular y en el Bioterio sigue apagada). machBand(): su alto y su color
+const MACH_BAND_PC = true;
+function machBand() {
+  if (BANDS) return [bandHeights()[1], BAND_DARK];
+  if (!MACH_BAND_PC || document.body.classList.contains('touch')) return [0, 'rgba(0,0,0,0)'];
+  const b = $scr.querySelector('#gachaNav'); return [Math.round(b ? innerHeight - b.getBoundingClientRect().top + 40 : 110), 'rgba(0,0,0,0.9)'];
+}
 function bandHeights() {
   if (!BANDS) return [0, 0];
   const t = $scr.querySelector('.stitle'), b = $scr.querySelector('#gachaNav, .bionav');
@@ -3578,9 +3729,9 @@ function placeScreenBg() {
   const k = (830 * MS) / (MACH_BG.baseX1 - MACH_BG.baseX0) * u;   // px de pantalla por px de la imagen
   // (la capa sobresale de la pantalla, así el sacudón de cámara no deja ver sus bordes: todo se mide desde su esquina)
   const br = bg.getBoundingClientRect(), ox = -br.left, oy = -br.top;
-  const cx = r.left + ox + (MX + 573 * MS) * u, by = r.top + oy + (MY + 1284 * MS) * u, [bt, bb] = bandHeights();
+  const cx = r.left + ox + (MX + 573 * MS) * u, by = r.top + oy + (MY + 1284 * MS) * u, [bt] = bandHeights(), [bb, bcol] = machBand();
   bg.style.backgroundColor = MACH_BG.fill;
-  bg.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt + oy}px), linear-gradient(to top, ${BAND_DARK}, rgba(0,0,0,0) ${bb + br.bottom - innerHeight}px), url(${MACH_BG.src})`;
+  bg.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt + oy}px), linear-gradient(to top, ${bcol}, rgba(0,0,0,0) ${bb + br.bottom - innerHeight}px), url(${MACH_BG.src})`;
   bg.style.backgroundRepeat = 'no-repeat';
   bg.style.backgroundSize = `100% 100%, 100% 100%, ${MACH_BG.w * k}px ${MACH_BG.h * k}px`;
   bg.style.backgroundPosition = `0 0, 0 0, ${cx - (MACH_BG.baseX0 + MACH_BG.baseX1) / 2 * k}px ${by - MACH_BG.baseY * k}px`;
@@ -3589,7 +3740,7 @@ function placeScreenBg() {
   if (lab) {
     const lr = lab.getBoundingClientRect(), kl = u / LAB_BG.px;   // px de pantalla por px de la imagen
     lab.style.backgroundColor = LAB_BG.fill;
-    lab.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt - lr.top}px), linear-gradient(to top, ${BAND_DARK}, rgba(0,0,0,0) ${bb + lr.bottom - innerHeight}px), url(${LAB_BG.src})`;
+    lab.style.backgroundImage = `linear-gradient(${BAND_DARK}, rgba(0,0,0,0) ${bt - lr.top}px), linear-gradient(to top, ${bcol}, rgba(0,0,0,0) ${bb + lr.bottom - innerHeight}px), url(${LAB_BG.src})`;
     lab.style.backgroundRepeat = 'no-repeat';
     lab.style.backgroundSize = `100% 100%, 100% 100%, ${LAB_BG.w * kl}px ${LAB_BG.h * kl}px`;
     lab.style.backgroundPosition = `0 0, 0 0, ${r.left - lr.left - LAB_BG.x0 * kl}px ${r.top - lr.top - LAB_BG.y0 * kl}px`;
@@ -4312,8 +4463,8 @@ function drawGacha(g, n) {
     // (la rareza, que iba debajo de la ratita sobre la mesada, ya no se muestra: el usuario la sacó)
     // (el medio de la franja del borde de la mesada, y 812–884 de la imagen, es 252.7)
     // (el nombre, a la misma distancia de la cabeza que cuando la ratita era más grande)
-    const NAME_Y = 46 + (KF2.y - 132) + (160 - FRONT_CY[0]) * (KF2.size - 154) / 935 - 16,   // (y un poco más arriba, como pidió el usuario)
-      TXT = 0.89, SUB_Y = 255.5;   // (el aviso, un poquito debajo del medio, como pidió el usuario)
+    const NAME_Y = 46 + (KF2.y - 132) + (160 - FRONT_CY[0]) * (KF2.size - 154) / 935 - 16 - 24,   // (y más arriba, dos veces, como pidió el usuario)
+      TXT = 0.89, SUB_Y = 246.5;   // (el aviso: estaba un poquito debajo del medio de la franja, 255,5; el usuario lo pidió más arriba)
     // los textos aparecen con un saltito, a destiempo (lo pidió el usuario): el nombre apenas después de que aterriza, y la
     // rareza y después el aviso cuando ya se ve el laboratorio (TXT_AT, segundos desde que se abre la cápsula); sin borde
     // (antes llevaban un borde oscuro: el usuario lo sacó)
@@ -4765,41 +4916,57 @@ function refreshPrize() { const mb = document.getElementById('machSlot'); if (mb
 // Íconos del cartel de fin de nivel (en SVG, como los del HUD)
 // estrella con facetas (cada punta, una mitad clara y una oscura), como las del boceto. Cada lugar tiene siempre su
 // silueta marrón (la sombra en el cartón) y las ganadas caen encima
-const STAR_PTS = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 21 : 46; return [+(50 + r * Math.cos(a)).toFixed(1), +(53 + r * Math.sin(a)).toFixed(1)]; });
-function starSvg(on, d) {
+// estrellas de los carteles, con los colores de una referencia del usuario: más gorditas (STAR_IN, el radio de adentro; era 21),
+// un borde naranja oscuro y cada faceta de un tono de STAR_RAMP según cuánto mira a la luz, que viene de arriba a la izquierda
+// dos bordes, de afuera hacia adentro: STAR_EDGE naranja y STAR_RIM amarillo (había uno oscuro afuera del naranja y se sacó; trazos sobre el mismo contorno,
+// cada uno más angosto que el anterior, y las facetas encima tapan su mitad de adentro)
+// como un sticker: por fuera de todo, un borde blanco (STAR_PAPER, de STAR_PAPER_W de ancho)
+const STAR_SLOT = 1.13, STAR_PAPER = '#f4ead4', STAR_PAPER_W = 23;
+const STAR_IN = 25, STAR_EDGE = '#c4600c', STAR_RIM = '#ffe45a', STAR_RAMP = ['#fff696', '#ffea5c', '#ffd63c', '#ffc12a', '#f9a61e'];
+const STAR_PTS = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? STAR_IN : 46; return [+(50 + r * Math.cos(a)).toFixed(1), +(53 + r * Math.sin(a)).toFixed(1)]; });
+function starSvg(on, d, n) {   // (n: el número que va dentro de la línea punteada)
   const pts = STAR_PTS.map(p => p.join(',')).join(' ');
-  const sh = `<svg class="wsh" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="rgba(45,25,8,.42)" stroke="rgba(45,25,8,.42)" stroke-width="7" stroke-linejoin="round"/></svg>`;
+  // donde se pega: una línea punteada oscura sobre el cartón, con su número adentro (1, 2, 3) con la forma de la estrella, un poco más grande (STAR_SLOT), que se ve
+  // desde que aparece el panel y la estrella sticker tapa al caer
+  const slot = STAR_PTS.map(([x, y]) => [(50 + (x - 50) * STAR_SLOT).toFixed(1), (53 + (y - 53) * STAR_SLOT).toFixed(1)].join(',')).join(' ');
+  const sh = `<svg class="wsh" viewBox="-6 -6 112 112"><polygon points="${slot}" fill="none" stroke="#2e1a08" stroke-width="3" stroke-dasharray="7 5.5" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/><text x="50" y="57" text-anchor="middle" dominant-baseline="middle" font-family="Kalam, cursive" font-weight="700" font-size="34" fill="#2e1a08" opacity=".6">${n}</text></svg>`;
   if (!on) return `<span class="wstar off">${sh}</span>`;
   let fac = '';
   for (let i = 0; i < 10; i += 2) {
     const o = STAR_PTS[i], a = STAR_PTS[(i + 9) % 10], b = STAR_PTS[i + 1], c = '50,53';
-    fac += `<polygon points="${c} ${a.join(',')} ${o.join(',')}" fill="${i < 6 ? '#ffe96a' : '#ffd23a'}"/><polygon points="${c} ${o.join(',')} ${b.join(',')}" fill="${i < 4 ? '#ffd02c' : '#f2a60e'}"/>`;
+    // (tono por faceta: la dirección de su centro contra la luz, de -1 a 1, repartida en la rampa)
+    const tone = q => { const x = (q[0] + o[0]) / 2 - 50, y = (q[1] + o[1]) / 2 - 53, l = Math.hypot(x, y) || 1, dt = -(x * 0.6 + y * 0.8) / l;
+      return STAR_RAMP[Math.max(0, Math.min(4, Math.round((1 - dt) * 2)))]; };
+    fac += `<polygon points="${c} ${a.join(',')} ${o.join(',')}" fill="${tone(a)}"/><polygon points="${c} ${o.join(',')} ${b.join(',')}" fill="${tone(b)}"/>`;
   }
   const spk = [0, 1, 2, 3, 4, 5].map(k => `<i class="spk" style="--ang:${k * 60 + 15}deg"></i>`).join('');
-  return `<span class="wstar" style="--d:${d}s">${sh}<svg class="wgold" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="#f2a60e" stroke="#d98a06" stroke-width="7" stroke-linejoin="round"/>${fac}</svg>${spk}</span>`;
+  return `<span class="wstar" style="--d:${d}s">${sh}<svg class="wgold" style="--d:${d}s" viewBox="-6 -6 112 112"><polygon points="${pts}" fill="none" stroke="${STAR_PAPER}" stroke-width="${STAR_PAPER_W}" stroke-linejoin="round"/><polygon points="${pts}" fill="none" stroke="${STAR_EDGE}" stroke-width="8.5" stroke-linejoin="round"/><polygon points="${pts}" fill="${STAR_RAMP[3]}" stroke="${STAR_RIM}" stroke-width="3.5" stroke-linejoin="round"/>${fac}</svg>${spk}</span>`;
 }
 // rayitas derechas de la recompensa (como pidió el usuario): una horizontal y dos en abanico, que apuntan hacia el medio
 const RAYS_SIDE_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M14 20 L34 20 M15 9 L31 15 M15 31 L31 25"/></svg>`;
-const RAYS_SVG = `<svg viewBox="0 0 40 40" fill="none" stroke="#f6b81c" stroke-width="4" stroke-linecap="round"><path d="M30 30 L14 16 M33 24 L28 5 M24 34 L5 30"/></svg>`;
-const WATCH_SVG = `<svg viewBox="0 0 64 64"><rect x="26" y="3" width="12" height="7" rx="2" fill="#3b3b40"/><rect x="29.5" y="9" width="5" height="6" fill="#3b3b40"/>
-  <rect x="45" y="10" width="9" height="6" rx="2" fill="#3b3b40" transform="rotate(42 49.5 13)"/><rect x="10" y="10" width="9" height="6" rx="2" fill="#3b3b40" transform="rotate(-42 14.5 13)"/>
-  <circle cx="32" cy="37" r="24" fill="#3b3b40"/><circle cx="32" cy="37" r="19" fill="#f6f1e6"/>
-  <path d="M32 20v4M32 50v4M15 37h4M45 37h4" stroke="#3b3b40" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M32 37V23" stroke="#3b3b40" stroke-width="3" stroke-linecap="round"/><path d="M32 37l9-7" stroke="#d23a20" stroke-width="2.5" stroke-linecap="round"/>
-  <circle cx="32" cy="37" r="2.6" fill="#3b3b40"/><path d="M16 30a17 17 0 0 1 12-11" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`;
+// cronómetro de los carteles, con los colores de una referencia del usuario (revision/reloj-ref.png): botones y aro azules con
+// contorno azul oscuro, esfera crema, marcas de las 12, 3, 6 y 9 y dos agujas rojas que salen del centro (la de arriba más
+// corta, así se ve la marca de las 12), con el eje oscuro encima
+const WATCH_SVG = `<svg viewBox="0 0 64 64"><g class="ol" stroke="#06314e" stroke-width="1.8" stroke-linejoin="round" fill="#3b77a4">
+  <rect x="29.5" y="8.5" width="5" height="6"/><rect x="25" y="2.5" width="14" height="7" rx="2.5"/>
+  <rect x="43.1" y="12.1" width="9" height="7" rx="2" transform="rotate(36 47.6 15.6)"/><rect x="11.9" y="12.1" width="9" height="7" rx="2" transform="rotate(-36 16.4 15.6)"/>
+  <circle cx="32" cy="37" r="24" stroke-width="2.2"/></g><circle class="ol" cx="32" cy="37" r="18.6" fill="#fef6f0" stroke="#06314e" stroke-width="2"/>
+  <path d="M32 20.5v3.5M32 50v3.5M15.5 37h3.5M45 37h3.5" stroke="#06314e" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M32 37V29M32 37l10.3-10.3" stroke="#f0030d" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="32" cy="37" r="3" fill="#2d343d"/></svg>`;
 const RETRY_SVG = `<svg viewBox="0 0 32 32"><path d="M25.5 17a9.5 9.5 0 1 1-3.6-7.6" fill="none" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/><path d="M17.5 4.5 L27.5 6 L24 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 // carteles de perder: una trampa cerrada (tabla, plaquita, resorte, arco de alambre y el queso de cebo) y la linterna
 // apagada (cuerpo gris azulado, panel apagado, batería vacía con un hilito rojo, cabeza y vidrio oscuros)
-const TRAP_SVG = `<svg viewBox="0 0 64 64"><rect x="5" y="12" width="54" height="42" rx="4" fill="#c48a4a" stroke="#7a4f22" stroke-width="2"/>
-  <path d="M9 22h46M9 44h46" stroke="#a97237" stroke-width="1.5"/><rect x="22" y="25" width="20" height="16" rx="2" fill="#b9bec4" stroke="#7d848b" stroke-width="1.5"/>
-  <path d="M27 31 L37 31 L32 24 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/>
+const TRAP_SVG = `<svg viewBox="0 0 64 64"><rect class="ol" x="5" y="12" width="54" height="42" rx="4" fill="#c48a4a" stroke="#7a4f22" stroke-width="2"/>
+  <path d="M9 22h46M9 44h46" stroke="#a97237" stroke-width="1.5"/><rect class="ol" x="22" y="25" width="20" height="16" rx="2" fill="#b9bec4" stroke="#7d848b" stroke-width="1.5"/>
+  <path class="ol" d="M27 31 L37 31 L32 24 Z" fill="#f2c94c" stroke="#8a5b10" stroke-width="1.2" stroke-linejoin="round"/>
   <circle cx="32" cy="47" r="4" fill="none" stroke="#6f767c" stroke-width="2.5"/>
   <path d="M11 47 V19 Q11 15 15 15 H49 Q53 15 53 19 V47" fill="none" stroke="#5d6369" stroke-width="3.5" stroke-linecap="round"/></svg>`;
 const DEAD_LAMP_SVG = `<svg viewBox="0 0 64 64"><g transform="rotate(-25 32 32)">
-  <rect x="5" y="26" width="32" height="12" rx="3" fill="#6d7f92" stroke="#3d4a57" stroke-width="2"/><path d="M11 27v10M15 27v10" stroke="#56677a" stroke-width="1.5"/>
+  <rect class="ol" x="5" y="26" width="32" height="12" rx="3" fill="#6d7f92" stroke="#3d4a57" stroke-width="2"/><path d="M11 27v10M15 27v10" stroke="#56677a" stroke-width="1.5"/>
   <rect x="25" y="23" width="7" height="4" rx="1" fill="#3d4a57"/>
-  <path d="M37 24 L50 16 L50 48 L37 40 Z" fill="#8a97a3" stroke="#3d4a57" stroke-width="2" stroke-linejoin="round"/>
-  <rect x="49" y="15" width="6" height="34" rx="3" fill="#3a3f45" stroke="#2a2f35" stroke-width="1.5"/></g></svg>`;
+  <path class="ol" d="M37 24 L50 16 L50 48 L37 40 Z" fill="#8a97a3" stroke="#3d4a57" stroke-width="2" stroke-linejoin="round"/>
+  <rect class="ol" x="49" y="15" width="6" height="34" rx="3" fill="#3a3f45" stroke="#2a2f35" stroke-width="1.5"/></g></svg>`;
 // grilla de niveles (botón cuadrado de los carteles de fin de nivel, en Historia)
 const LEVELS_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1.2"/><rect x="9.5" y="3" width="5" height="5" rx="1.2"/><rect x="16" y="3" width="5" height="5" rx="1.2"/><rect x="3" y="9.5" width="5" height="5" rx="1.2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/><rect x="16" y="9.5" width="5" height="5" rx="1.2"/><rect x="3" y="16" width="5" height="5" rx="1.2"/><rect x="9.5" y="16" width="5" height="5" rx="1.2"/><rect x="16" y="16" width="5" height="5" rx="1.2"/></svg>`;
 // el botón cuadrado de papel para salir del cartel: a los niveles en Historia, a la portada en Desafío
@@ -4871,8 +5038,8 @@ addEventListener('resize', fitWin);
 // una y con tiempo; después los rayos, los quesos y el tiempo contando, el sello del récord, la recompensa y al final la
 // máquina y los botones. Con menos estrellas, lo que sigue se adelanta (s: lo que no hace falta esperar)
 const STAR_AT = [0.45, 0.9, 1.35];   // cuándo empieza a caer cada estrella (aterriza 0,3 s después)
-const WIN_AT = { rays: 1.75, cheese: 2.0, time: 2.3, reward: 2.95, stamp: 3.15, machine: 3.95, btns: 4.15 };
-const winSeq = (s = 0) => [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.15], ['.wstars .wray', 'pop', WIN_AT.rays - s, 0.05],
+const WIN_AT = { cheese: 2.0, time: 2.3, reward: 2.95, stamp: 3.15, machine: 3.95, btns: 4.15 };
+const winSeq = (s = 0) => [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.15],
   ['.wstat.q', 'up', WIN_AT.cheese - s], ['.wstat:not(.q)', 'up', WIN_AT.time - s], ['.wreward', 'up', WIN_AT.reward - s],
   ['.win > p', 'up', WIN_AT.reward + 0.35 - s], ['#machSlot', 'up', WIN_AT.machine - s], ['.wbtns > *', 'pop', WIN_AT.btns - s, 0.07]];
 const CARD_SEQ = {
@@ -4946,15 +5113,14 @@ function showWinCard() {
     const record = prev.best != null && time < Math.floor(prev.best);
     const cheeseIco = cheeseSvg();
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
-    const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k])).join('');
+    const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k], k + 1)).join('');
     const s = STAR_AT[2] - STAR_AT[Math.max(st, 1) - 1], at = k => WIN_AT[k] - s;   // con menos estrellas, todo antes
     G.winBuild = () => card(`<div class="win">
-      <div class="wtitle"><b>${story ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${say('¡Completado!', 'Complete!')}</span></div>
-      <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
-        <i class="wray l">${RAYS_SVG}</i><i class="wray r">${RAYS_SVG}</i>${stars}</div>
+      <div class="wtitle"><b>${story ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span class="wrib">${say('¡Completado!', 'Complete!')}</span></div>
+      <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>${stars}</div>
       <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
         ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>${say('Quesos', 'Cheese')}</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
-        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div><span class="wtag wobj${time <= G.star3 ? ' ok' : ''}">${say('Objetivo', 'Goal')} ${fmtMS(G.star3)}</span>${record && G.cheeseTotal ? `${STAMP_IMG(at('stamp'))}` : ''}</div>
+        <div class="wbox wstat">${WATCH_SVG}<div><h3>${say('Tiempo', 'Time')}</h3><span class="num">${fmtMS(time)}</span></div><span class="wtag wobj${time <= G.star3 ? ' ok' : ''}">${say('Objetivo', 'Goal')} ${fmtMS(G.star3)}${time <= G.star3 ? CHECK_SVG : CROSS_SVG}</span>${record && G.cheeseTotal ? `${STAMP_IMG(at('stamp'))}` : ''}</div>
       </div>
       <div class="wbox wreward">${record && !G.cheeseTotal ? `${STAMP_IMG(at('stamp'))}` : ''}<span class="wtag">${say('Recompensa', 'Reward')}</span><i class="wray">${RAYS_SIDE_SVG}</i>
         <span class="wcoins">${COIN_ICON}${COIN_ICON}</span><span class="num">+${G.runCoins}</span><i class="wray r">${RAYS_SIDE_SVG}</i></div>
@@ -5707,8 +5873,14 @@ function drawFloor(c, v) {
   drawFloorItems(c, v);   // trampas, pegamento y quesos (en la oscuridad no se ven: solo con la linterna)
 }
 
+// cara de una pared que mira a la cámara: base (a, b) en el piso y canto (c, d) arriba. El degradé (oscura abajo, clara
+// arriba) va derecho de la base al canto, perpendicular a la base: antes iba entre el medio de la base y el del canto, y
+// con la cámara corrida a un costado ese camino quedaba casi a lo largo de la pared, así media cara salía oscura y media
+// clara, y esa mancha oscura se deslizaba por la pared al moverse (lo vio el usuario en los niveles con luz)
 function sideQuad(c, ax, ay, bx, by, cx2, cy2, dx, dy) {
-  const g = c.createLinearGradient((ax + bx) / 2, (ay + by) / 2, (cx2 + dx) / 2, (cy2 + dy) / 2);
+  const mx = (ax + bx) / 2, my = (ay + by) / 2, ex = bx - ax, ey = by - ay, el = Math.hypot(ex, ey) || 1, nx = -ey / el, ny = ex / el;
+  const h = ((cx2 + dx) / 2 - mx) * nx + ((cy2 + dy) / 2 - my) * ny;   // lo que sube el canto, medido derecho desde la base
+  const g = c.createLinearGradient(mx, my, mx + nx * h, my + ny * h);
   g.addColorStop(0, '#3a2816'); g.addColorStop(1, '#7c5b37');
   c.fillStyle = g; c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.lineTo(cx2, cy2); c.lineTo(dx, dy); c.closePath(); c.fill();
   c.strokeStyle = 'rgba(25,15,6,0.5)'; c.lineWidth = 0.6; c.stroke();
@@ -6352,6 +6524,7 @@ function drawMouse(c, alpha) {
   bz(3, 8.8, 5, 7, 9, 5.8);
   bz(13, 4.6, 16.5, 2.2, 18, 0);
   }
+  if (c === mouseCtx) { mouseBody = body; mouseBodyT = c.getTransform(); ratEyesDev = []; }   // (para los efectos de las ratitas)
   // cuerpo de un solo color, plano (sin degradé), como las vistas de frente y de perfil (el usuario lo prefirió así)
   c.fillStyle = S.fur; c.fill(body);
   if (S.spots) {   // manchas (Panchita): en el lomo y la cadera, recortadas a la silueta
@@ -6454,6 +6627,7 @@ function drawMouse(c, alpha) {
     // ojo: cerca del hocico; rojo (albino) con brillito blanco, o cerrado (rayita de costado, curvada hacia el lomo)
     const ex = hx(MOUSE_V2 ? 11.2 : 11.7), ey = MOUSE_V2 ? 4.1 : 2.9, er = MOUSE_V2 ? 1.35 : 1.1;
     if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(ex - 0.4, sy * 3, 2.6, 2, sy * 0.4, 0, Math.PI * 2); c.fill(); }   // antifaz de panda
+    if (c === mouseCtx) markEye(c, ex, sy * ey, er);
     if (eyesClosed) {
       c.strokeStyle = S.eyeShut; c.lineWidth = 0.6; c.lineCap = 'round'; c.beginPath();
       c.moveTo(ex, sy * (ey - 1)); c.quadraticCurveTo(ex - 0.9, sy * ey, ex, sy * (ey + 1)); c.stroke();
@@ -6621,7 +6795,11 @@ function renderScene() {
   //    así no se transparenta (ni el cuerpo ni la linterna dejan ver lo que hay debajo)
   if (sw > 0 && sh > 0 && !menu) {
     mouseCtx.setTransform(1, 0, 0, 1, 0, 0); mouseCtx.globalCompositeOperation = 'source-over'; mouseCtx.clearRect(sx, sy, sw, sh);
-    mouseCtx.setTransform(...T6); drawMouse(mouseCtx, 1);
+    mouseCtx.setTransform(...T6);
+    const fxI = skinOverride ?? Skins.data.sel, fxF = RAT_FX[fxI] ? fxFrameTop() : null;   // efecto de la ratita elegida (si tiene)
+    if (fxF) drawRatFx(mouseCtx, fxI, G.time, fxF, 'back');
+    drawMouse(mouseCtx, 1);
+    if (fxF) { fxF.eyes = ratEyes(mouseCtx); drawRatFx(mouseCtx, fxI, G.time, fxF, 'front'); }
     mouseCtx.setTransform(1, 0, 0, 1, 0, 0);
     const dark = 1 - (0.4 + 0.6 * G.light) * (1 - exitDarkness());   // al salir, también se pierde en la oscuridad
     if (dark > 0.01) { mouseCtx.globalCompositeOperation = 'source-atop'; mouseCtx.fillStyle = `rgba(0,0,0,${dark})`; mouseCtx.fillRect(sx, sy, sw, sh); }
