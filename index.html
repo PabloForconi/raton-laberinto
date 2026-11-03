@@ -412,7 +412,7 @@
   #screen .sbtns .cbtn.home { display: inline-grid; place-items: center; padding: 0 12px; }
   #screen .sbtns .cbtn.home svg { width: 26px; height: 26px; }
   .rack::-webkit-scrollbar { display: none; }
-  .bgrack { position: absolute; background: url(img/fondo-bioterio.jpg) 0 0 / 100% 100% no-repeat; }
+  .bgrack { position: absolute; background: url(img/fondo-bioterio.jpg?v=2) 0 0 / 100% 100% no-repeat; }
   .bgrack .rat { position: absolute; }
   .rat { position: relative; z-index: 1; background: none; border: 0; padding: 0; cursor: pointer; display: block;
     width: min(calc(100vw / var(--cols)), 280px); -webkit-tap-highlight-color: transparent; }
@@ -2662,24 +2662,28 @@ function closeScreen() {
 }
 
 // ---- Ratitas: un mueble de estantes con las 20 jaulas; las que tenés se eligen tocándolas ----
-// Fondo del Bioterio (img/fondo-bioterio.jpg, 1920 × 2257, "Estantes_02" del usuario): una alcoba con 6 estantes
+// Fondo del Bioterio (img/fondo-bioterio.jpg, 2638 × 3100: la versión de noviembre del usuario, el mismo dibujo que el
+// "Estantes_02" de 1920 × 2257 con más resolución, ×1,3747 medido en las luces de los estantes; todos los números de
+// abajo son los de antes por ese factor, así todo queda donde estaba): una alcoba con 6 estantes
 // iluminados y la base, con lugar de más a los costados y arriba (es el "Estantes_01" agrandado 1,25 veces y centrado,
 // así que los estantes quedan donde estaban). Va detrás de toda la pantalla, también debajo del título, y se desliza
 // entero junto con las jaulas y el título; los botones (casita, monedas, engranaje y "Máquina") quedan fijos encima.
 // Cada jaula se apoya en un estante, de a 3 (7 filas para las 21 ratitas), centrada en la luz amarilla de su columna.
 // Las jaulas tienen un tamaño fijo en píxeles del fondo (entran entre un estante y el de arriba) y el fondo se escala
 // parejo, sin deformarse, para que las 3 de una fila llenen casi todo el ancho de la pantalla (en la PC, con un tope)
-const BIO_BG = { src: 'img/fondo-bioterio.jpg', w: 1920, h: 2257,
-  shelves: [633, 832, 1029, 1231, 1432, 1629, 1839],   // borde de arriba de cada estante y de la base (y en el fondo)
-  cols: [674.5, 960, 1245.5],                          // centro de las luces amarillas de cada columna (x)
-  cageW: 285,       // ancho de cada jaula (px del fondo): más anchas que antes (237,6), casi tocándose pero sin tocarse
-  fitW: 808.6,      // ancho de una fila con el que se escala el fondo (el de antes, así el fondo y los estantes no cambian)
-  titleY: 330,     // el título va sobre la caja de la lámpara del techo (como la referencia del usuario): así arranca la galería
-  end: 2016 };     // hasta dónde se desliza: un poco debajo de la base, donde empieza el piso (como marcó el usuario)
+const BIO_BG = { src: 'img/fondo-bioterio.jpg?v=2', w: 2638, h: 3100, s: 1.3747,   // s: px de esta imagen por px de la de antes
+  shelves: [870.2, 1143.8, 1414.6, 1692.3, 1968.6, 2239.4, 2528.1],   // borde de arriba de cada estante y de la base (y en el fondo)
+  cols: [927.2, 1319.7, 1712.2],                       // centro de las luces amarillas de cada columna (x)
+  cageW: 391.8,     // ancho de cada jaula (px del fondo): más anchas que antes, casi tocándose pero sin tocarse
+  fitW: 1111.6,     // ancho de una fila con el que se escala el fondo (el de antes, así el fondo y los estantes no cambian)
+  titleY: 453.7,   // el título va sobre la caja de la lámpara del techo (como la referencia del usuario): así arranca la galería
+  end: 2771.4 };   // hasta dónde se desliza: un poco debajo de la base, donde empieza el piso (como marcó el usuario)
 function layoutRack() {
   const rack = $scr.querySelector('.rack'), bg = rack && rack.querySelector('.bgrack'), head = rack && rack.querySelector('.biohead');
   if (!bg) return;
-  const B = BIO_BG, k = Math.min(rack.clientWidth * 0.96 / B.fitW, 1);   // (en la PC no tan grande)
+  // en la PC no tan grande (el tope de antes: la imagen vieja a su tamaño real), pero siempre un poco más ancho que la
+  // pantalla, así los costados del fondo nunca se ven (el usuario pidió que los fondos sobren en la PC y en el iPhone)
+  const B = BIO_BG, k = Math.min(rack.clientWidth * 0.96 / B.fitW, Math.max(1 / B.s, (rack.clientWidth + 16) / B.w));
   const h2 = head.querySelector('.stitle'), ty = head.offsetTop + h2.offsetTop + h2.offsetHeight / 2;   // centro del título
   const cw = B.cageW * k, ch = cw * CAGE_H / CAGE_W;
   // la primera fila de jaulas nunca empieza arriba del contador de monedas: en el iPhone a pantalla completa las monedas
@@ -2698,7 +2702,7 @@ function layoutRack() {
     const row = +el.dataset.row, col = +el.dataset.col;
     el.style.width = cw + 'px';
     el.style.left = (B.cols[col] * k - cw / 2) + 'px';
-    el.style.top = ((B.shelves[row] - 2.5) * k - 0.86 * ch) + 'px';   // el fondo de la caja (86% del dibujo) apoyado justo arriba de la línea amarilla del estante
+    el.style.top = ((B.shelves[row] - 2.5 * B.s) * k - 0.86 * ch) + 'px';   // el fondo de la caja (86% del dibujo) apoyado justo arriba de la línea amarilla del estante
   });
 }
 addEventListener('resize', () => { if (G.screen === 'ratitas') layoutRack(); });
@@ -3142,17 +3146,23 @@ const SPARK_UP = 20;   // cuánto más arriba aparecen los destellos del premio 
 const SPARK_SIZE = 0.6;   // tamaño de cada destello (el usuario los quiso más chicos; 1 = como eran)
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
   caps: null, onStage: null, L: { beacon: 0, tubeL: 0, tubeR: 0, inner: 0, door: 0 }, vib: [0, 0] };
-// Fondo de la Máquina (img/fondo-maquina.jpg, 1920 × 1232, "bg_maquina_01" del usuario: una alcoba con una mesada,
-// más grande que la primera para llenar la pantalla; va detrás de todo, también de los botones). La máquina queda donde
-// está y el fondo se acomoda a ella: el ancho de su base turquesa (830 en las coordenadas de la máquina) mide lo mismo que
-// en la referencia (de x 763 a 1154 en esta imagen) y el borde de abajo de la base (y 1284) cae sobre la mesada (y 920).
-// (Son los mismos lugares que en el fondo anterior, medidos: esta imagen es aquella achicada 0,88 y corrida.) Si la
-// pantalla es más alta que el fondo, lo que sobra abajo se pinta del color del borde de la imagen
-const MACH_BG = { src: 'img/fondo-maquina.jpg', w: 1920, h: 1232, baseX0: 763.2, baseX1: 1153.9, baseY: 920.2, fill: '#111019' };
+// Fondo de la Máquina (img/fondo-maquina.jpg, 3164 × 1860: la versión de noviembre del usuario, 5274 × 3100 en concept/,
+// achicada a 0,6; mucho más grande que la pantalla, así sobra a los costados, arriba y abajo en la PC y en el iPhone;
+// va detrás de todo, también de los botones). La máquina queda donde está y el fondo se acomoda a ella como en la
+// referencia del usuario (concept/fondo-maquina_refe.jpg, medida calzando el dibujo de la máquina sobre ella): el ancho
+// de su base turquesa (830 en las coordenadas de la máquina) va de x 1363 a 1803 en esta imagen y el borde de abajo de la
+// base (y 1284) cae sobre la mesada (y 1208). Si la pantalla fuera más grande que el fondo, el resto se pinta con fill
+const MACH_BG = { src: 'img/fondo-maquina.jpg?v=2', w: 3164, h: 1860, baseX0: 1363.4, baseX1: 1802.6, baseY: 1208.1, fill: '#21161a' };
+// (el fondo anterior, 1920 × 1232: con él se calcula cuánto se agranda la máquina a pantalla completa en el iPhone, así
+// la máquina queda del tamaño y en el lugar que el usuario ya aprobó; ver fitMachFS)
+const MACH_FS_REF = { h: 1232, baseX0: 763.2, baseX1: 1153.9, baseY: 920.2 };
 // Franjas oscuras arriba y abajo que se funden con el fondo (Máquina y Bioterio): la de arriba termina un poco después
-// del título y la de abajo un poco después del último botón (contando desde abajo)
-const BAND_DARK = 'rgba(0,0,0,0.9)';
+// del título y la de abajo un poco después del último botón (contando desde abajo). Apagadas por ahora (el usuario pidió
+// ocultarlas en noviembre de 2026, con los fondos nuevos); con BANDS en true vuelven
+const BANDS = false;
+const BAND_DARK = BANDS ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0)';
 function bandHeights() {
+  if (!BANDS) return [0, 0];
   const t = $scr.querySelector('.stitle'), b = $scr.querySelector('#gachaNav, .bionav');
   const top = t ? t.getBoundingClientRect().bottom + 40 : 110;
   const bot = b ? innerHeight - b.getBoundingClientRect().top + 40 : 110;
@@ -3167,8 +3177,8 @@ function fitMachFS() {
   const de = document.documentElement, cv = document.getElementById('gachaCv');
   if (!de.classList.contains('gapfix') || !cv) return;
   de.style.setProperty('--ms', 1); de.style.setProperty('--mdy', '0px'); de.style.setProperty('--mup', '0px');
-  const r = cv.getBoundingClientRect(), u = r.width / 300, k = (830 * MS) / (MACH_BG.baseX1 - MACH_BG.baseX0) * u;
-  const yC = r.top + r.height * 0.979, imgTop = r.top + (MY + 1284 * MS) * u - MACH_BG.baseY * k, imgBot = imgTop + MACH_BG.h * k;
+  const F = MACH_FS_REF, r = cv.getBoundingClientRect(), u = r.width / 300, k = (830 * MS) / (F.baseX1 - F.baseX0) * u;
+  const yC = r.top + r.height * 0.979, imgTop = r.top + (MY + 1284 * MS) * u - F.baseY * k, imgBot = imgTop + F.h * k;
   const H = viewH(), dT = yC - imgTop, dB = imgBot - yC;
   if (imgBot >= H || dT <= 0 || dB <= 0) return;
   const btns = document.getElementById('gachaBtns').getBoundingClientRect(), nav = document.getElementById('gachaNav').getBoundingClientRect();
@@ -3207,17 +3217,18 @@ function placeScreenBg() {
     lab.style.backgroundPosition = `0 0, 0 0, ${r.left - lr.left - LAB_BG.x0 * kl}px ${r.top - lr.top - LAB_BG.y0 * kl}px`;
   }
 }
-// Fondo del laboratorio para la ratita de frente (img/fondo-ratalab.jpg, "bg_ratalab_01" del usuario, 1920 × 1081). Se
-// ubica como en la referencia que mandó el usuario: px = cuántos px de la imagen mide una unidad del canvas de la máquina
-// (la ratita sentada medía 433 px de alto ahí) y (x0, y0) es el punto de la imagen donde cae la esquina (0, 0) del canvas.
-// Si la pantalla es más grande que la imagen, el resto se pinta con fill (el usuario después completa la imagen)
+// Fondo del laboratorio para la ratita de frente (img/fondo-ratalab.jpg, 3164 × 1860: la versión de noviembre del
+// usuario, 5274 × 3100 en concept/, achicada a 0,6; sobra en la PC y en el iPhone). Se ubica como en la referencia que
+// mandó el usuario (concept/fondo-ratalab_refe.jpg, medida calzando la ratita sentada sobre ella): px = cuántos px de la
+// imagen mide una unidad del canvas de la máquina y (x0, y0) es el punto de la imagen donde cae la esquina (0, 0) del
+// canvas. Si la pantalla fuera más grande que la imagen, el resto se pinta con fill
 // Los fondos se bajan y se decodifican de antemano, un rato después de abrir el juego: si no, la primera vez que se abre
 // el Bioterio o la Máquina (o aparece el laboratorio) el fondo llegaba tarde, después del fundido
-setTimeout(() => ['img/fondo-maquina.jpg', 'img/fondo-bioterio.jpg', 'img/fondo-ratalab.jpg', 'img/btn-maquina.png'].forEach(src => {
+setTimeout(() => [MACH_BG.src, BIO_BG.src, LAB_BG.src, 'img/btn-maquina.png'].forEach(src => {
   const im = new Image(); im.src = src; (window.bgKeep = window.bgKeep || []).push(im);
   if (im.decode) im.decode().catch(() => {});
 }), 1200);
-const LAB_BG = { src: 'img/fondo-ratalab.jpg', w: 2544, h: 1336, px: 2.74, x0: 876.6, y0: 155.6, fill: '#272531' };   // (las versiones nuevas son la misma, alargada para abajo y después 312 px a cada costado)
+const LAB_BG = { src: 'img/fondo-ratalab.jpg?v=2', w: 3164, h: 1860, px: 2.7324, x0: 1173.6, y0: 571.2, fill: '#020208' };
 // cuando la cápsula salta hacia adelante el fondo se apaga de a poco (queda todo negro para el premio) y con "Otra vez"
 // vuelve junto con la máquina
 const machBgDark = on => { const bg = $scr.querySelector('.scrbg'); if (bg) bg.classList.toggle('dark', on); };
