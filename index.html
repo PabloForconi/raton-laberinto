@@ -3141,14 +3141,23 @@ function fxFrameTop() {
   O.withEars = O;
   const [cx, cy] = W(-1, 0), [hx, hy] = W(12, 0);
   return { x: M.x + cx, y: M.y + cy, rx: 15, ry: 11, bx: 19.5, by: 9.7, rot: M.a, fx: M.x + hx, fy: M.y + hy, fr: 6, u: FX_TOP_U,
-    view: 'top', ox: M.x, oy: M.y, k: 1, outline: O, eyes: [] };
+    view: 'top', ox: M.x, oy: M.y, k: 1, outline: O, eyes: [], gear: !(G.mode === 'story' && !G.dark) };
 }
 // (Toxi de arriba: lugares de los rombos en las unidades de la ratita, x hacia el hocico, recortados a su silueta)
 const TOXI_TOP = [[-14, -4, 5.5], [-7, 5, 5], [0, -4, 5], [7, 3, 4.5], [-18, 4, 4]];
 // lugares de las llamas de Fogui de arriba, en las unidades de la ratita: por el contorno, cada FOGUI_TOP_GAP de largo
-// (sin la punta del hocico ni el tramo de las patas de adelante, que están en x = 5: lo pidió el usuario), una por medio
-// por encima; y FOGUI_TOP_SPINE por el lomo. [x, y, normal x, normal y, por encima, del lomo]
-const FOGUI_TOP_GAP = 7, FOGUI_TOP_SPINE = [[-4, 0], [-11, 0], [-17.5, 0]];
+// (de los hombros para atrás: ni en la cabeza ni junto a las patas de adelante, que están en x = 5: lo pidió el usuario),
+// asomando por debajo del borde; y por encima, sobre el lomo, FOGUI_TOP_BACK, como las dibujó el usuario: una fila por el medio
+// y dos de costado, con la punta hacia la cola (las de costado, también hacia afuera), más chicas cerca de la cabeza y de la cola
+// que en el medio del lomo, así se siente la curva de la ratita ([x, y, hacia dónde apunta x, y, tamaño]).
+// Con linterna y arnés (niveles oscuros y Desafío) van otras, todas por encima, donde las marcó el usuario: FOGUI_TOP_GEAR,
+// dos entre las tiras del arnés, a los costados, y cuatro detrás de la tira de atrás, abiertas en abanico (las del borde y
+// las del lomo no van: taparían la linterna o quedarían debajo del cuerpo).
+// [x, y, normal x, normal y, por encima, del lomo, tamaño, con linterna]
+const FOGUI_TOP_GAP = 7, FOGUI_TOP_BACK = [[1.5, 2.6, -1, 0.25, 0.6], [1.5, -2.6, -1, -0.25, 0.6], [-9, 0, -1, 0, 1.2], [-18, 0, -1, 0, 0.72],
+  [-7.5, 6.3, -1, 0.55, 1], [-7.5, -6.3, -1, -0.55, 1], [-15.5, 5.8, -1, 0.5, 0.8], [-15.5, -5.8, -1, -0.5, 0.8]];
+const FOGUI_TOP_GEAR = [[-5.8, 6.3, -1, 0.2, 0.75], [-5.8, -6.3, -1, -0.2, 0.75], [-14.5, 7, -1, 0.6, 0.85], [-14.5, -7, -1, -0.6, 0.85],
+  [-17, 2.5, -1, 0.15, 0.9], [-17, -2.5, -1, -0.15, 0.9]];
 let fxTopSpots = null;
 function fxTopFlameSpots() {
   if (fxTopSpots) return fxTopSpots;
@@ -3158,15 +3167,16 @@ function fxTopFlameSpots() {
     let last = null, n = 0;
     for (let q = 0; q < half; q++) {
       const [ux, uy, nx, ny] = fxTopO[sd * half + q];
-      if (ux > 15 || (ux > -1 && ux < 11)) { last = null; continue; }
+      if (ux > -6) { last = null; continue; }   // (desde x = -6: más adelante, las primeras tocaban las orejas)
       if (last && Math.hypot(ux - last[0], uy - last[1]) < FOGUI_TOP_GAP) continue;
-      fxTopSpots.push([ux, uy, nx, ny, (n + sd) % 2 === 1, false]); last = [ux, uy]; n++;
+      fxTopSpots.push([ux, uy, nx, ny, false, false, ux < -17 ? 0.8 : 1, false]); last = [ux, uy]; n++;
     }
   }
-  for (const [ux, uy] of FOGUI_TOP_SPINE) fxTopSpots.push([ux, uy, 0, 0, true, true]);
+  for (const [set, gear] of [[FOGUI_TOP_BACK, false], [FOGUI_TOP_GEAR, true]])
+    for (const [ux, uy, dx, dy, sz] of set) { const L = Math.hypot(dx, dy); fxTopSpots.push([ux, uy, dx / L, dy / L, true, true, sz, gear]); }
   return fxTopSpots;
 }
-let mouseBody = null, mouseBodyT = null;   // (la silueta de la última ratita del laberinto, y el lienzo donde estaba)
+let mouseBody = null, mouseBodyT = null, mouseFxUnder = null;   // (la silueta de la última ratita del laberinto, y el lienzo donde estaba)
 // delante de la cara se apagan (0 en el medio de la cara, 1 afuera)
 const fxFace = (F, x, y) => smooth(F.fr * 0.55, F.fr, Math.hypot(x - F.fx, y - F.fy));
 function fxStar4(g, x, y, r, col, rot = 0) {   // destello de cuatro puntas
@@ -3391,13 +3401,14 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
       // (en lugares fijos y separados, FOGUI_TOP_GAP entre uno y otro por el contorno, así no se monta una sobre otra: lo pidió
       // el usuario; una por medio va por encima, un poco hacia adentro, y una fila más por el lomo, con la punta hacia la cola)
       const bkx = -Math.cos(F.rot), bky = -Math.sin(F.rot), ca = Math.cos(F.rot), sa = Math.sin(F.rot);
-      fxTopFlameSpots().forEach(([ux, uy, nx, ny, inFront, spine], j) => {
+      fxTopFlameSpots().forEach(([ux, uy, nx, ny, inFront, spine, sz, gear], j) => {
+        if (gear !== !!F.gear) return;   // (con linterna y arnés, solo las de FOGUI_TOP_GEAR; sin ellos, las demás)
         if (inFront === back) return;
         const per = 1.4 * (0.85 + 0.3 * fxHash(seed + 60, j)), tt = t + fxHash(seed + 61, j) * per, cyc = Math.floor(tt / per), p = tt / per - cyc;
         const gr = p < 0.3 ? smooth(0, 0.3, p) : 1 - smooth(0.3, 0.95, p), a = Math.min(1, gr * 2) * A; if (a <= 0.01) return;
-        const dd = spine ? 0 : (inFront ? -0.15 : -0.05) * u, lx = ux + nx * dd, ly = uy + ny * dd;
+        const dd = spine ? 0 : -0.05 * u, lx = ux + nx * dd, ly = uy + ny * dd;
         const x = F.ox + lx * ca - ly * sa, y = F.oy + lx * sa + ly * ca, wnx = nx * ca - ny * sa, wny = nx * sa + ny * ca;
-        const dx = spine ? bkx : wnx + bkx * 0.6, dy = spine ? bky : wny + bky * 0.6, sz = ux > 8 ? 0.55 : ux < -17 ? 0.8 : 1;
+        const dx = spine ? wnx : wnx + bkx * 0.6, dy = spine ? wny : wny + bky * 0.6;   // (las del lomo: hacia donde dice FOGUI_TOP_BACK)
         g.save(); g.translate(x, y); g.rotate(Math.atan2(dx, -dy)); g.globalAlpha = a;
         fxFlame(g, 0, 0, (0.34 + fxHash(seed + j, cyc) * 0.13) * FOGUI_FLAME[0] * u * (0.25 + 0.75 * gr) * sz,   // (la más grande, 0,47 en vez de 0,62: lo pidió el usuario)
           Math.sin(t * 23 + j * 2), FOGUI_FLAME[1]); g.restore();
@@ -6404,6 +6415,7 @@ function drawMouse(c, alpha) {
   sg.addColorStop(0, 'rgba(0,0,0,0.5)'); sg.addColorStop(0.55, 'rgba(0,0,0,0.32)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = sg; c.beginPath(); c.arc(-1, 0, 25, 0, Math.PI * 2); c.fill();
   c.restore();
+  if (c === mouseCtx && mouseFxUnder) mouseFxUnder();   // (lo de atrás de los efectos: encima de la sombra y debajo de la ratita)
   // cola: tramos que se van afinando (posiciones del mundo, calculadas en updateTail)
   if (M.tail) {
     c.strokeStyle = S.tail; c.lineCap = 'round';
@@ -6797,8 +6809,8 @@ function renderScene() {
     mouseCtx.setTransform(1, 0, 0, 1, 0, 0); mouseCtx.globalCompositeOperation = 'source-over'; mouseCtx.clearRect(sx, sy, sw, sh);
     mouseCtx.setTransform(...T6);
     const fxI = skinOverride ?? Skins.data.sel, fxF = RAT_FX[fxI] ? fxFrameTop() : null;   // efecto de la ratita elegida (si tiene)
-    if (fxF) drawRatFx(mouseCtx, fxI, G.time, fxF, 'back');
-    drawMouse(mouseCtx, 1);
+    mouseFxUnder = fxF && (() => drawRatFx(mouseCtx, fxI, G.time, fxF, 'back'));   // (drawMouse lo llama después de su sombra)
+    drawMouse(mouseCtx, 1); mouseFxUnder = null;
     if (fxF) { fxF.eyes = ratEyes(mouseCtx); drawRatFx(mouseCtx, fxI, G.time, fxF, 'front'); }
     mouseCtx.setTransform(1, 0, 0, 1, 0, 0);
     const dark = 1 - (0.4 + 0.6 * G.light) * (1 - exitDarkness());   // al salir, también se pierde en la oscuridad
