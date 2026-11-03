@@ -801,44 +801,45 @@ const Wallet = {
 // portraitOf) y manchas (solo Panchita). Pelaje y orejas son la base de portraitOf, que puede pisarlos.
 // La 0 (Albina) viene de entrada; las demás salen de la máquina.
 const RATS = [
-  ['Albina',      '#e3e3e3', '#f79e96', '#212127', '#4a5960', '#fd0a1d', '#b98582'],
-  ['Vainilla',    '#ebd9ac', '#f3b077', '#6b4524', '#1d1e21', '#582f12', '#f2b27a'],
-  ['Copito',      '#cde9f7', '#9fd4f1', '#1d3566', '#4a4f57', '#0857cc', '#8fcbe8'],
-  ['Cenizón',     '#959595', '#daafb0', '#26262b', '#a9adb2', '#dd0816', '#a89090'],
-  ['Sombrita',    '#383838', '#444444', '#3e3d40', '#1a1a1c', '#fb1026', '#4a484c'],
-  ['Chispita',    '#f16e15', '#f6a86f', '#4a2a14', '#1d1e21', '#fce803', '#e8761e'],
-  ['Cacao',       '#59361f', '#ac7c59', '#1f1d1c', '#4a4f57', '#171412', '#7a5236'],
-  ['Pinky',       '#f9bfd4', '#f8a6cd', '#7a1834', '#1d1e21', '#d70683', '#ef89c3'],
-  ['Cheddar',     '#fbc611', '#fdaa53', '#1f1d1c', '#4a4f57', '#b2182b', '#e6b40f'],
-  ['Toxi',        '#57fb3f', '#b3fa3e', '#1d4a1f', '#1d1e21', '#f9f807', '#5cff3a'],
-  ['Musguito',    '#2b5b29', '#5fa04c', '#1f1d1c', '#4a4f57', '#111010', '#2f5a2c'],
-  ['Voltio',      '#296efd', '#86d1fb', '#12285e', '#1d1e21', '#17fbfe', '#1f5fe0'],
-  ['Mordisquito', '#841ee5', '#c69bfd', '#1f1d1c', '#4a4f57', '#fb97e4', '#8a2be2'],
-  ['Fogui',       '#ed171d', '#fc736a', '#1f1d1c', '#4a4f57', '#fbde04', '#e01f1f'],
-  ['Burbuja',     '#61d7fd', '#86d9fd', '#12285e', '#1d1e21', '#0456fa', '#2fc9c0'],
-  ['Lila',        '#dbcbf8', '#cdb0fc', '#4b2a7a', '#4a4f57', '#690fe4', '#d9cdf2'],
-  ['Bordolín',    '#730f29', '#a02346', '#1f1d1c', '#4a4f57', '#050200', '#5e1020'],
-  ['Panchita',    '#444444', '#81635d', '#1f1d1c', '#4a4f57', '#141414', '#cfa59f'],
-  ['Wasabi',      '#8a9e30', '#b2c660', '#1d4a1f', '#1d1e21', '#124619', '#c1d268'],
-  ['Violeta',     '#74059e', '#721695', '#1f1d1c', '#1d4a1f', '#fe8ae4', '#a8ba20'],
-  ['Dorada',      '#fcce0e', '#fde306', '#3b2a05', '#c9a227', '#ffdd00', '#f8d66a'],
+  ['Albina',      '#faf2f3', '#fdafc0', '#212127', '#4a5960', '#f70202', '#b98582'],
+  ['Vainilla',    '#fde3c0', '#f9bf93', '#6b4524', '#1d1e21', '#371402', '#f2b27a'],
+  ['Copito',      '#d1ebfd', '#a0d9fc', '#1d3566', '#4a4f57', '#012b8f', '#8fcbe8'],
+  ['Cenizón',     '#a79ba6', '#e7b9cc', '#26262b', '#a9adb2', '#e90203', '#a89090'],
+  ['Sombrita',    '#2b2b2d', '#444347', '#3e3d40', '#1a1a1c', '#f80202', '#4a484c'],
+  ['Chispita',    '#fd6d02', '#fda467', '#4a2a14', '#1d1e21', '#feed05', '#e8761e'],
+  ['Cacao',       '#743315', '#cd7855', '#1f1d1c', '#4a4f57', '#0c0200', '#7a5236'],
+  ['Pinky',       '#fdc7df', '#fdbbd9', '#7a1834', '#1d1e21', '#ae055b', '#ef89c3'],
+  ['Cheddar',     '#fec703', '#fdba2a', '#1f1d1c', '#4a4f57', '#bf0605', '#e6b40f'],
+  ['Toxi',        '#9ffa03', '#b9fa34', '#1d4a1f', '#1d1e21', '#f8fcf5', '#5cff3a'],
+  ['Musguito',    '#026b49', '#28ad84', '#1f1d1c', '#4a4f57', '#040404', '#2f5a2c'],
+  ['Voltio',      '#0050fd', '#459bfd', '#12285e', '#1d1e21', '#80fcfe', '#1f5fe0'],
+  ['Mordisquito', '#ed268c', '#f65cb0', '#1f1d1c', '#4a4f57', '#fefcfd', '#8a2be2'],
+  ['Fogui',       '#fb1316', '#fd6660', '#1f1d1c', '#4a4f57', '#fdee09', '#e01f1f'],
+  ['Burbuja',     '#29edf3', '#49f7fb', '#12285e', '#1d1e21', '#0331d6', '#2fc9c0'],
+  ['Lila',        '#b7aafc', '#b6a9fc', '#4b2a7a', '#4a4f57', '#3406b2', '#d9cdf2'],
+  ['Bordolín',    '#7f0a28', '#ba3452', '#1f1d1c', '#4a4f57', '#390202', '#5e1020'],
+  ['Panchita',    '#9c807d', '#cda19d', '#1f1d1c', '#4a4f57', '#140402', '#cfa59f'],
+  ['Wasabi',      '#919110', '#ccc648', '#1d4a1f', '#1d1e21', '#042304', '#c1d268'],
+  ['Violeta',     '#6701c5', '#9229e4', '#1f1d1c', '#1d4a1f', '#fcb9fc', '#a8ba20'],
+  ['Dorada',      '#fac30e', '#fdd734', '#3b2a05', '#c9a227', '#fdf891', '#f8d66a'],
 ];
 // sus nombres en inglés (en el mismo orden) y el nombre en el idioma elegido
 const RAT_EN = ['Albie', 'Vanilla', 'Flake', 'Ashy', 'Shadow', 'Sparky', 'Cocoa', 'Pinky', 'Cheddar', 'Toxie', 'Mossy', 'Volt',
   'Nibbles', 'Blaze', 'Bubbles', 'Lilac', 'Merlot', 'Patches', 'Wasabi', 'Violet', 'Goldie'];
 const ratName = i => say(RATS[i][0], RAT_EN[i]);
-// Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada): 10 comunes, 6 infrecuentes, 3 raras y 1
-// legendaria (la Dorada). La máquina primero sortea la rareza (w: chance de cada una) y después una ratita de esa rareza
+// Rarezas de las que salen de la máquina (la Albina, 0, viene de entrada y no tiene rareza), según el sistema que mandó el
+// usuario en noviembre de 2026: 9 comunes, 6 infrecuentes, 3 raras y 2 legendarias. La máquina primero sortea la rareza
+// (w: chance de cada una) y después una ratita de esa rareza. Los efectos de cada una están en RAT_FX
 const RARITY = {
   comun:      { name: 'Común',       en: 'Common',    color: '#3a3a3a', w: 0.62 },
   infrecuente:{ name: 'Infrecuente', en: 'Uncommon',  color: '#00ffff', w: 0.26 },
   rara:       { name: 'Rara',        en: 'Rare',      color: '#00ff00', w: 0.105 },
   legendaria: { name: 'Legendaria',  en: 'Legendary', color: '#ffff00', w: 0.015 },
 };
-// (el usuario las reordenó: comunes Vainilla, Wasabi, Cenizón, Bordolín, Cacao, Pinky, Cheddar, Musguito, Chispita y
-// Mordisquito; infrecuentes Panchita, Voltio, Lila, Burbuja, Toxi y Copito; raras Violeta, Sombrita y Fogui)
-const RAT_RARITY = [null, 'comun', 'infrecuente', 'comun', 'rara', 'comun', 'comun', 'comun', 'comun', 'infrecuente', 'comun',
-  'infrecuente', 'comun', 'rara', 'infrecuente', 'infrecuente', 'comun', 'infrecuente', 'comun', 'rara', 'legendaria'];
+// comunes Vainilla, Copito, Cenizón, Sombrita, Cacao, Pinky, Cheddar, Lila y Panchita; infrecuentes Chispita, Toxi,
+// Musguito, Voltio, Mordisquito y Burbuja; raras Fogui, Bordolín y Wasabi; legendarias Violeta y Dorada
+const RAT_RARITY = [null, 'comun', 'comun', 'comun', 'comun', 'infrecuente', 'comun', 'comun', 'comun', 'infrecuente', 'infrecuente',
+  'infrecuente', 'infrecuente', 'rara', 'infrecuente', 'comun', 'rara', 'comun', 'rara', 'legendaria', 'legendaria'];
 function rollRat() {
   let r = Math.random(), tier = 'comun';
   for (const k in RARITY) { if ((r -= RARITY[k].w) < 0) { tier = k; break; } }
@@ -862,9 +863,8 @@ const skinCache = {};
 function skinOf(i) {
   if (skinCache[i]) return skinCache[i];
   const [name, , , , , eyes, , spots] = RATS[i], harness = RATS[0][3], P = portraitOf(i), fur = P.fur;
-  const shut = lum(fur) < 0.35 ? mixC(fur, '#ffffff', 0.5) : mixC(mixC(fur, '#000000', 0.55), eyes, 0.25);
   return skinCache[i] = { name, spots, harness, eyes, tail: P.tail, ear: P.ear,
-    earIn: P.earIn, nose: P.nose, shine: P.shine, eyeShut: shut,
+    earIn: P.earIn, nose: P.nose, shine: P.shine, eyeShut: P.line,   // ojo cerrado: del color de la boca de la de frente (lo pidió el usuario)
     eyeGlow: null,   // (la Albina tenía un brillo rojo alrededor de los ojos; el usuario lo sacó)
     fur, foot: hexRgb(P.paws) };   // colores planos (sin degradés), los mismos de la ratita de frente y de perfil
 }
@@ -2738,28 +2738,30 @@ function pickRat(i) {
 // Colores del retrato (plano): pelaje, oreja de adelante, oreja de atrás (earDark), interior de la oreja (earIn), línea del pliegue de la
 // oreja, nariz, patas y cola, y líneas del cuerpo. Salen de la tabla RATS con las mismas proporciones que la Albina
 // (que tiene sus colores elegidos a mano); para ajustar una ratita a mano, se agrega en PORTRAIT_COLORS.
+// (todas medidas en noviembre de 2026 de una lámina de las 21 de frente que hizo el usuario, revision/ratas-frente-colores-ref.png:
+// un valor por parte, el que más se ve; earDark igual al interior, line es el color de la boca; el brillito del ojo, blanco)
 const PORTRAIT_COLORS = {
-  0: { fur: '#e3e3e3', ear: '#f79e96', earDark: '#f17f73', earIn: '#f58174', nose: '#f9a59b', paws: '#f69891', tail: '#f59690', earLine: '#ea583e', line: '#6c6c6c', legLine: '#ffffff' },   // Albina
-  1: { fur: '#ebd9ac', ear: '#f3b077', earDark: '#db9b65', earIn: '#e09f6a', nose: '#f4b27c', paws: '#f4ae74', tail: '#f1aa71', earLine: '#b57f4f', legLine: '#d0aa49' },   // Vainilla
-  2: { fur: '#cde9f7', ear: '#9fd4f1', earDark: '#81c0e2', earIn: '#83c8eb', nose: '#94d0f2', paws: '#8fceef', tail: '#88caee', earLine: '#7dbad9', legLine: '#8ec9e6' },   // Copito
-  3: { fur: '#959595', ear: '#daafb0', earDark: '#be9a9a', earIn: '#bd9d9b', nose: '#d8acac', paws: '#dab1b1', tail: '#d6adad', earLine: '#af9592', legLine: '#808080' },   // Cenizón
-  4: { fur: '#383838', ear: '#444444', earDark: '#333333', earIn: '#333333', nose: '#7e7d80', paws: '#727275', tail: '#444444', line: '#8a8a8b', legLine: '#5c5c5c' },   // Sombrita
-  5: { fur: '#f16e15', ear: '#f6a86f', earDark: '#eb8743', earIn: '#e89255', nose: '#f8ad73', paws: '#f6a86e', tail: '#f5a76d', earLine: '#d58d53', line: '#8f4f1e', legLine: '#f39b58' },   // Chispita
-  6: { fur: '#59361f', ear: '#ac7c59', earDark: '#9b6d4c', earIn: '#986b4a', nose: '#c8956d', paws: '#c7936b', tail: '#a17552', earLine: '#8d623f', line: '#aa8974', legLine: '#936343' },   // Cacao
-  7: { fur: '#f9bfd4', ear: '#f8a6cd', earDark: '#ec83bf', earIn: '#ee8dc2', nose: '#f597c1', paws: '#f38bc5', tail: '#ef85c2', earLine: '#ad5c8a', legLine: '#c28999' },   // Pinky
-  8: { fur: '#fbc611', ear: '#fdaa53', earDark: '#f6942e', earIn: '#f39d36', nose: '#fbaf6f', paws: '#fc9011', tail: '#fc8b05', earLine: '#bd701f', legLine: '#c7a529' },   // Cheddar
-  9: { fur: '#57fb3f', ear: '#b3fa3e', earDark: '#9dea31', earIn: '#9beb32', nose: '#e8fa89', paws: '#b1fb3c', tail: '#b1f838', earLine: '#9ddf2a', line: '#45a531', legLine: '#40df20' },   // Toxi
-  10: { fur: '#2b5b29', ear: '#5fa04c', earDark: '#508a41', earIn: '#4e8c41', nose: '#71aa5c', paws: '#61a44e', tail: '#629e4f', legLine: '#578452' },   // Musguito
-  11: { fur: '#296efd', ear: '#86d1fb', earDark: '#67b7fb', earIn: '#6cbcf0', nose: '#8ad3fe', paws: '#84d0fd', tail: '#74c4fa', earLine: '#528fad', line: '#1c4087', legLine: '#2d56a9' },   // Voltio
-  12: { fur: '#841ee5', ear: '#c69bfd', earDark: '#b478fb', earIn: '#b480ef', nose: '#cba2fb', paws: '#c394fc', tail: '#c397f8' },   // Mordisquito
-  13: { fur: '#ed171d', ear: '#fc736a', earDark: '#fa534e', earIn: '#ec5b55', nose: '#fb8a7f', paws: '#fd756c', tail: '#fa736b' },   // Fogui
-  14: { fur: '#61d7fd', ear: '#86d9fd', earDark: '#67c9f3', earIn: '#6bc8e8', nose: '#b2eafa', paws: '#92defc', tail: '#76caf4', earLine: '#5badc8', line: '#165e5a', legLine: '#3fb3d9' },   // Burbuja
-  15: { fur: '#dbcbf8', ear: '#cdb0fc', earDark: '#b891f0', earIn: '#be96f5', nose: '#be91f3', paws: '#c092fa', tail: '#b488f0', earLine: '#a88bda', line: '#7c67a8', legLine: '#c9adff' },   // Lila
-  16: { fur: '#730f29', ear: '#a02346', earDark: '#931c3d', earIn: '#881938', nose: '#de5172', paws: '#bf3054', tail: '#bf2a52', earLine: '#812c40', line: '#bd7f8a', legLine: '#a11b34', shine: '#ff0000' },   // Bordolín
-  17: { fur: '#444444', ear: '#81635d', earDark: '#735851', earIn: '#6a524d', nose: '#a08077', paws: '#886761', tail: '#b6928c', earLine: '#594440', line: '#86735f', legLine: '#3b2b1c' },   // Panchita
-  18: { fur: '#8a9e30', ear: '#b2c660', earDark: '#97ab48', earIn: '#9baf4b', nose: '#bdd55e', paws: '#bcd25b', tail: '#bacf5b', earLine: '#7d8a3d', line: '#5f6a25', legLine: '#b3c83c' },   // Wasabi
-  19: { fur: '#74059e', ear: '#721695', earDark: '#640785', earIn: '#66088a', nose: '#c971ea', paws: '#b554e8', tail: '#60127b', earLine: '#5c047c', line: '#b479c8', legLine: '#a348fe', shine: '#ffd6e8' },   // Violeta
-  20: { fur: '#fcce0e', ear: '#fde306', earDark: '#f8cc17', earIn: '#fdc824', nose: '#fcd963', paws: '#f8df01', tail: '#f9db00', earLine: '#dfa92a', line: '#ad801f', legLine: '#ffe49e', shine: '#fff6cc' },   // Dorada
+  0: { fur: '#faf2f3', ear: '#fdafc0', earDark: '#f698ad', earIn: '#f698ad', nose: '#f698ad', paws: '#fda3b4', tail: '#fcb3c2', earLine: '#e8879e', line: '#553337' },   // Albina
+  1: { fur: '#fde3c0', ear: '#f9bf93', earDark: '#ecab82', earIn: '#ecab82', nose: '#e5a87c', paws: '#f7ba90', tail: '#fadcbc', earLine: '#dc9872', line: '#543a24' },   // Vainilla
+  2: { fur: '#d1ebfd', ear: '#a0d9fc', earDark: '#84c8f7', earIn: '#84c8f7', nose: '#84c8f7', paws: '#93d1fb', tail: '#9ed8fb', earLine: '#72bbef', line: '#2a343d' },   // Copito
+  3: { fur: '#a79ba6', ear: '#e7b9cc', earDark: '#d29db2', earIn: '#d29db2', nose: '#fedce8', paws: '#ecbacd', tail: '#ceb4c3', earLine: '#e2b0c3', line: '#362c32' },   // Cenizón
+  4: { fur: '#2b2b2d', ear: '#444347', earDark: '#333336', earIn: '#333336', nose: '#999199', paws: '#6b686e', tail: '#424046', earLine: '#4e4c52', line: '#a8a2a5' },   // Sombrita
+  5: { fur: '#fd6d02', ear: '#fda467', earDark: '#fd8e4b', earIn: '#fd8e4b', nose: '#fed7b7', paws: '#fdaf7c', tail: '#faab76', earLine: '#fca065', line: '#612807' },   // Chispita
+  6: { fur: '#743315', ear: '#cd7855', earDark: '#b26141', earIn: '#b26141', nose: '#fdc194', paws: '#dd8e66', tail: '#bf6e4e', earLine: '#c3744c', line: '#c18a69' },   // Cacao
+  7: { fur: '#fdc7df', ear: '#fdbbd9', earDark: '#f68cbf', earIn: '#f68cbf', nose: '#f68cbf', paws: '#fc94c8', tail: '#fca7d2', earLine: '#e678af', line: '#70213f' },   // Pinky
+  8: { fur: '#fec703', ear: '#fdba2a', earDark: '#fda113', earIn: '#fda113', nose: '#fda113', paws: '#fda710', tail: '#fcb416', earLine: '#e78807', line: '#522901' },   // Cheddar
+  9: { fur: '#9ffa03', ear: '#b9fa34', earDark: '#9ceb2c', earIn: '#9ceb2c', nose: '#eafeb4', paws: '#d5fc6d', tail: '#b0f92e', earLine: '#c2f752', line: '#204403' },   // Toxi
+  10: { fur: '#026b49', ear: '#28ad84', earDark: '#229d77', earIn: '#229d77', nose: '#65ebb6', paws: '#31c196', tail: '#2da980', earLine: '#1fa67d', line: '#69a485' },   // Musguito
+  11: { fur: '#0050fd', ear: '#459bfd', earDark: '#2a7ffa', earIn: '#2a7ffa', nose: '#8af1fe', paws: '#5fb3fd', tail: '#4297fa', earLine: '#4198f8', line: '#0d0f41' },   // Voltio
+  12: { fur: '#ed268c', ear: '#f65cb0', earDark: '#e74ea0', earIn: '#e74ea0', nose: '#feceef', paws: '#fc6fbd', tail: '#f656ad', earLine: '#f45eb1', line: '#560933' },   // Mordisquito
+  13: { fur: '#fb1316', ear: '#fd6660', earDark: '#fc5551', earIn: '#fc5551', nose: '#feceb0', paws: '#fd7d79', tail: '#f85654', earLine: '#fb6460', line: '#5f0d0c' },   // Fogui
+  14: { fur: '#29edf3', ear: '#49f7fb', earDark: '#28e0e7', earIn: '#28e0e7', nose: '#a4fbfd', paws: '#72fbfc', tail: '#4ef1f6', earLine: '#67f4f7', line: '#10403a' },   // Burbuja
+  15: { fur: '#b7aafc', ear: '#b6a9fc', earDark: '#9d8cfa', earIn: '#9d8cfa', nose: '#9d8cfa', paws: '#a28dfc', tail: '#b9adf9', earLine: '#806fee', line: '#3a3068' },   // Lila
+  16: { fur: '#7f0a28', ear: '#ba3452', earDark: '#af3752', earIn: '#af3752', nose: '#fea6b6', paws: '#d84567', tail: '#c03452', earLine: '#c03453', line: '#d9909f' },   // Bordolín
+  17: { fur: '#9c807d', ear: '#cda19d', earDark: '#b48b88', earIn: '#b48b88', nose: '#eec1c1', paws: '#d2a3a1', tail: '#cda29e', earLine: '#c49a98', line: '#382521' },   // Panchita
+  18: { fur: '#919110', ear: '#ccc648', earDark: '#b0ac3a', earIn: '#b0ac3a', nose: '#f7f785', paws: '#cbc641', tail: '#aba930', earLine: '#bebb3a', line: '#363704' },   // Wasabi
+  19: { fur: '#6701c5', ear: '#9229e4', earDark: '#8525d3', earIn: '#8525d3', nose: '#cf8bfc', paws: '#b656fa', tail: '#962def', earLine: '#a341ec', line: '#c08ae6' },   // Violeta
+  20: { fur: '#fac30e', ear: '#fdd734', earDark: '#fac92e', earIn: '#fac92e', nose: '#fdf9a2', paws: '#feef60', tail: '#f7d405', earLine: '#b98c07', line: '#623d02' },   // Dorada
 };
 // Colores del retrato (y de la ratita de frente): se sacan de RATS, y PORTRAIT_COLORS puede pisar algunos o todos.
 // ear es la oreja de adelante (y de ahí salen nariz, patitas y cola), earDark la de atrás, earIn el interior (si no, earDark),
@@ -2977,6 +2979,196 @@ function drawRatBall(c, x, y, size, i, rot = 0, t = 0) {
   c.fillStyle = P.paws; for (const [px, py] of [[-62, 66], [-40, 72]]) { c.beginPath(); c.ellipse(px, py, 13, 8, 0.2, 0, Math.PI * 2); c.fill(); }
   c.restore();
 }
+// ---- Efectos de las ratitas (sistema de rarezas del usuario, noviembre de 2026) ----
+// Las comunes no tienen efecto salvo Copito; las infrecuentes, raras y legendarias tienen cada una el suyo, más notorio
+// cuanto más rara. No tocan el dibujo de la ratita: se dibujan alrededor, en dos capas (detrás y delante de ella), sin
+// estado: todo sale del tiempo t y de un sorteo fijo por partícula y por vuelta (fxHash), así andan igual en el
+// Bioterio, en la máquina y en las galerías, en bucle pero con pausas y variaciones. F es el marco de la ratita en el
+// lienzo: centro del cuerpo (x, y), medio ancho y medio alto (rx, ry), la cara (fx, fy, fr: lo que está delante se
+// apaga ahí, para no taparla) y u, la unidad de tamaño de las partículas. k: intensidad (1 normal; en la máquina más)
+const RAT_FX = { 2: 'snow', 5: 'sparks', 9: 'glow', 10: 'leaves', 11: 'volt', 12: 'hearts', 13: 'flames', 14: 'bubbles',
+  16: 'smoke', 18: 'swirl', 19: 'aura', 20: 'gold' };
+const fxHash = (a, b) => { let h = Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263) | 0; h = Math.imul(h ^ h >>> 13, 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+// marco de la ratita de frente (drawRatFrontPose: cx, cy en la unidad 624, size) y de costado (drawRatPortrait: x, y, size)
+const fxFrameFront = (cx, cy, size) => { const k = size / 935; return { x: cx, y: cy, rx: 340 * k, ry: 466 * k, fx: cx, fy: cy - 40 * k, fr: 185 * k, u: 95 * k }; };
+const fxFrameSide = (x, y, size) => { const k = size / 930; return { x: x - 20 * k, y: y - 40 * k, rx: 440 * k, ry: 165 * k, fx: x - 360 * k, fy: y - 20 * k, fr: 115 * k, u: 75 * k }; };
+// n partículas que nacen cada period s (cada una con su desfasaje) y viven life s (± 25%); el resto de la vuelta no
+// están, así no se ve un ciclo mecánico. cb(p de 0 a 1, R(semilla) sorteo fijo de esa partícula en esa vuelta, j)
+function fxEach(seed, n, period, life, t, k, cb) {
+  const m = Math.min(n * 3, Math.round(n * Math.max(1, k)));
+  for (let j = 0; j < m; j++) {
+    const tt = t + fxHash(seed * 31 + j, 7) * period, cyc = Math.floor(tt / period), a = tt - cyc * period;
+    const R = s => fxHash(seed * 131 + j * 17 + s, cyc), lf = life * (0.75 + 0.5 * R(1));
+    if (a < lf) cb(a / lf, R, j);
+  }
+}
+const fxBody = (F, ang, rr) => [F.x + Math.cos(ang) * F.rx * rr, F.y + Math.sin(ang) * F.ry * rr];
+// delante de la cara se apagan (0 en el medio de la cara, 1 afuera)
+const fxFace = (F, x, y) => smooth(F.fr * 0.55, F.fr, Math.hypot(x - F.fx, y - F.fy));
+function fxGlow(g, x, y, rx, ry, rgb, a) {
+  if (a <= 0) return;
+  g.save(); g.translate(x, y); g.scale(1, ry / rx);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+  gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(0.55, `rgba(${rgb},${a * 0.45})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, Math.PI * 2); g.fill(); g.restore();
+}
+function fxStar4(g, x, y, r, col, rot = 0) {   // destello de cuatro puntas
+  g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.beginPath();
+  g.moveTo(0, -r); g.quadraticCurveTo(0, 0, r, 0); g.quadraticCurveTo(0, 0, 0, r); g.quadraticCurveTo(0, 0, -r, 0); g.quadraticCurveTo(0, 0, 0, -r); g.fill(); g.restore();
+}
+function fxStar5(g, x, y, r, col, rot = 0) {
+  g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.beginPath();
+  for (let n = 0; n < 10; n++) { const a = -Math.PI / 2 + n * Math.PI / 5, rr = n % 2 ? r * 0.45 : r; n ? g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+  g.closePath(); g.fill(); g.restore();
+}
+function fxHeart(g, x, y, r, col) {
+  g.save(); g.translate(x, y); g.scale(r, r); g.fillStyle = col; g.beginPath();
+  g.moveTo(0, 0.9); g.bezierCurveTo(-1.2, 0.1, -1, -0.95, 0, -0.35); g.bezierCurveTo(1, -0.95, 1.2, 0.1, 0, 0.9); g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(-0.42, -0.3, 0.17, 0.11, -0.6, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+function fxFlame(g, x, y, r, fl) {   // llamita en gota: roja afuera, naranja y el centro amarillo; fl: aleteo
+  const d = (rr, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(0, -rr * 1.9); g.bezierCurveTo(rr * 0.9, -rr * 0.7, rr, rr * 0.2, 0, rr);
+    g.bezierCurveTo(-rr, rr * 0.2, -rr * 0.9, -rr * 0.7, 0, -rr * 1.9); g.fill(); };
+  g.save(); g.translate(x, y); g.scale(1 + 0.12 * fl, 1 - 0.08 * fl);
+  d(r, '#ff3d1a'); g.translate(0, r * 0.25); d(r * 0.68, '#ff9a1c'); g.translate(0, r * 0.2); d(r * 0.38, '#ffe45a'); g.restore();
+}
+// layer: 'back' (detrás de la ratita) o 'front'. Cada efecto reparte sus partículas entre las dos capas
+function drawRatFx(g, i, t, F, layer, k = 1) {
+  const fx = RAT_FX[i]; if (!fx || k <= 0) return;
+  const back = layer === 'back', u = F.u, seed = i * 1000 + 3, side = j => (j % 2 === 0) === back;
+  const A = Math.min(1, k);   // los brillos se apagan con k < 1; con k > 1 hay más partículas
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  if (fx === 'snow') {   // Copito: copitos de nieve que aparecen, bajan apenas meciéndose y se van
+    fxEach(seed, 6, 3.4, 2.2, t, k, (p, R, j) => {
+      if (!side(j)) return;
+      let [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.8 + R(3) * 0.45); x += Math.sin(p * 5 + R(4) * 6) * 0.35 * u; y += p * 1.4 * u;
+      const a = Math.sin(Math.PI * p) * A * (back ? 1 : fxFace(F, x, y)), r = (0.32 + R(5) * 0.2) * u;
+      if (a <= 0.01) return;
+      g.save(); g.translate(x, y); g.rotate(p * 1.5 + R(6) * 3); g.globalAlpha = a;
+      for (const [col, lw] of [['rgba(60,120,170,0.35)', 0.17 * u], ['#ffffff', 0.08 * u]]) {
+        g.strokeStyle = col; g.lineWidth = lw; g.beginPath();
+        for (let n = 0; n < 3; n++) { const an = n * Math.PI / 3, cx = Math.cos(an) * r, cy = Math.sin(an) * r; g.moveTo(-cx, -cy); g.lineTo(cx, cy);
+          for (const sg of [-1, 1]) { const bx = cx * 0.6 * sg, by = cy * 0.6 * sg, px = -Math.sin(an) * r * 0.25, py = Math.cos(an) * r * 0.25;
+            g.moveTo(bx + px, by + py); g.lineTo(bx * 1.25, by * 1.25); g.lineTo(bx - px, by - py); } }
+        g.stroke();
+      }
+      g.restore();
+    });
+  } else if (fx === 'sparks') {   // Chispita: chispitas naranjas que saltan del cuerpo y caen
+    fxEach(seed, 12, 1.6, 0.6, t, k, (p, R, j) => {
+      if (!side(j)) return;
+      const an = -Math.PI * (0.1 + 0.8 * R(2)), [x0, y0] = fxBody(F, an, 0.85), dir = Math.cos(an) + (R(3) - 0.5) * 0.6;
+      const pos = q => [x0 + dir * 2.2 * u * q, y0 - 3.2 * u * q + 4.2 * u * q * q];
+      const [x, y] = pos(p), [xa, ya] = pos(Math.max(0, p - 0.1));
+      const a = (1 - p * p) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      g.globalAlpha = a;
+      g.strokeStyle = '#ff7a12'; g.lineWidth = 0.3 * u; g.beginPath(); g.moveTo(xa, ya); g.lineTo(x, y); g.stroke();
+      g.strokeStyle = '#fff1a0'; g.lineWidth = 0.13 * u; g.beginPath(); g.moveTo(xa, ya); g.lineTo(x, y); g.stroke();
+    });
+  } else if (fx === 'glow') {   // Toxi: un brillo verde lima que late suave
+    if (back) { const pu = 0.5 + 0.5 * Math.sin(t * 2.1) * (0.8 + 0.2 * Math.sin(t * 0.77)); fxGlow(g, F.x, F.y - F.ry * 0.05, F.rx * 1.45, F.ry * 1.3, '170,255,40', (0.22 + 0.3 * pu) * A); }
+  } else if (fx === 'leaves') {   // Musguito: hojitas verdes que bajan flotando, girando
+    fxEach(seed, 5, 3.8, 2.8, t, k, (p, R, j) => {
+      if (!side(j)) return;
+      let [x, y] = fxBody(F, -Math.PI * (0.05 + 0.9 * R(2)), 1.05 + R(3) * 0.35); x += Math.sin(p * 4.5 + R(4) * 6) * 0.8 * u; y += p * 2.6 * u;
+      const a = Math.min(1, p / 0.15, (1 - p) / 0.25) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      const r = (0.42 + R(5) * 0.18) * u;
+      g.save(); g.translate(x, y); g.rotate(Math.sin(p * 4 + R(6) * 6) * 0.9 + R(7) * 6); g.globalAlpha = a;
+      g.fillStyle = R(8) < 0.5 ? '#5fd06c' : '#3fb35a'; g.beginPath(); g.moveTo(-r, 0); g.quadraticCurveTo(0, -r * 0.75, r, 0); g.quadraticCurveTo(0, r * 0.75, -r, 0); g.fill();
+      g.strokeStyle = '#2a8a44'; g.lineWidth = 0.06 * u; g.beginPath(); g.moveTo(-r * 1.15, 0); g.lineTo(r * 0.8, 0); g.stroke();
+      g.restore();
+    });
+  } else if (fx === 'volt') {   // Voltio: arquitos eléctricos que recorren el cuerpo, de a ratos
+    if (back) { const fl = 0.5 + 0.5 * Math.sin(t * 9) * Math.sin(t * 3.3); fxGlow(g, F.x, F.y, F.rx * 1.25, F.ry * 1.15, '90,200,255', 0.12 * fl * A); }
+    else fxEach(seed, 3, 1.25, 0.2, t, k, (p, R, j) => {
+      const a1 = Math.PI * (-0.15 + 1.3 * R(2)), a2 = a1 + (0.5 + R(3) * 0.6) * (R(4) < 0.5 ? -1 : 1), [xa, ya] = fxBody(F, a1, 0.8 + R(5) * 0.25), [xb, yb] = fxBody(F, a2, 0.8 + R(6) * 0.25);
+      const fr = Math.floor(p * 4), pts = [];   // cambia de forma unas veces mientras dura
+      for (let n = 0; n <= 6; n++) { const q = n / 6, off = n % 6 ? (fxHash(j * 97 + n + fr * 13, Math.floor(t / 1.25)) - 0.5) * 1.1 * u : 0;
+        const nx = -(yb - ya), ny = xb - xa, L = Math.hypot(nx, ny) || 1; pts.push([lerp(xa, xb, q) + nx / L * off, lerp(ya, yb, q) + ny / L * off]); }
+      const a = (p < 0.85 ? 1 : (1 - p) / 0.15) * A * Math.min(...pts.map(q => fxFace(F, q[0], q[1])));   // (por la panza y los costados, nunca sobre la cara) if (a <= 0.01) return;
+      g.globalAlpha = a;
+      for (const [col, lw] of [['rgba(110,215,255,0.5)', 0.42 * u], ['#bff4ff', 0.16 * u], ['#ffffff', 0.07 * u]]) {
+        g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); pts.forEach((q, n) => n ? g.lineTo(...q) : g.moveTo(...q)); g.stroke();
+      }
+    });
+  } else if (fx === 'hearts') {   // Mordisquito: corazoncitos rosados que suben y se desvanecen
+    fxEach(seed, 5, 3, 2, t, k, (p, R, j) => {
+      if (!side(j)) return;
+      let [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.95 + R(3) * 0.3); x += Math.sin(p * 4 + R(4) * 6) * 0.5 * u; y -= p * 2.4 * u;
+      const a = Math.min(1, p / 0.2, (1 - p) / 0.35) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      g.globalAlpha = a; fxHeart(g, x, y, (0.3 + R(5) * 0.14) * u * (0.7 + 0.3 * Math.min(1, p / 0.2)), R(6) < 0.5 ? '#ff6fb5' : '#ff9ccb');
+    });
+  } else if (fx === 'bubbles') {   // Burbuja: burbujas transparentes que suben, se bambolean y revientan
+    fxEach(seed, 6, 2.7, 1.9, t, k, (p, R, j) => {
+      if (!side(j)) return;
+      let [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.85 + R(3) * 0.35); x += Math.sin(p * 6 + R(4) * 6) * 0.35 * u; y -= p * 2.8 * u;
+      const pop = clamp((p - 0.88) / 0.12, 0, 1), r = (0.24 + R(5) * 0.26) * u * (0.6 + 0.4 * Math.min(1, p / 0.15)) * (1 + 0.6 * pop);
+      const a = Math.min(1, p / 0.12) * (1 - pop) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      g.globalAlpha = a; g.fillStyle = 'rgba(190,245,255,0.18)'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(235,255,255,0.9)'; g.lineWidth = Math.max(0.6, 0.07 * u); g.stroke();
+      g.strokeStyle = '#ffffff'; g.lineWidth = Math.max(0.8, 0.09 * u); g.beginPath(); g.arc(x, y, r * 0.62, -2.6, -1.7); g.stroke();
+    });
+  } else if (fx === 'flames') {   // Fogui: llamitas que aparecen y se apagan alrededor del cuerpo, con un calorcito detrás
+    if (back) fxGlow(g, F.x, F.y, F.rx * 1.4, F.ry * 1.25, '255,110,30', (0.16 + 0.07 * Math.sin(t * 7) * Math.sin(t * 2.3)) * A);
+    fxEach(seed, 12, 1.5, 0.95, t, k, (p, R, j) => {
+      if (!side(j)) return;
+      let [x, y] = fxBody(F, -Math.PI * (-0.15 + 1.3 * R(2)), 0.82 + R(3) * 0.22); y -= p * 1.5 * u; x += Math.sin(p * 9 + R(4) * 6) * 0.15 * u;
+      const s = Math.sin(Math.PI * Math.min(1, p * 1.15)), a = Math.min(1, s * 1.6) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      g.globalAlpha = a; fxFlame(g, x, y, (0.3 + R(5) * 0.18) * u * s, Math.sin(t * 23 + j * 2));
+    });
+  } else if (fx === 'smoke') {   // Bordolín: de a ratos una estela de humo bordó oscuro da vueltas y lo envuelve
+    const P = 7, cyc = Math.floor(t / P), a0 = t - cyc * P, st = 0.4 + fxHash(seed, cyc) * 2.2, dur = 3.4;
+    const env = a0 > st && a0 < st + dur ? Math.sin(Math.PI * (a0 - st) / dur) : 0;
+    const E = Math.min(1, env * Math.max(1, k)) * A; if (E <= 0.01) { g.restore(); return; }
+    for (let j = 0; j < 14; j++) {
+      const an = (a0 - st) * 1.6 + j / 14 * Math.PI * 2, z = Math.sin(an); if ((z < 0) !== back) continue;
+      const rise = ((a0 - st) * 0.35 + j * 0.37) % 1, x = F.x + Math.cos(an) * F.rx * 1.08, y = F.y + F.ry * (0.55 - 1.2 * rise) + z * F.ry * 0.12;
+      const r = (1.1 + 0.8 * rise) * u, a = E * Math.sin(Math.PI * rise) * (back ? 0.9 : 0.7 * fxFace(F, x, y)); if (a <= 0.01) continue;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(122,18,50,${a})`); gr.addColorStop(0.55, `rgba(92,10,36,${a * 0.7})`); gr.addColorStop(1, 'rgba(60,5,22,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+  } else if (fx === 'swirl') {   // Wasabi: un remolino de partículas verdes que sube girando alrededor
+    for (let j = 0; j < Math.round(16 * Math.max(1, k)); j++) {
+      const ph = (t * 0.28 + j / 16 + fxHash(seed, j) * 0.05) % 1, an = t * 2.4 + j * 2.4, z = Math.sin(an); if ((z < 0) !== back) continue;
+      const rr = 1.05 + 0.15 * Math.sin(ph * Math.PI);
+      for (let n = 2; n >= 0; n--) {   // con una colita de dos puntitos atrás
+        const aa = an - n * 0.18, x = F.x + Math.cos(aa) * F.rx * rr, y = F.y + F.ry * (0.8 - 1.7 * ph) + Math.sin(aa) * F.ry * 0.16;
+        const a = Math.sin(Math.PI * ph) * A * (1 - n * 0.32) * (back ? 0.75 : fxFace(F, x, y)); if (a <= 0.01) continue;
+        g.globalAlpha = a; g.fillStyle = n ? '#9fe03a' : '#d8ff7a'; g.beginPath(); g.arc(x, y, (0.2 - n * 0.04) * u, 0, Math.PI * 2); g.fill();
+      }
+    }
+  } else if (fx === 'aura') {   // Violeta: aura violeta, estrellitas que giran alrededor y destellos
+    if (back) fxGlow(g, F.x, F.y, F.rx * 1.5, F.ry * 1.35, '185,90,255', (0.28 + 0.12 * Math.sin(t * 1.8)) * A);
+    for (let j = 0; j < 4; j++) {   // estrellas en órbita (por delante y por detrás)
+      const an = t * 1.3 + j * Math.PI / 2, z = Math.sin(an); if ((z < 0) !== back) continue;
+      const x = F.x + Math.cos(an) * F.rx * 1.2, y = F.y - F.ry * 0.15 + Math.sin(an) * F.ry * 0.3 + Math.sin(t * 2 + j) * 0.3 * u;
+      const a = A * (back ? 0.7 : fxFace(F, x, y)); if (a <= 0.01) continue;
+      g.globalAlpha = a * 0.5; fxGlow(g, x, y, 0.9 * u, 0.9 * u, '220,150,255', 0.8);
+      g.globalAlpha = a; fxStar5(g, x, y, (0.36 + 0.08 * z) * u, '#f6dcff', t * 1.5 + j);
+    }
+    fxEach(seed, 8, 1.6, 0.55, t, k, (p, R, j) => {   // brillitos que titilan
+      if (!side(j)) return;
+      const [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.7 + R(3) * 0.6), a = Math.sin(Math.PI * p) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      g.globalAlpha = a; fxStar4(g, x, y, (0.22 + R(4) * 0.18) * u, R(5) < 0.5 ? '#ffffff' : '#e3b8ff', R(6));
+    });
+  } else if (fx === 'gold') {   // Dorada: brillo cálido que late, destellos dorados y lucecitas que suben
+    if (back) fxGlow(g, F.x, F.y, F.rx * 1.5, F.ry * 1.35, '255,200,60', (0.3 + 0.14 * Math.sin(t * 1.6)) * A);
+    fxEach(seed, 10, 2.5, 1.9, t, k, (p, R, j) => {   // lucecitas que suben despacio
+      if (!side(j)) return;
+      let [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.8 + R(3) * 0.5); y -= p * 2.2 * u; x += Math.sin(p * 3 + R(4) * 6) * 0.3 * u;
+      const a = Math.sin(Math.PI * p) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
+      g.globalAlpha = a * 0.6; fxGlow(g, x, y, 0.45 * u, 0.45 * u, '255,220,90', 0.9);
+      g.globalAlpha = a; g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(x, y, 0.12 * u, 0, Math.PI * 2); g.fill();
+    });
+    if (!back) fxEach(seed + 7, 7, 1.9, 0.6, t, k, (p, R, j) => {   // destellos sobre el cuerpo y alrededor
+      const [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.4 + R(3) * 0.75), a = Math.sin(Math.PI * p) * A * fxFace(F, x, y); if (a <= 0.01) return;
+      const r = (0.3 + R(4) * 0.25) * u * Math.sin(Math.PI * p);
+      g.globalAlpha = a; fxStar4(g, x, y, r, '#fffbe0', p * 1.2); fxStar4(g, x, y, r * 0.5, '#ffd84a', p * 1.2 + Math.PI / 4);
+    });
+  }
+  g.restore();
+}
 // Jaula de laboratorio vista de frente, sobre un estante de metal (como las de la referencia): caja de plástico
 // transparente un poco más ancha arriba, viruta en el piso, tapa de reja y un cartelito con el nombre.
 // Adentro va la ratita de perfil; si todavía no la tenés, es una silueta oscura y el cartel dice "???".
@@ -2987,14 +3179,18 @@ const cageOff = document.createElement('canvas'), cageOffCtx = cageOff.getContex
 const CAGE_W = 396, CAGE_H = 300, CAGE_RAT = 1.3;   // (1,3: lo más grande sin que las orejas lleguen al cartel del nombre)
 const CAGE_NAME_FS = 0.115;   // alto de letra del nombre en el cartelito, en fracción del alto de la jaula
 // shelf: dibuja su pedazo de estante (en la pantalla de Ratitas el estante lo pone el CSS, de punta a punta)
-function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag = 0) {
+// part: 'all', o una de las tres capas por separado ('under': estante, caja, viruta y sombra; 'rat': la ratita; 'over':
+// brillos, bordes, tapa y cartel), para las jaulas con efecto (drawThumbFx), que las guardan y meten las partículas entre
+// medio. fxT: el tiempo de los efectos (null: sin efecto). Devuelve la caja (para recortar) y el marco de la ratita
+function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag = 0, part = 'all', fxT = null) {
+  const doU = part === 'all' || part === 'under', doR = part === 'all' || part === 'rat', doO = part === 'all' || part === 'over';
   const rnd = mulberry32(i * 977 + 13);
   // u: el ancho que tenía la jaula antes de ensancharla (330 de 300 de alto). Los bordes de la caja van con el ancho
   // nuevo; lo demás (grosores, alambres, el cartel, la viruta, el brillo) con u, así queda igual que antes
   const u = h * 1.1;
   g.save();
   const sy = h * 0.86, sh = h * 0.07;                                                // estante
-  if (shelf) {
+  if (shelf && doU) {
     const mg = g.createLinearGradient(0, sy, 0, sy + sh);
     mg.addColorStop(0, '#f7f8f9'); mg.addColorStop(0.45, '#c3c8cc'); mg.addColorStop(1, '#8e959a');
     g.fillStyle = mg; g.fillRect(0, sy, w, sh);
@@ -3002,9 +3198,12 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   // caja
   const x0 = u * 0.07, x1 = w - x0, top = h * 0.3, bot = sy, ins = u * 0.035;   // (el mismo margen de antes: la caja ocupa el ancho nuevo)
   const box = new Path2D(); box.moveTo(x0, top); box.lineTo(x1, top); box.lineTo(x1 - ins, bot); box.lineTo(x0 + ins, bot); box.closePath();
-  g.fillStyle = 'rgba(205,220,226,0.45)'; g.fill(box);
+  if (doU) { g.fillStyle = 'rgba(205,220,226,0.45)'; g.fill(box); }
   g.save(); g.clip(box);
   const bed = bot - h * 0.085;                                                       // viruta (bien abajo, casi al ras del estante)
+  const size = h * 0.757 * CAGE_RAT, k = size / 930, cx = w / 2 + h * 0.033, cy = bed + h * 0.035 - 82 * k;
+  const F = fxFrameSide(cx, cy, size);
+  if (doU) {
   g.fillStyle = '#e49251'; g.beginPath(); g.moveTo(0, bot);   // (tonos de una foto de virutas del usuario, revision/ref-viruta.webp; antes fue #dcc69e, #c4aa7c, #a79169 y #8e7b59)
   for (let x = 0; x <= w; x += u / 12) g.lineTo(x, bed + Math.sin(x * 0.2 + i) * h * 0.012);
   g.lineTo(w, bot); g.closePath(); g.fill();
@@ -3014,8 +3213,7 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
     g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), bed + rnd() * (bot - bed), u * (0.012 + rnd() * 0.02), h * (0.005 + rnd() * 0.008), rnd() * 3, 0, Math.PI * 2); g.fill();
   }
   // ratita parada sobre la viruta (las patas quedan 82 unidades del retrato debajo de su centro)
-  // (el tamaño sale del alto de la jaula, no del ancho: así las jaulas más anchas no la agrandan de más)
-  const size = h * 0.757 * CAGE_RAT, k = size / 930, cx = w / 2 + h * 0.033, cy = bed + h * 0.035 - 82 * k;
+  // (el tamaño sale del alto de la jaula, no del ancho: así las jaulas más anchas no la agrandan de más; size, cx, cy arriba)
   if (owned) {   // sombra suave debajo de la ratita, sobre la viruta (un óvalo con el borde esfumado)
     const fy = cy + 70 * k, sx = cx - 90 * k, rx = 420 * k, ry = 40 * k;   // pegada a las patas
     g.save(); g.translate(sx, fy); g.scale(1, ry / rx);
@@ -3023,8 +3221,13 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
     sg.addColorStop(0, 'rgba(40,25,10,0.5)'); sg.addColorStop(0.75, 'rgba(40,25,10,0.42)'); sg.addColorStop(1, 'rgba(40,25,10,0)');   // poco esfumada
     g.fillStyle = sg; g.beginPath(); g.arc(0, 0, rx, 0, Math.PI * 2); g.fill(); g.restore();
   }
-  if (owned) drawRatPortrait(g, cx, cy, size, i, t, amp, wag);   // las que no tenés: la jaula vacía, sin silueta
+  }
+  const fxOn = owned && fxT !== null;
+  if (fxOn && doR) drawRatFx(g, i, fxT, F, 'back');
+  if (owned && doR) drawRatPortrait(g, cx, cy, size, i, t, amp, wag);   // las que no tenés: la jaula vacía, sin silueta
+  if (fxOn && doR) drawRatFx(g, i, fxT, F, 'front');
   g.restore();
+  if (!doO) { g.restore(); return { box, F }; }
   // plástico: brillo en diagonal y bordes
   g.save(); g.clip(box);
   g.fillStyle = 'rgba(255,255,255,0.16)';
@@ -3064,12 +3267,32 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
     g.fillText(name, w / 2, ty);
   }
   g.restore();
+  return { box, F };
 }
+const cageFxT0 = performance.now(), cageFxT = () => (performance.now() - cageFxT0) / 1000;
 function drawThumb(cv, t = 0, amp = 0, wag = 0) {
-  const i = +cv.dataset.rat, g = cv.getContext('2d');
-  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
-  drawRatCage(g, cv.width, cv.height, i, Skins.has(i), Skins.data.sel === i, t, false, amp, wag);
+  const i = +cv.dataset.rat, g = cv.getContext('2d'), own = Skins.has(i), sel = Skins.data.sel === i, w = cv.width, h = cv.height;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
+  if (!own || !RAT_FX[i]) { cv._fx = null; drawRatCage(g, w, h, i, own, sel, t, false, amp, wag); return; }
+  // con efecto: se guardan las tres capas de la jaula y cada cuadro se arma con las partículas en el medio (drawThumbFx),
+  // así no hay que redibujar la ratita y la jaula enteras todo el tiempo
+  let L = cv._fx;
+  if (!L || L.w !== w || L.h !== h) L = cv._fx = { w, h, c: ['under', 'rat', 'over'].map(() => mk(w, h)) };
+  ['under', 'rat', 'over'].forEach((part, n) => { const x = L.c[n][1]; x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h); L.geo = drawRatCage(x, w, h, i, own, sel, t, false, amp, wag, part); });
+  drawThumbFx(cv);
 }
+function drawThumbFx(cv) {
+  const L = cv._fx; if (!L) return;
+  const g = cv.getContext('2d'), i = +cv.dataset.rat, t = cageFxT(), { box, F } = L.geo;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, L.w, L.h);
+  g.drawImage(L.c[0][0], 0, 0);
+  g.save(); g.clip(box); drawRatFx(g, i, t, F, 'back'); g.restore();
+  g.drawImage(L.c[1][0], 0, 0);
+  g.save(); g.clip(box); drawRatFx(g, i, t, F, 'front'); g.restore();
+  g.drawImage(L.c[2][0], 0, 0);
+}
+// qué jaulas se ven (las de efecto solo se animan si están en pantalla)
+const cageSeen = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { e.target._vis = e.isIntersecting; })) : null;
 // Bioterio: de a ratos alguna de las ratitas que tenés se mueve un poco (respira, mueve los bigotes, una oreja, la
 // cola, parpadea) y vuelve a quedarse quieta. Nunca más de CAGE_ANIM_MAX a la vez (así no se pone lento) y solo
 // redibuja esas jaulas. Cada movimiento arranca y termina suave (amp de 0 a 1 y a 0), así no salta del dibujo quieto
@@ -3105,6 +3328,12 @@ function cageAnimLoop() {
         if (w >= WAG_T) cagePokes.delete(cv); else { cagePokes.set(cv, w); wag = Math.max(0, w); }   // (negativo: todavía esperando)
       }
       if (cv.isConnected) drawThumb(cv, t, amp, wag); else { anims.delete(cv); cagePokes.delete(cv); }
+    }
+    // las que tienen efecto (Copito, Chispita, …): sus partículas andan siempre, armadas con las capas guardadas
+    for (const cv of $scr.querySelectorAll('canvas[data-rat]')) {
+      if (!cv._fx || anims.has(cv) || cagePokes.has(cv)) continue;
+      if (cageSeen && !cv._seen) { cageSeen.observe(cv); cv._seen = true; }
+      if (cv._vis !== false) drawThumbFx(cv);
     }
   };
   requestAnimationFrame(step);
@@ -3840,8 +4069,17 @@ function drawSparks(g) {
     g.restore();
   }
 }
+// Al aterrizar, la ratita muestra su efecto (RAT_FX): entra suave y arranca más fuerte (más partículas) cuanto más rara
+// es (REV_FX_BOOST), y después se queda en su intensidad normal mientras está en pantalla
+const REV_FX_BOOST = { comun: 0.6, infrecuente: 1, rara: 1.6, legendaria: 2.4 };
+function revFxK(t, pick) {
+  const e = t - TRAVEL; if (e <= 0 || !RAT_FX[pick]) return 0;
+  return smooth(0, 0.5, e) * (1 + (REV_FX_BOOST[RAT_RARITY[pick]] || 0) * Math.exp(-Math.max(0, e - 0.4) / 1.8));
+}
 function drawRevealRat(g, t, pick) {
   drawRatShadow(g, t);
+  const fk = revFxK(t, pick), F = fk > 0 ? fxFrameFront(KF2.x, KF2.y, KF2.size) : null;
+  if (F) drawRatFx(g, pick, t, F, 'back', fk);
   if (t < REV_END) {
     // la bolita del primer cuadro, corrida al centro de la cápsula; el corrimiento se va apagando
     const k = KF2.size / 935, b0 = [KF2.x, KF2.y + (SALTO_FR[0][25] - 624) * k], [CX, CY] = capC();
@@ -3851,6 +4089,7 @@ function drawRevealRat(g, t, pick) {
     g.restore();
   }
   else drawRatFrontPose(g, KF2.x, KF2.y, KF2.size, pick, t, t - TRAVEL, 0, 0);   // (sin su rebote: el salto ya aterrizó)
+  if (F) drawRatFx(g, pick, t, F, 'front', fk);
 }
 // Las dos mitades de la cápsula al abrirse, dibujadas DELANTE de la ratita (que sale de atrás): la de arriba sube,
 // frena, se achata y se apaga; la de abajo se cae rápido de la pantalla
@@ -6652,11 +6891,13 @@ function ratGrid(bg, draw) {
 }
 const FRONT_GALLERY = /frente/i.test(location.search + location.hash);
 function renderFrontGallery() {
-  ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(ch * 0.86, cw * 0.62); drawRatFront(ctx, x0 + cw * 0.46, y0 + (ch + sz) / 2, sz, i, G.time + i * 0.7); });
+  ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(ch * 0.86, cw * 0.62); const fy = y0 + (ch + sz) / 2, F = fxFrameFront(x0 + cw * 0.46, fy - sz * (1092 - FRONT_CY[0]) / 935, sz);
+    drawRatFx(ctx, i, G.time, F, 'back'); drawRatFront(ctx, x0 + cw * 0.46, fy, sz, i, G.time + i * 0.7); drawRatFx(ctx, i, G.time, F, 'front'); });
 }
 const PORTRAIT_GALLERY = /retratos/i.test(location.search + location.hash);
 function renderPortraitGallery() {
-  ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(cw * 0.8, ch * 1.25); drawRatPortrait(ctx, x0 + cw / 2, y0 + ch * 0.55, sz, i, G.time + i * 0.7); });
+  ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(cw * 0.8, ch * 1.25); const F = fxFrameSide(x0 + cw / 2, y0 + ch * 0.55, sz);
+    drawRatFx(ctx, i, G.time, F, 'back'); drawRatPortrait(ctx, x0 + cw / 2, y0 + ch * 0.55, sz, i, G.time + i * 0.7); drawRatFx(ctx, i, G.time, F, 'front'); });
 }
 const RAT_GALLERY = /ratas/i.test(location.search + location.hash);
 function renderRatGallery() {
@@ -6666,7 +6907,7 @@ function renderRatGallery() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
   RATS.forEach((r, i) => {
     ctx.save(); ctx.translate((i % cols) * cw, Math.floor(i / cols) * ch);
-    drawRatCage(ctx, cw, ch, i, true, false, G.time + i * 0.7);
+    drawRatCage(ctx, cw, ch, i, true, false, G.time + i * 0.7, true, 1, 0, 'all', G.time);
     ctx.restore();
   });
 }
