@@ -2800,6 +2800,14 @@ function tailShapes() {
   }
   return (tailShapesCache = out);
 }
+// Dónde quedaron los ojos de la última ratita dibujada (de frente o de costado), en píxeles del lienzo, con su radio:
+// los efectos que van sobre los ojos (el fuego de Fogui) los siguen así cuando la cabeza se mueve. ratEyes(g) los pasa
+// a las coordenadas que tiene g en ese momento
+let ratEyesDev = [];
+function markEye(c, x, y, r) { const m = c.getTransform(), p = m.transformPoint(new DOMPoint(x, y)); ratEyesDev.push([p.x, p.y, r * Math.hypot(m.a, m.b)]); }
+function ratEyes(g) { const m = g.getTransform(), inv = m.inverse(), k = Math.hypot(m.a, m.b) || 1; return ratEyesDev.map(([x, y, r]) => { const p = inv.transformPoint(new DOMPoint(x, y)); return [p.x, p.y, r / k]; }); }
+// ratitas que no parpadean (Fogui: tiene fuego en los ojos)
+const RAT_NOBLINK = new Set([13]);
 function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: cuánto se mueve (0 = quieta, 1 = normal); wag: segundos desde que se la tocó (0 = nada)
   // Dibujo plano de costado, mirando a la izquierda, según la última referencia del usuario (revision/rata-perfil-nueva,
   // 1804 × 872, piso en y = 700), medida píxel por píxel: cuerpo de gota con el lomo alto atrás y la cabeza en cuña, una
@@ -2810,7 +2818,8 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
   // mismo largo de hocico a anca) y de ahí al marco de siempre (x, y es el centro y size el ancho de referencia), así las
   // jaulas, la máquina y las galerías no cambian.
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line;
-  const breath = 1 + 0.012 * amp * Math.sin(t * 2.6), blink = t > 0 && amp > 0.5 && (t % 3.7) < 0.13;
+  const breath = 1 + 0.012 * amp * Math.sin(t * 2.6), blink = t > 0 && amp > 0.5 && (t % 3.7) < 0.13 && !RAT_NOBLINK.has(i);
+  ratEyesDev = [];
   let twitch = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.14 * amp : 0;
   if (wag > 0 && wag < 0.7) twitch += Math.sin(wag * Math.PI * 2 * 5) * 0.2 * (1 - wag / 0.7) * Math.min(1, wag * 20);   // al tocarla: sacude las orejitas
   const sway = t > 0 ? Math.sin(t * 1.4) * amp : 0;
@@ -2919,6 +2928,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
   c.fillStyle = fur; c.beginPath(); c.moveTo(400, 436); c.lineTo(459, 436); c.quadraticCurveTo(545, 452, 598, 508); c.lineTo(600, 560); c.lineTo(400, 560); c.closePath(); c.fill();
   // ojo grande (con antifaz si es Panchita), con el brillo arriba a la izquierda
   if (S.spots) { c.fillStyle = S.spots; c.beginPath(); c.ellipse(262, 530, 66, 55, 0.2, 0, Math.PI * 2); c.fill(); }
+  markEye(c, 266.5, 533.5, 44.5);
   if (blink) { c.strokeStyle = S.eyeShut; c.lineWidth = 8; c.beginPath(); c.arc(266, 526, 31, 0.35, Math.PI - 0.35); c.stroke(); }
   else {
     c.fillStyle = S.eyes; c.beginPath(); c.arc(266.5, 533.5, 44.5, 0, Math.PI * 2); c.fill();
@@ -3009,17 +3019,21 @@ function fxOutline(view) {
   finally { PORTRAIT_COLORS[0] = keep; RATS[0][5] = keepE; delete skinCache[0]; }
   const d = g.getImageData(0, 0, W, W).data, body = (x, y) => { const o = (y * W + x) * 4; return d[o + 3] > 128 && d[o] > 150 && d[o + 1] < 100; };
   const out = (x, y) => d[(y * W + x) * 4 + 3] < 30, ear = (x, y) => { const o = (y * W + x) * 4; return d[o + 3] > 30 && d[o + 2] > 100 && d[o] < 120; };
-  const floor = view === 'front' ? 1092 - 60 : 40, pts = [];
+  // pts: sin las orejas (las llamas de Fogui); pts.withEars: con el borde de las orejas también (los rayos de Voltio)
+  const floor = view === 'front' ? 1092 - 60 : 40, pts = [], ptsE = [];
   for (let y = 4; y < W - 4; y += 2) for (let x = 4; x < W - 4; x += 2) {
-    if (!body(x, y) || !(out(x - 2, y) || out(x + 2, y) || out(x, y - 2) || out(x, y + 2))) continue;
-    let nearEar = false; for (let dy = -6; dy <= 6 && !nearEar; dy += 2) for (let dx = -6; dx <= 6; dx += 2) if (ear(x + dx, y + dy)) { nearEar = true; break; }
-    if (nearEar) continue;
+    const isB = body(x, y); if (!isB && !ear(x, y)) continue;
+    if (!(out(x - 2, y) || out(x + 2, y) || out(x, y - 2) || out(x, y + 2))) continue;
     let nx = 0, ny = 0; for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (out(x + dx, y + dy)) { nx += dx; ny += dy; }
     const L = Math.hypot(nx, ny); if (!L) continue;
     const ux = (x - ox) / k, uy = (y - oy) / k + (view === 'front' ? 624 : 0);
     if (uy > floor) continue;   // (no en el piso)
-    pts.push([ux, uy - (view === 'front' ? 624 : 0), nx / L, ny / L]);
+    const q = [ux, uy - (view === 'front' ? 624 : 0), nx / L, ny / L]; ptsE.push(q);
+    if (!isB) continue;
+    let nearEar = false; for (let dy = -6; dy <= 6 && !nearEar; dy += 2) for (let dx = -6; dx <= 6; dx += 2) if (ear(x + dx, y + dy)) { nearEar = true; break; }
+    if (!nearEar) pts.push(q);
   }
+  pts.withEars = ptsE;
   // silueta: los píxeles del cuerpo y las orejas (sin la cola), recortados a su caja, en un lienzo propio (x0, y0, w, h en
   // las unidades de la vista); para Toxi, que puede pasar a las orejas
   const sil = (x, y) => body(x, y) || ear(x, y);
@@ -3049,13 +3063,6 @@ function fxEach(seed, n, period, life, t, k, cb) {
 const fxBody = (F, ang, rr) => [F.x + Math.cos(ang) * F.rx * rr, F.y + Math.sin(ang) * F.ry * rr];
 // delante de la cara se apagan (0 en el medio de la cara, 1 afuera)
 const fxFace = (F, x, y) => smooth(F.fr * 0.55, F.fr, Math.hypot(x - F.fx, y - F.fy));
-function fxGlow(g, x, y, rx, ry, rgb, a) {
-  if (a <= 0) return;
-  g.save(); g.translate(x, y); g.scale(1, ry / rx);
-  const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx);
-  gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(0.55, `rgba(${rgb},${a * 0.45})`); gr.addColorStop(1, `rgba(${rgb},0)`);
-  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, Math.PI * 2); g.fill(); g.restore();
-}
 function fxStar4(g, x, y, r, col, rot = 0) {   // destello de cuatro puntas
   g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.beginPath();
   g.moveTo(0, -r); g.quadraticCurveTo(0, 0, r, 0); g.quadraticCurveTo(0, 0, 0, r); g.quadraticCurveTo(0, 0, -r, 0); g.quadraticCurveTo(0, 0, 0, -r); g.fill(); g.restore();
@@ -3071,10 +3078,56 @@ function fxHeart(g, x, y, r, col) {
   g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(-0.42, -0.3, 0.17, 0.11, -0.6, 0, Math.PI * 2); g.fill();
   g.restore();
 }
-function fxFlame(g, x, y, r, fl) {   // llamita en gota: roja afuera, naranja y el centro amarillo; fl: aleteo
+// llama del ojo (Fogui): la base es un círculo que tapa el ojo entero (centro en x, y, radio r) y de ahí sube la punta;
+// tres capas como fxFlame, la de adentro más abajo. fl: aleteo de la punta
+// De perfil (lo pidió el usuario), las llamitas del contorno tienen su tamaño de siempre en lo más alto del lomo y se
+// achican hacia la trompa (las de la cabeza bastante más chicas, cada vez más cerca de la punta) y hacia la cola
+// las llamitas del contorno: cuánto más grandes y cuánto más anchas (el usuario las pidió así, para que cubran más)
+const FOGUI_FLAME = [1.35, 1.35];
+// De frente (como lo marcó el usuario), las llamas van en lugares fijos, repartidos para que cubran: una corona sobre
+// la cabeza, desde donde empieza una oreja en el contorno de la cabeza hasta donde termina la otra (FOGUI_HEAD_ARC:
+// ángulos desde el centro de la cabeza, donde el círculo de cada oreja corta el de la cabeza por afuera; FOGUI_CROWN
+// llamas), y en los muslos, donde la cadera empieza a abrirse (FOGUI_THIGH_Y: alturas en las unidades de la de frente,
+// dos de cada lado). Todas por delante; cada una crece y se apaga a su ritmo en su lugar
+const FOGUI_HEAD_ARC = [-2.96, -0.18], FOGUI_CROWN = 7, FOGUI_THIGH_Y = [812, 862];
+function fxFoguiFront(g, F, O, t, A, u, seed) {
+  if (!O.thighs) {   // los puntos del contorno de cada muslo más cerca de esas alturas
+    O.thighs = [];
+    for (const sd of [-1, 1]) for (const yy of FOGUI_THIGH_Y) {
+      let best = null, bd = 1e9; for (const q of O) if (q[0] * sd > 0) { const dv = Math.abs(q[1] + 624 - yy); if (dv < bd) { bd = dv; best = q; } }
+      if (best) O.thighs.push(best);
+    }
+  }
+  const spots = [];
+  for (let n = 0; n < FOGUI_CROWN; n++) {
+    const an = FOGUI_HEAD_ARC[0] + (n + 0.5) / FOGUI_CROWN * (FOGUI_HEAD_ARC[1] - FOGUI_HEAD_ARC[0]), nx = Math.cos(an), ny = Math.sin(an);
+    spots.push([nx * 285, 530 - 624 + ny * 285, nx, ny]);
+  }
+  spots.push(...O.thighs);
+  spots.forEach(([ux, uy, nx, ny], j) => {
+    const per = 1.4 * (0.85 + 0.3 * fxHash(seed + 50, j)), tt = t + fxHash(seed + 51, j) * per, cyc = Math.floor(tt / per), p = tt / per - cyc;
+    const gr = p < 0.3 ? smooth(0, 0.3, p) : 1 - smooth(0.3, 0.95, p); if (gr <= 0.01) return;
+    const x = F.ox + ux * F.k + nx * 0.05 * u, y = F.oy + uy * F.k + ny * 0.05 * u;
+    g.globalAlpha = Math.min(1, gr * 2) * A;
+    fxFlame(g, x, y, (0.42 + 0.2 * fxHash(seed + j, cyc)) * FOGUI_FLAME[0] * u * (0.25 + 0.75 * gr), Math.sin(t * 23 + j * 2), FOGUI_FLAME[1]);
+  });
+}
+function fxSideFlameK(F, O, ux) {
+  if (F.view !== 'side') return 1;
+  if (O.xTop === undefined) { let top = 1e9; O.xMin = 1e9; O.xMax = -1e9; for (const q of O) { if (q[1] < top) { top = q[1]; O.xTop = q[0]; } O.xMin = Math.min(O.xMin, q[0]); O.xMax = Math.max(O.xMax, q[0]); } }
+  if (ux <= O.xTop) { const v = clamp((ux - O.xMin) / (O.xTop - O.xMin), 0, 1); return 0.25 + 0.75 * v * v; }
+  return 1 - 0.55 * clamp((ux - O.xTop) / (O.xMax - O.xTop), 0, 1);
+}
+function fxFlameEye(g, x, y, r, fl) {
+  const d = (rr, cy, col) => { const h = rr * (2.3 + 0.15 * fl), sw = rr * 0.12 * fl; g.fillStyle = col; g.beginPath();
+    g.moveTo(sw, cy - h); g.bezierCurveTo(rr * 0.35 + sw, cy - h * 0.62, rr, cy - rr * 0.95, rr, cy);
+    g.arc(0, cy, rr, 0, Math.PI); g.bezierCurveTo(-rr, cy - rr * 0.95, -rr * 0.35 + sw, cy - h * 0.62, sw, cy - h); g.fill(); };
+  g.save(); g.translate(x, y); d(r, 0, '#ff3d1a'); d(r * 0.7, r * 0.22, '#ff9a1c'); d(r * 0.42, r * 0.42, '#ffe45a'); g.restore();
+}
+function fxFlame(g, x, y, r, fl, wide = 1) {   // llamita en gota: roja afuera, naranja y el centro amarillo; fl: aleteo; wide: cuánto más ancha
   const d = (rr, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(0, -rr * 1.9); g.bezierCurveTo(rr * 0.9, -rr * 0.7, rr, rr * 0.2, 0, rr);
     g.bezierCurveTo(-rr, rr * 0.2, -rr * 0.9, -rr * 0.7, 0, -rr * 1.9); g.fill(); };
-  g.save(); g.translate(x, y); g.scale(1 + 0.12 * fl, 1 - 0.08 * fl);
+  g.save(); g.translate(x, y); g.scale(wide * (1 + 0.12 * fl), 1 - 0.08 * fl);
   d(r, '#ff3d1a'); g.translate(0, r * 0.25); d(r * 0.68, '#ff9a1c'); g.translate(0, r * 0.2); d(r * 0.38, '#ffe45a'); g.restore();
 }
 // Toxi: rombos grandes (cuadrados parados en una punta), sin esfumado, por delante, sobre el cuerpo y la cabeza, cada uno con su opacidad subiendo y bajando
@@ -3157,13 +3210,21 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
         const p = (a0 - st - j * 0.05 * h(10 + j)) / 0.2; if (p < 0 || p > 1) continue;
         const R = q => fxHash(seed * 131 + j * 17 + q, cyc);
         // de un punto del contorno (fxOutline) a otro cercano, un poquito hacia adentro: así recorren el cuerpo en las dos vistas
-        const O = fxOutline(F.view), pt = q => { const o = O[Math.floor(q * O.length)]; return [F.ox + o[0] * F.k - o[2] * 0.35 * u, F.oy + o[1] * F.k - o[3] * 0.35 * u]; };
-        // (los dos puntos lejos de la cara: si no, el rayo se apagaba y de un grupo se veía uno solo)
-        let xa, ya, xb, yb;
-        for (let m = 0; m < 16; m++) { [xa, ya] = pt(R(40 + m)); if (fxFace(F, xa, ya) > 0.99) break; }
-        for (let m = 0; m < 24; m++) { [xb, yb] = pt(R(20 + m)); const dd = Math.hypot(xb - xa, yb - ya); if (dd > 2 * u && dd < 4.5 * u && fxFace(F, xb, yb) > 0.99) break; }
+        // (también por las orejas, y de frente a veces uno que cruza de oreja a oreja: lo pidió el usuario)
+        const O = fxOutline(F.view).withEars, pt = q => { const o = O[Math.floor(q * O.length)]; return [F.ox + o[0] * F.k - o[2] * 0.35 * u, F.oy + o[1] * F.k - o[3] * 0.35 * u]; };
+        let xa, ya, xb, yb, seg = 6;
+        if (F.view === 'front' && R(30) < 0.3) {   // de oreja a oreja: un punto de arriba de cada oreja
+          const E = O.ears || (O.ears = [-1, 1].map(sd => O.filter(q => q[0] * sd > 170 && q[1] < 330 - 624)));
+          [xa, ya] = (o => [F.ox + o[0] * F.k - o[2] * 0.35 * u, F.oy + o[1] * F.k - o[3] * 0.35 * u])(E[0][Math.floor(R(31) * E[0].length)]);
+          [xb, yb] = (o => [F.ox + o[0] * F.k - o[2] * 0.35 * u, F.oy + o[1] * F.k - o[3] * 0.35 * u])(E[1][Math.floor(R(32) * E[1].length)]);
+          seg = 11;
+        } else {
+          // (los dos puntos lejos de la cara: si no, el rayo se apagaba y de un grupo se veía uno solo)
+          for (let m = 0; m < 16; m++) { [xa, ya] = pt(R(40 + m)); if (fxFace(F, xa, ya) > 0.99) break; }
+          for (let m = 0; m < 24; m++) { [xb, yb] = pt(R(20 + m)); const dd = Math.hypot(xb - xa, yb - ya); if (dd > 2 * u && dd < 4.5 * u && fxFace(F, xb, yb) > 0.99) break; }
+        }
         const fr = Math.floor(p * 4), pts = [];   // cambia de forma unas veces mientras dura
-        for (let n = 0; n <= 6; n++) { const q = n / 6, off = n % 6 ? (fxHash(j * 97 + n + fr * 13, cyc) - 0.5) * 1.1 * u : 0;
+        for (let n = 0; n <= seg; n++) { const q = n / seg, off = n % seg ? (fxHash(j * 97 + n + fr * 13, cyc) - 0.5) * 1.1 * u : 0;
           const nx = -(yb - ya), ny = xb - xa, L = Math.hypot(nx, ny) || 1; pts.push([lerp(xa, xb, q) + nx / L * off, lerp(ya, yb, q) + ny / L * off]); }
         const al = (p < 0.85 ? 1 : (1 - p) / 0.15) * A * Math.min(...pts.map(q => fxFace(F, q[0], q[1])));   // (por la panza y los costados, nunca sobre la cara)
         if (al <= 0.01) continue;
@@ -3198,16 +3259,18 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
     // de lugar (la mayoría por detrás, asomando del borde), una que arde siempre en cada ojo (el calorcito de atrás casi no se veía y el usuario lo sacó)
     const O = F.view ? fxOutline(F.view) : null;
     if (O && O.length) fxEach(seed, 20, 1.4, 1, t, k, (p, R, j) => {
+      if (F.view === 'front') return;   // (de frente van en lugares fijos: fxFoguiFront, abajo)
       const inFront = R(9) < 0.3; if (inFront === back) return;
       const [ux, uy, nx, ny] = O[Math.floor(R(2) * O.length)], dd = (inFront ? 0.05 : -0.1) * u;
       const x = F.ox + ux * F.k + nx * dd, y = F.oy + uy * F.k + ny * dd;
       const gr = p < 0.3 ? smooth(0, 0.3, p) : 1 - smooth(0.3, 1, p), a = Math.min(1, gr * 2) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
-      g.globalAlpha = a; fxFlame(g, x, y, (0.38 + R(5) * 0.24) * u * (0.25 + 0.75 * gr), Math.sin(t * 23 + j * 2));
+      g.globalAlpha = a; fxFlame(g, x, y, (0.38 + R(5) * 0.24) * FOGUI_FLAME[0] * u * (0.25 + 0.75 * gr) * fxSideFlameK(F, O, ux), Math.sin(t * 23 + j * 2), FOGUI_FLAME[1]);
     });
+    if (!back && O && F.view === 'front') fxFoguiFront(g, F, O, t, A, u, seed);
     if (!back) for (const [ex, ey, er] of F.eyes || []) {   // fuego en los ojos
       const fl = Math.sin(t * 19 + ex) * 0.6 + Math.sin(t * 31 + ey) * 0.4;
-      const fr = er * 1.33 * (1 + 0.05 * fl);   // (la llama mide 1,5 r de ancho: así la base es del ancho del ojo)
-      g.globalAlpha = A; fxFlame(g, ex, ey + er - fr, fr, fl);
+      // (la base es un círculo un poco más grande que el ojo, así lo tapa entero; siempre derecha)
+      g.globalAlpha = A; fxFlameEye(g, ex, ey, er * (F.view === 'front' ? 1.5 : 1.12), fl);   // (de frente más grandes: lo pidió el usuario)
     }
   } else if (fx === 'swirl') {   // Wasabi: un remolino de partículas verdes que sube girando alrededor
     for (let j = 0; j < Math.round(16 * Math.max(1, k)); j++) {
@@ -3219,13 +3282,12 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
         g.globalAlpha = a; g.fillStyle = n ? '#9fe03a' : '#d8ff7a'; g.beginPath(); g.arc(x, y, (0.2 - n * 0.04) * u, 0, Math.PI * 2); g.fill();
       }
     }
-  } else if (fx === 'aura') {   // Violeta: aura violeta, estrellitas que giran alrededor y destellos
-    if (back) fxGlow(g, F.x, F.y, F.rx * 1.5, F.ry * 1.35, '185,90,255', (0.28 + 0.12 * Math.sin(t * 1.8)) * A);
+  } else if (fx === 'aura') {   // Violeta: estrellitas que giran alrededor y destellos (sin esfumados: el usuario sacó el aura
+    // violeta de atrás y el halo de cada estrella, que eran lo más pesado de dibujar de todos los efectos)
     for (let j = 0; j < 4; j++) {   // estrellas en órbita (por delante y por detrás)
       const an = t * 1.3 + j * Math.PI / 2, z = Math.sin(an); if ((z < 0) !== back) continue;
       const x = F.x + Math.cos(an) * F.rx * 1.2, y = F.y - F.ry * 0.15 + Math.sin(an) * F.ry * 0.3 + Math.sin(t * 2 + j) * 0.3 * u;
       const a = A * (back ? 0.7 : fxFace(F, x, y)); if (a <= 0.01) continue;
-      g.globalAlpha = a * 0.5; fxGlow(g, x, y, 0.9 * u, 0.9 * u, '220,150,255', 0.8);
       g.globalAlpha = a; fxStar5(g, x, y, (0.36 + 0.08 * z) * u, '#f6dcff', t * 1.5 + j);
     }
     fxEach(seed, 8, 1.6, 0.55, t, k, (p, R, j) => {   // brillitos que titilan
@@ -3238,8 +3300,7 @@ function drawRatFx(g, i, t, F, layer, k = 1) {
       if (!side(j)) return;
       let [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.8 + R(3) * 0.5); y -= p * 2.2 * u; x += Math.sin(p * 3 + R(4) * 6) * 0.3 * u;
       const a = Math.sin(Math.PI * p) * A * (back ? 1 : fxFace(F, x, y)); if (a <= 0.01) return;
-      g.globalAlpha = a * 0.6; fxGlow(g, x, y, 0.45 * u, 0.45 * u, '255,220,90', 0.9);
-      g.globalAlpha = a; g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(x, y, 0.12 * u, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = a; g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(x, y, 0.15 * u * (F.view === 'front' ? 1.5 : 1), 0, Math.PI * 2); g.fill();   // (sin el halo esfumado: lo sacó el usuario; de frente más grandes)
     });
     if (!back) fxEach(seed + 7, 7, 1.9, 0.6, t, k, (p, R, j) => {   // destellos sobre el cuerpo y alrededor
       const [x, y] = fxBody(F, R(2) * Math.PI * 2, 0.4 + R(3) * 0.75), a = Math.sin(Math.PI * p) * A * fxFace(F, x, y); if (a <= 0.01) return;
@@ -3304,7 +3365,7 @@ function drawRatCage(g, w, h, i, owned, sel, t = 0, shelf = true, amp = 1, wag =
   }
   const fxOn = owned && fxT !== null;
   if (fxOn && doR) drawRatFx(g, i, fxT, F, 'back');
-  if (owned && doR) drawRatPortrait(g, cx, cy, size, i, t, amp, wag);   // las que no tenés: la jaula vacía, sin silueta
+  if (owned && doR) { drawRatPortrait(g, cx, cy, size, i, t, amp, wag); F.eyes = ratEyes(g); }   // las que no tenés: la jaula vacía, sin silueta
   if (fxOn && doR) drawRatFx(g, i, fxT, F, 'front');
   g.restore();
   if (!doO) { g.restore(); return { box, F }; }
@@ -4169,7 +4230,7 @@ function drawRevealRat(g, t, pick) {
     g.restore();
   }
   else drawRatFrontPose(g, KF2.x, KF2.y, KF2.size, pick, t, t - TRAVEL, 0, 0);   // (sin su rebote: el salto ya aterrizó)
-  if (F) drawRatFx(g, pick, t, F, 'front', fk);
+  if (F) { if (t >= REV_END) F.eyes = ratEyes(g); drawRatFx(g, pick, t, F, 'front', fk); }
 }
 // Las dos mitades de la cápsula al abrirse, dibujadas DELANTE de la ratita (que sale de atrás): la de arriba sube,
 // frena, se achata y se apaga; la de abajo se cae rápido de la pantalla
@@ -6806,7 +6867,8 @@ function frontTail(c, P, t, u, tailB = 0, dx = 0, dy = 0, grow = 1, sy = 1) {
 }
 function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK = 1) {   // landK: cuánto rebote al aterrizar
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line, u = clamp(curl, 0, 1), m = (a, b) => lerp(a, b, u), m2 = (a, b) => lerp2(a, b, u);
-  const breath = 1 + lerp(0.014, 0.02, u) * Math.sin(t * 2.6), blink = t > 0 && (t % 3.7) < 0.13;
+  const nb = RAT_NOBLINK.has(i), breath = 1 + lerp(0.014, 0.02, u) * Math.sin(t * 2.6), blink = t > 0 && (t % 3.7) < 0.13 && !nb;
+  ratEyesDev = [];
   const tw = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.12 : 0;   // oreja que se mueve
   // olfateo: de a ratos la nariz tiembla rapidito (y los bigotes con ella); además los bigotes se mecen apenas siempre
   const sn = sniffAt(t, i, land) * (1 - u);
@@ -6816,7 +6878,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   const reb = (d, lam, w) => { const v = L - d; return L < 0 || v <= 0 ? 0 : landK * Math.exp(-lam * v) * Math.sin(w * v); };
   const sqB = 0.2 * reb(-0.03, 5.5, 13), sqH = 0.2 * reb(0.03, 5.5, 13);
   const headDy = 60 * reb(0.06, 5, 11), noseDy = 30 * reb(0.12, 5, 12), whDy = 40 * reb(0.17, 4.5, 12);
-  const earR = 0.22 * reb(0.08, 4.5, 10), tailB = 34 * reb(0.06, 4, 9), squint = L >= 0 && L < 0.14;
+  const earR = 0.22 * reb(0.08, 4.5, 10), tailB = 34 * reb(0.06, 4, 9), squint = L >= 0 && L < 0.14 && !nb;
   const k = size / 935;
   c.save(); c.translate(cx, cy); c.scale(k, k); c.translate(-590, -m(FRONT_CY[0], FRONT_CY[1]));
   c.lineCap = 'round'; c.lineJoin = 'round';
@@ -6893,6 +6955,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   const closed = blink || squint || u > 0.45;
   for (const sd of [-1, 1]) {
     const e = m2([590 + sd * 133, 514], [590 + sd * 111, 598]), er = m(37, 30);
+    markEye(c, e[0], e[1], er);
     if (closed) { c.strokeStyle = S.eyeShut; c.lineWidth = 7; c.beginPath(); c.arc(e[0], e[1] - er * 0.33, er * 0.8, 0.35, Math.PI - 0.35); c.stroke(); continue; }
     c.fillStyle = S.eyes; c.beginPath(); c.arc(e[0], e[1], er, 0, Math.PI * 2); c.fill();
     c.fillStyle = P.shine; c.beginPath(); c.arc(e[0] + 10, e[1] - 14, 11, 0, Math.PI * 2); c.fill();
@@ -6972,12 +7035,12 @@ function ratGrid(bg, draw) {
 const FRONT_GALLERY = /frente/i.test(location.search + location.hash);
 function renderFrontGallery() {
   ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(ch * 0.86, cw * 0.62); const fy = y0 + (ch + sz) / 2, F = fxFrameFront(x0 + cw * 0.46, fy - sz * (1092 - FRONT_CY[0]) / 935, sz);
-    drawRatFx(ctx, i, G.time, F, 'back'); drawRatFront(ctx, x0 + cw * 0.46, fy, sz, i, G.time + i * 0.7); drawRatFx(ctx, i, G.time, F, 'front'); });
+    drawRatFx(ctx, i, G.time, F, 'back'); drawRatFront(ctx, x0 + cw * 0.46, fy, sz, i, G.time + i * 0.7); F.eyes = ratEyes(ctx); drawRatFx(ctx, i, G.time, F, 'front'); });
 }
 const PORTRAIT_GALLERY = /retratos/i.test(location.search + location.hash);
 function renderPortraitGallery() {
   ratGrid('#ececec', (x0, y0, cw, ch, i) => { const sz = Math.min(cw * 0.8, ch * 1.25); const F = fxFrameSide(x0 + cw / 2, y0 + ch * 0.55, sz);
-    drawRatFx(ctx, i, G.time, F, 'back'); drawRatPortrait(ctx, x0 + cw / 2, y0 + ch * 0.55, sz, i, G.time + i * 0.7); drawRatFx(ctx, i, G.time, F, 'front'); });
+    drawRatFx(ctx, i, G.time, F, 'back'); drawRatPortrait(ctx, x0 + cw / 2, y0 + ch * 0.55, sz, i, G.time + i * 0.7); F.eyes = ratEyes(ctx); drawRatFx(ctx, i, G.time, F, 'front'); });
 }
 const RAT_GALLERY = /ratas/i.test(location.search + location.hash);
 function renderRatGallery() {
