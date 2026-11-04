@@ -523,7 +523,8 @@
   @keyframes splashBeat { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
   @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
   #credit { position: fixed; left: 0; right: 0; bottom: max(10px, calc(var(--sab) - 24px)); z-index: 5; text-align: center; pointer-events: none;
-    font: 700 13px/1 'Kalam', cursive; color: #b8b8b8; letter-spacing: .02em; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+    /* la letra del sistema, como los textos legales (lo pidió el usuario, la misma en todos sus juegos): liviana y sin descargar nada */
+    font: 400 11px/1.3 system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #9a9a9a; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
   #fade { position: fixed; inset: 0; z-index: 50; background: #000; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
   #fade.on { opacity: 1; pointer-events: auto; }
   #opts:not(.hidden) { animation: optsBgIn .18s ease-out both; }
@@ -655,7 +656,7 @@
 <script>
 // Versión del juego, al pie de la portada junto al crédito (lo pidió el usuario, para saber rápido si en la web ya está
 // la última): se sube en cada publicación
-const VERSION = '1.0';
+const VERSION = '1.1';
 document.getElementById('ver').textContent = 'v' + VERSION;
 // Reinicio del progreso: la primera vez que se abre esta versión se borran el progreso de Historia, las monedas y las
 // ratitas (el usuario lo pidió al terminar de probar, junto con volver a cobrar la máquina y desbloquear los niveles de a
@@ -1559,7 +1560,7 @@ const thArp = (s, ch) => [ch.r + 12, ch.n[0], ch.n[1], ch.n[2], ch.n[1], ch.n[0]
 // melodía en metales y cuerdas al unísono (y la celesta una octava arriba en la B), el coro sosteniendo la línea
 // cromática, bombo en cada compás, crash al empezar cada mitad y timbales que cierran cada frase con un redoble
 const MUS_TITLE = themeTrack({
-  gain: 1,   // (medido offline: unos -28,7 dB, entre la música de menú de antes y la de los laberintos)
+  gain: 1.25,   // (el usuario la pidió un poco más fuerte: era 1, unos -27,5 dB medido offline; ahora unos 2 dB más)
   play(bar, s, t, sd, ch, m) {
     const bd = sd * 12;
     if (s === 0) MN.tuba(t, hz(thOom(bar, ch)), sd * 3.5, { gain: 0.05 });
@@ -1625,6 +1626,7 @@ const MUS_RES = themeTrack({
 // el remate al ganar: solo el final de la fanfarria de MUS_RES (su segundo compás, la bajada por semitonos sobre la7)
 // y el re menor final, que queda sonando (el usuario pidió cortarle el comienzo). Empalma con la música del laberinto: entra
 // en su próximo tiempo y a su tempo (sd), mientras la del laberinto se apaga debajo (Music.win). Devuelve cuándo cae el re
+const LAB_MUS_AT = 1;   // s desde que se abre la cápsula hasta que entra la música de la Ratalab (antes, en el acto)
 const WIN_TAIL = 2500, WIN_FADE = 0.5;   // ms desde el re final hasta que entra la de resultados (antes 1500: el usuario pidió más pausa); s en que se apaga la del laberinto
 const WIN_STING = Object.assign((t, sd = 60 / (MUS_RES.bpm * 4)) => {
   const end = t + 12 * sd;
@@ -1638,7 +1640,7 @@ const WIN_STING = Object.assign((t, sd = 60 / (MUS_RES.bpm * 4)) => {
 // Bioterio: una caja de música. La melodía en celesta aguda, el arpa en corcheas por el acorde, un pizzicato suave en el
 // "um", un coro "uuh" muy bajito y una campanita arriba cada cuatro compases; sin percusión
 const MUS_BIO = themeTrack({
-  gain: 1.7,   // (medido offline: un poco más bajita que las otras, unos -31,5 dB, como una caja de música)
+  gain: 1.45,   // (medido offline: un poco más bajita que las otras, como una caja de música; era 1,7, unos -31 dB, y el usuario la pidió un poco más bajita)
   play(bar, s, t, sd, ch, m) {
     const bd = sd * 12;
     if (s === 0) MN.pizz(t, hz(ch.r + 12), 0.05);
@@ -1944,7 +1946,8 @@ const Music = {
     if (!this.started || G.state === 'splash') return null;
     // una versión del tema por pantalla (lo pidió el usuario): Bioterio, Máquina y, cuando se abre la cápsula, Ratalab
     if (G.screen === 'ratitas') return MUS_BIO;
-    if (G.screen === 'machine') return Gacha.phase === 'reveal' ? MUS_LAB : MUS_MACH;
+    // (la Ratalab entra un poco después de que se abre la cápsula: el usuario la pidió más tarde)
+    if (G.screen === 'machine') return Gacha.phase !== 'reveal' ? MUS_MACH : Gacha.t >= LAB_MUS_AT ? MUS_LAB : null;
     if (G.screen) return MUS_RES;
     if (G.state === 'title' || G.state === 'select') return MUS_TITLE;
     const st = G.state;
@@ -4126,7 +4129,7 @@ function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
   // moneda clásica de juego al tocar Activar u Otra vez (lo pidió el usuario) y después entra por la ranura y rueda
-  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450); Music.duck(0, 2.5);   // la moneda entra; la música se va apagando hasta desaparecer mientras anda la máquina (lo pidió el usuario; antes bajaba al 60%) y vuelve en la revelación
+  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450);   // la moneda entra (la música sigue mientras arranca la máquina y se apaga cuando se abre la puerta, en gachaStage)
   Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
@@ -4155,11 +4158,13 @@ function gachaStage(id) {
     // cayó la cápsula premiada adentro: el montón de la pecera baja un nivel (se va la fila de arriba; quedan al menos dos)
     capsDrop();
   }
-  else if (id === 'door') Snd.doorOpen(DOOR_OPEN_T, RAMP_HIT);
+  // la música de la máquina se va apagando hasta desaparecer mientras se abre la puerta (lo pidió el usuario; antes se apagaba
+  // ya al tocar Activar, y antes de eso bajaba al 60%) y vuelve en la revelación
+  else if (id === 'door') { Snd.doorOpen(DOOR_OPEN_T, RAMP_HIT); Music.duck(0, DOOR_OPEN_T); }
   else if (id === 'launch') { machBgDark(true); Snd.launch(GACHA_T.launch + GACHA_T.hover); }
   else if (id === 'reveal') {
     // la música, que se fue apagando con la máquina, vuelve con la de la Ratalab desde su primer compás (el usuario lo
-    // pidió); las otras versiones del tema siguen después en ese mismo tiempo
+    // pidió), LAB_MUS_AT s después de abrirse la cápsula (want); las otras versiones del tema siguen después en ese mismo tiempo
     Snd.revealHit(); Music.fresh = true; Music.duck(1, 0.4); gachaResult();   // (sin papelitos: el usuario los sacó; P.conf queda vacío)
   }
   if (P.onStage) P.onStage(id);
