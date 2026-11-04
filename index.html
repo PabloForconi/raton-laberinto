@@ -659,7 +659,7 @@
 <script>
 // Versión del juego, al pie de la portada junto al crédito (lo pidió el usuario, para saber rápido si en la web ya está
 // la última): se sube en cada publicación
-const VERSION = '1.2';
+const VERSION = '1.3';
 document.getElementById('ver').textContent = 'v' + VERSION;
 // Reinicio del progreso: la primera vez que se abre esta versión se borran el progreso de Historia, las monedas y las
 // ratitas (el usuario lo pidió al terminar de probar, junto con volver a cobrar la máquina y desbloquear los niveles de a
@@ -918,7 +918,7 @@ function skinOf(i) {
   if (skinCache[i]) return skinCache[i];
   const [name, , , , , eyes, , spots] = RATS[i], harness = RATS[0][3], P = portraitOf(i), fur = P.fur;
   return skinCache[i] = { name, spots, harness, eyes, tail: P.tail, ear: P.ear,
-    earIn: P.earIn, nose: P.nose, shine: P.shine, eyeShut: P.line,   // ojo cerrado: del color de la boca de la de frente (lo pidió el usuario)
+    earIn: P.earIn, nose: P.nose, shine: P.shine, eyeShut: P.eyeShut,   // ojo cerrado: del color de la boca de la de frente (lo pidió el usuario), salvo que se elija otro
     eyeGlow: null,   // (la Albina tenía un brillo rojo alrededor de los ojos; el usuario lo sacó)
     fur, foot: hexRgb(P.paws) };   // colores planos (sin degradés), los mismos de la ratita de frente y de perfil
 }
@@ -3111,20 +3111,20 @@ const PORTRAIT_COLORS = {
   2: { fur: '#d1ebfd', ear: '#a0d9fc', earDark: '#84c8f7', earIn: '#84c8f7', nose: '#84c8f7', paws: '#93d1fb', tail: '#9ed8fb', earLine: '#72bbef', line: '#2a343d' },   // Copito
   3: { fur: '#a79ba6', ear: '#e7b9cc', earDark: '#d29db2', earIn: '#d29db2', nose: '#fedce8', paws: '#ecbacd', tail: '#ceb4c3', earLine: '#e2b0c3', line: '#362c32' },   // Cenizón
   4: { fur: '#2b2b2d', ear: '#444347', earDark: '#333336', earIn: '#333336', nose: '#999199', paws: '#6b686e', tail: '#424046', earLine: '#4e4c52', line: '#a8a2a5' },   // Sombrita
-  5: { fur: '#fd6d02', ear: '#fda467', earDark: '#fd8e4b', earIn: '#fd8e4b', nose: '#fed7b7', paws: '#fdaf7c', tail: '#faab76', earLine: '#fca065', line: '#612807' },   // Chispita
+  5: { fur: '#fd6d02', ear: '#fda467', earDark: '#fd8e4b', earIn: '#fd8e4b', nose: '#fda467', paws: '#fdaf7c', tail: '#faab76', earLine: '#fca065', line: '#612807', pawLine: '#bd784c' },   // Chispita (la nariz, del color de afuera de las orejas, y los deditos más oscuros: lo pidió el usuario)
   6: { fur: '#743315', ear: '#cd7855', earDark: '#b26141', earIn: '#b26141', nose: '#fdc194', paws: '#dd8e66', tail: '#bf6e4e', earLine: '#c3744c', line: '#c18a69' },   // Cacao
   7: { fur: '#fdc7df', ear: '#fdbbd9', earDark: '#f68cbf', earIn: '#f68cbf', nose: '#f68cbf', paws: '#fc94c8', tail: '#fca7d2', earLine: '#e678af', line: '#70213f' },   // Pinky
   8: { fur: '#fec703', ear: '#fdba2a', earDark: '#fda113', earIn: '#fda113', nose: '#fda113', paws: '#fda710', tail: '#fcb416', earLine: '#e78807', line: '#522901' },   // Cheddar
-  9: { fur: '#9ffa03', ear: '#b9fa34', earDark: '#9ceb2c', earIn: '#9ceb2c', nose: '#eafeb4', paws: '#d5fc6d', tail: '#b0f92e', earLine: '#c2f752', line: '#204403' },   // Toxi
+  9: { fur: '#9ffa03', ear: '#b9fa34', earDark: '#9ceb2c', earIn: '#9ceb2c', nose: '#eafeb4', paws: '#d5fc6d', tail: '#b0f92e', earLine: '#c2f752', line: '#ffffff', legLine: '#204403', eyeShut: '#f8fcf5', pawLine: '#91b93d', whisker: '#ffffff' },   // Toxi (la boca y los bigotes blancos, el ojo cerrado del color del ojo abierto y los deditos más oscuros: lo pidió el usuario; las líneas de los bracitos quedan oscuras, como eran)
   10: { fur: '#026b49', ear: '#28ad84', earDark: '#229d77', earIn: '#229d77', nose: '#65ebb6', paws: '#31c196', tail: '#2da980', earLine: '#1fa67d', line: '#69a485' },   // Musguito
   11: { fur: '#0050fd', ear: '#459bfd', earDark: '#2a7ffa', earIn: '#2a7ffa', nose: '#8af1fe', paws: '#5fb3fd', tail: '#4297fa', earLine: '#4198f8', line: '#0d0f41' },   // Voltio
-  12: { fur: '#ed268c', ear: '#f65cb0', earDark: '#e74ea0', earIn: '#e74ea0', nose: '#feceef', paws: '#fc6fbd', tail: '#f656ad', earLine: '#f45eb1', line: '#560933' },   // Mordisquito
+  12: { fur: '#ed268c', ear: '#f65cb0', earDark: '#e74ea0', earIn: '#e74ea0', nose: '#feceef', paws: '#fc6fbd', tail: '#f656ad', earLine: '#f45eb1', line: '#560933', pawLine: '#b74685' },   // Mordisquito (los deditos más oscuros)
   13: { fur: '#fb1316', ear: '#fd6660', earDark: '#fc5551', earIn: '#fc5551', nose: '#feceb0', paws: '#fd7d79', tail: '#f85654', earLine: '#fb6460', line: '#5f0d0c' },   // Fogui
   14: { fur: '#29edf3', ear: '#49f7fb', earDark: '#28e0e7', earIn: '#28e0e7', nose: '#bffcfe', paws: '#9cfcfd', tail: '#4ef1f6', earLine: '#67f4f7', line: '#10403a' },   // Burbuja
   15: { fur: '#b7aafc', ear: '#ccc3fd', earDark: '#9d8cfa', earIn: '#9d8cfa', nose: '#9d8cfa', paws: '#a28dfc', tail: '#b9adf9', earLine: '#806fee', line: '#3a3068' },   // Lila
   16: { fur: '#7f0a28', ear: '#ba3452', earDark: '#952f46', earIn: '#952f46', nose: '#ba3452', paws: '#d84567', tail: '#c03452', earLine: '#772638', line: '#d9909f' },   // Bordolín
   17: { fur: '#9c807d', ear: '#cda19d', earDark: '#b48b88', earIn: '#b48b88', nose: '#eec1c1', paws: '#d2a3a1', tail: '#cda29e', earLine: '#c49a98', line: '#382521' },   // Panchita
-  18: { fur: '#919110', ear: '#ccc648', earDark: '#b0ac3a', earIn: '#b0ac3a', nose: '#f7f785', paws: '#cbc641', tail: '#aba930', earLine: '#bebb3a', line: '#363704' },   // Wasabi
+  18: { fur: '#919110', ear: '#ccc648', earDark: '#b0ac3a', earIn: '#b0ac3a', nose: '#f7f785', paws: '#cbc641', tail: '#aba930', earLine: '#bebb3a', line: '#363704', pawLine: '#8e8c2b' },   // Wasabi (los deditos más oscuros)
   19: { fur: '#6701c5', ear: '#9229e4', earDark: '#8525d3', earIn: '#8525d3', nose: '#cf8bfc', paws: '#b656fa', tail: '#962def', earLine: '#a341ec', line: '#c08ae6' },   // Violeta
   20: { fur: '#fac30e', ear: '#fdd734', earDark: '#fac92e', earIn: '#fac92e', nose: '#fdf9a2', paws: '#feef60', tail: '#f7d405', earLine: '#b98c07', line: '#623d02' },   // Dorada
 };
@@ -3136,9 +3136,13 @@ function portraitOf(i) {
   const line = o.line || (dark ? mixC(fur, '#ffffff', 0.45) : mixC(fur, '#000000', 0.53));
   const paws = o.paws || ear;   // nariz, patitas y cola: del tono claro de la oreja (si no se eligen aparte)
   const earDark = o.earDark || mixC(ear, '#000000', 0.09);
-  return { fur, ear, earDark, earIn: o.earIn || earDark, earLine: o.earLine || mixC(ear, '#000000', 0.42),
+  const earLine = o.earLine || mixC(ear, '#000000', 0.42);
+  return { fur, ear, earDark, earIn: o.earIn || earDark, earLine,
     nose: o.nose || ear, paws, tail: o.tail || paws,
-    line, legLine: o.legLine || line, shine: o.shine || '#ffffff' };   // shine: el brillito del ojo
+    line, legLine: o.legLine || line, shine: o.shine || '#ffffff',   // shine: el brillito del ojo
+    pawLine: o.pawLine || earLine,   // las rayitas de los deditos (si no, las de la oreja)
+    whisker: o.whisker || line,      // los bigotes (si no, el color de la boca)
+    eyeShut: o.eyeShut || line };    // el ojo cerrado y el pestañeo (si no, el color de la boca)
 }
 // La cola del retrato en reposo (en las coordenadas de la referencia nueva), repartida en tramos iguales a lo largo; al
 // moverse cada tramo solo gira, así la cola nunca se estira. TAIL_LIFT: cuánto gira la base para arriba al tocarla (rad),
@@ -3281,7 +3285,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
     c.fillStyle = P.paws; c.beginPath(); c.moveTo(x0 + 18, bot);
     c.bezierCurveTo(x0 - 4, bot, x0 - 2, top + 34, x0 + 52, top + 10); c.bezierCurveTo(m - 20, top - 4, x1 - 50, top - 2, x1 - 18, top + 22);
     c.bezierCurveTo(x1 + 6, top + 44, x1 + 4, bot, x1 - 18, bot); c.closePath(); c.fill();
-    c.strokeStyle = P.earLine; c.lineWidth = 5; c.beginPath();
+    c.strokeStyle = P.pawLine; c.lineWidth = 5; c.beginPath();
     for (const [ax, ay, bx, by] of lines) { c.moveTo(ax, ay); c.lineTo(bx, by); }
     c.stroke();
   };
@@ -3309,7 +3313,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
     c.fillStyle = P.shine; c.beginPath(); c.arc(250.5, 519.5, 11.5, 0, Math.PI * 2); c.fill();
   }
   // bigotes: tres, desde atrás de la nariz hacia atrás (para arriba, derecho y para abajo)
-  c.strokeStyle = ink; c.lineWidth = 8; c.beginPath();
+  c.strokeStyle = P.whisker; c.lineWidth = 8; c.beginPath();
   const wy = Math.sin(t * 4) * 6 * amp;
   for (const [x0, y0, cx, cy, x1, y1] of [[138, 616, 300, 590, 480, 570 + wy], [148, 630, 300, 628, 456, 640 + wy], [152, 648, 300, 662, 436, 693 + wy]]) {
     c.moveTo(x0, y0); c.quadraticCurveTo(cx, cy, x1, y1);
@@ -4007,7 +4011,11 @@ function rampAt(t) {   // 0 arriba → 1 abajo
   if (s < RAMP_BT + b2) return 1 - RAMP_BOUNCE * 0.25 * Math.sin(Math.PI * (s - RAMP_BT) / b2);    // y otro más chiquito
   return 1;
 }
-const CAP_COLORS = ['#ff2d3a', '#1e8fff', '#2fe04a', '#ffd21a', '#a43dff', '#ff8a14', '#14d6cf', '#ff3fc4'];   // (más vivos, como la referencia del usuario)
+// colores de las cápsulas: los vivos de la referencia del usuario y, sumados (lo pidió el usuario: con 15 cápsulas se veían
+// dos de cada uno), los pelajes de las ratitas que no estaban: Albina, Vainilla, Copito, Cenizón, Sombrita, Cacao, Pinky,
+// Toxi, Musguito, Lila, Bordolín, Panchita y Wasabi. Cada vez que se llena se mezclan y se toman 15 distintos
+const CAP_COLORS = ['#ff2d3a', '#1e8fff', '#2fe04a', '#ffd21a', '#a43dff', '#ff8a14', '#14d6cf', '#ff3fc4',
+  '#faf2f3', '#fde3c0', '#d1ebfd', '#a79ba6', '#2b2b2d', '#743315', '#fdc7df', '#9ffa03', '#026b49', '#b7aafc', '#7f0a28', '#9c807d', '#919110'];
 const SPARK_UP = 20;   // cuánto más arriba aparecen los destellos del premio (unidades del lienzo de la máquina)
 const SPARK_SIZE = 0.6;   // tamaño de cada destello (el usuario los quiso más chicos; 1 = como eran)
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
@@ -4183,7 +4191,8 @@ function gachaStage(id) {
 // chocan blandito entre sí y con el vidrio, y después vuelven a acomodarse solas.
 function gachaCaps() {
   if (!Gacha.caps) {
-    const cols = MACHINE_CAPS.map((_, i) => CAP_COLORS[i % CAP_COLORS.length]).sort(() => Math.random() - 0.5);
+    const mix = CAP_COLORS.slice(); for (let k = mix.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [mix[k], mix[j]] = [mix[j], mix[k]]; }
+    const cols = MACHINE_CAPS.map((_, i) => mix[i % mix.length]);   // (todos distintos mientras alcancen)
     Gacha.caps = MACHINE_CAPS.map(([x, y], i) => {
       const a = (Math.random() - 0.5) * 1.6;
       return { x, y, hx: x, hy: y, vx: 0, vy: 0, a, ha: a, va: 0, col: cols[i], gone: false, ph: Math.random() * 6.28, jx: 0, jy: 0, ja: 0,
@@ -4611,7 +4620,7 @@ function drawRatJump(c, cx, cy, size, i, t) {
       c.save(); c.beginPath(); c.rect(fx - 400, fY - 400, 800, 1092 - (fY - 400)); c.clip();   // el piso corta la pata apoyada
       c.translate(fx, fY); c.rotate(ang);
       c.fillStyle = P.paws; c.beginPath(); c.ellipse(0, 0, fMaj, fMin, 0, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = P.earLine; c.lineWidth = 5;
+      c.strokeStyle = P.pawLine; c.lineWidth = 5;
       for (const dx of [-9, 9]) {   // las dos rayitas, del lado de afuera (las mismas de la sentada, en proporción)
         const ax = (sd * 60 + dx - sd * 5) * fMaj / 110, bx = (sd * 60 + dx + sd * 5) * fMaj / 110;
         c.beginPath(); c.moveTo(ax, -38 * fMin / 88); c.lineTo(bx, -6 * fMin / 88); c.stroke();
@@ -4651,7 +4660,7 @@ function drawRatJump(c, cx, cy, size, i, t) {
     const hx = 590 + sd * hDx, ang = sd < 0 ? hAng : -hAng, kk = hMaj / 52;
     c.save(); c.translate(hx, hY); c.rotate(ang - (sd < 0 ? 1.1 : -1.1));   // girada respecto de como está sentada
     c.fillStyle = P.paws; c.beginPath(); c.ellipse(0, 0, hMin, hMaj, sd * 0.47, 0, Math.PI * 2); c.fill();
-    c.strokeStyle = P.earLine; c.lineWidth = 5;
+    c.strokeStyle = P.pawLine; c.lineWidth = 5;
     for (const kq of [0, 1]) {
       const o = [-sd * (4 + 14 * kq) * kk, (12 - 6 * kq) * kk], d = [-sd * 10 * kk, 28 * kk];
       c.beginPath(); c.moveTo(o[0], o[1]); c.lineTo(o[0] + d[0], o[1] + d[1]); c.stroke();
@@ -4677,7 +4686,7 @@ function drawRatJump(c, cx, cy, size, i, t) {
   // bigotes: los mismos, con el ancho de la cara (más cortitos en la bolita)
   // (con el mismo vaivén de siempre, así al terminar el salto siguen justo donde estaban)
   const ws = eDx / 133, wsy = Math.min(1, eRy / eRx), wh = Math.sin(t * 1.7 + i) * 2.5, WS = [[590, 568, 330, 560], [604, 592, 352, 606], [620, 628, 326, 668]];
-  c.strokeStyle = ink; c.lineWidth = 4.5;
+  c.strokeStyle = P.whisker; c.lineWidth = 4.5;
   for (const sd of [-1, 1]) for (const [y0, cyy, ex, ey] of WS) {
     const Yw = y => nY + (y - 598) * ws * wsy;
     c.beginPath(); c.moveTo(590 + sd * 100 * ws, Yw(y0)); c.quadraticCurveTo(590 + sd * 225 * ws, Yw(cyy), 590 + sd * ex * ws, Yw(ey) + wh); c.stroke();
@@ -4880,14 +4889,17 @@ function drawGacha(g, n) {
 }
 // Cápsula como las de la referencia: mitad de abajo de color, mitad de arriba transparente (teñida), con una banda en
 // el medio y brillos; split separa las mitades al abrirse
+const CAP_LOW_DARK = 0.16;   // cuánto más oscura es la mitad de abajo de las cápsulas
 function capsule(g, x, y, r, col, rot, split) {
   g.save(); g.translate(x, y); g.rotate(rot);
   // como la referencia del usuario: un solo color pleno, sin degradés, con la línea donde se juntan las mitades y un
   // solo brillo (antes la mitad de arriba era plástico transparente y la de abajo tenía un degradé)
+  // (la mitad de abajo, un poco más oscura que la de arriba: lo pidió el usuario)
   g.fillStyle = col;
   g.beginPath(); g.arc(0, -split, r, Math.PI, Math.PI * 2); g.closePath(); g.fill();
+  g.fillStyle = mixC(col, '#000000', CAP_LOW_DARK);
   g.beginPath(); g.arc(0, split, r, 0, Math.PI); g.closePath(); g.fill();
-  if (!split) { g.fillStyle = mixC(col, '#000000', 0.22); g.fillRect(-r, -r * 0.04, r * 2, r * 0.08); }   // la línea donde se juntan
+  if (!split) { g.fillStyle = mixC(col, '#000000', 0.3); g.fillRect(-r, -r * 0.04, r * 2, r * 0.08); }   // la línea donde se juntan
   g.fillStyle = 'rgba(255,255,255,0.8)';                                                                // el brillo
   g.beginPath(); g.ellipse(-r * 0.36, -split - r * 0.52, r * 0.26, r * 0.13, -0.6, 0, Math.PI * 2); g.fill();
   g.restore();
@@ -5192,18 +5204,25 @@ function drawMachine(g) {
   g.restore();
   // rejillas: iguales de los dos lados
   g.fillStyle = DARK; for (const x of [234, 790]) for (let i = 0; i < 3; i++) { rr(x, 1112 + i * 26, 120, 13, 6); g.fill(); }
-  // monedero a la derecha: chapa gris con bordes redondos como la pantallita, la ranura para la moneda y abajo la boca
-  // de devolución con su palanquita
-  g.fillStyle = '#a7aeb2'; rr(764, 880, 152, 208, 16); g.fill();   // (sin degradés, lo pidió el usuario)
-  g.fillStyle = '#6c747a'; for (const [x, y] of [[782, 898], [898, 898], [782, 1070], [898, 1070]]) { g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill(); }
-  g.fillStyle = '#6c747a'; g.beginPath(); g.arc(840, 936, 36, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#d3d8db'; g.beginPath(); g.arc(840, 936, 29, 0, Math.PI * 2); g.fill();
-  g.fillStyle = DARK; rr(834, 912, 12, 48, 5); g.fill();                                     // ranura
-  g.fillStyle = '#d6dadc'; rr(800, 984, 80, 30, 4); g.fill(); g.strokeStyle = '#5a6068'; g.lineWidth = 3; g.stroke();   // chapita
-
-  g.fillStyle = '#5a6068'; rr(818, 1024, 44, 50, 7); g.fill();                              // devolución
-  g.fillStyle = DARK; rr(832, 1032, 16, 20, 4); g.fill();
-  g.fillStyle = '#e1e5e7'; rr(826, 1054, 28, 14, 5); g.fill();
+  // monedero a la derecha, rehecho con formas básicas y los colores de un dibujo del usuario (en sus coordenadas, de 671 × 883
+  // con la chapa en 23–642 × 12–861, llevadas a la chapa de 152 × 208): chapa gris con cuatro tornillos, el aro de la
+  // moneda con su ranura, una chapita clara y la boca de devolución (redondeada abajo) con su ranura y su palanquita
+  {
+    const k = 152 / 619, X = x => 764 + (x - 23) * k, Y = y => 880 + (y - 12) * k;
+    const box = (x0, y0, x1, y1, r) => { rr(X(x0), Y(y0), (x1 - x0) * k, (y1 - y0) * k, r * k); g.fill(); };
+    const dot = (x, y, r) => { g.beginPath(); g.arc(X(x), Y(y), r * k, 0, Math.PI * 2); g.fill(); };
+    g.fillStyle = '#a5afb4'; box(23, 12, 642, 861, 40);                                        // chapa
+    g.fillStyle = '#69757b'; for (const [x, y] of [[95, 84], [570, 84], [95, 788], [570, 788]]) dot(x, y, 22);   // tornillos
+    dot(332, 199, 148); g.fillStyle = '#d2d9dc'; dot(332, 199, 117);                          // aro de la moneda
+    g.fillStyle = '#394149'; box(320, 92, 347, 308, 0);                                        // ranura
+    g.fillStyle = '#c1c9cc'; box(168, 388, 496, 490, 12);                                      // chapita
+    g.fillStyle = '#576069'; g.beginPath();                                                   // devolución: arriba redondeada, abajo media luna
+    g.moveTo(X(242), Y(755)); g.lineTo(X(242), Y(548)); g.quadraticCurveTo(X(242), Y(526), X(264), Y(526));
+    g.lineTo(X(399), Y(526)); g.quadraticCurveTo(X(421), Y(526), X(421), Y(548)); g.lineTo(X(421), Y(755));
+    g.arc(X(331.5), Y(755), 89.5 * k, 0, Math.PI); g.closePath(); g.fill();
+    g.fillStyle = '#d2d9dc'; box(243, 726, 420, 779, 16);                                      // palanquita
+    g.fillStyle = '#26292d'; box(301, 558, 362, 756, 10);                                      // ranura de la devolución
+  }
   // pantallita a la izquierda: barras verdes (se llenan al activarla) y un pulso que corre
   g.save(); g.translate(-536, 0);
   g.fillStyle = DARK; rr(764, 880, 152, 208, 16); g.fill();
@@ -7557,7 +7576,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
     const fc = m2([590 + sd * 244, 1092], [590 + sd * 114, 864]);
     c.save(); c.beginPath(); c.rect(fc[0] - 160, fc[1] - 140, 320, m(1092, 1400) - (fc[1] - 140)); c.clip();
     c.fillStyle = P.paws; c.beginPath(); c.ellipse(fc[0], fc[1], m(110, 71), m(88, 42), m(0, sd * 0.15), 0, Math.PI * 2); c.fill(); c.restore();
-    c.strokeStyle = P.earLine; c.lineWidth = 5;
+    c.strokeStyle = P.pawLine; c.lineWidth = 5;
     for (const dx of [-9, 9]) {
       const a = m2([fc[0] + sd * 60 + dx - sd * 5, fc[1] - 38], [fc[0] - sd * 27 + dx, fc[1] - 9]), b = m2([fc[0] + sd * 60 + dx + sd * 5, fc[1] - 6], [fc[0] - sd * 33 + dx, fc[1] + 25]);
       c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
@@ -7595,7 +7614,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   }
   c.restore();
   // bigotes: tres de cada lado en abanico; en la bolita más cortitos
-  c.strokeStyle = ink; c.lineWidth = 4.5;
+  c.strokeStyle = P.whisker; c.lineWidth = 4.5;
   const WS = [[[590, 568, 330, 560], [677, 667, 223, 650]], [[604, 592, 352, 606], [691, 692, 223, 693]], [[620, 628, 326, 668], [704, 720, 223, 736]]];
   for (const sd of [-1, 1]) for (const [A, B] of WS) {
     const y0 = m(A[0], B[0]), cyy = m(A[1], B[1]), ex = m(A[2], B[2]), ey = m(A[3], B[3]), x0 = 590 + sd * m(100, 86), cxx = 590 + sd * m(225, 155);
@@ -7605,14 +7624,8 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
   // --- bracitos: del hombro (con el cuerpo) a la manito (con las manitos); en la bolita suben hasta la boca ---
   // manitos sentada como la referencia del usuario: óvalos parados, un poco separadas y apenas inclinadas hacia el medio
   const hand = sd => ({ c: m2([590 + sd * 114, 880], [590 + sd * 47, 725]), rx: m(40, 45), ry: m(52, 36), rot: m(sd * 0.47, sd * 0.5) });
-  c.save(); c.globalAlpha *= u;   // (sentada no tiene bracitos: van apareciendo al hacerse bolita)
-  c.strokeStyle = P.legLine; c.lineWidth = 6;
-  for (const sd of [-1, 1]) {
-    const a = sqPt(sqB, m2([590 + sd * 207, 760], [590 + sd * 205, 760])), mm = sqPt((sqB + sqH) / 2, m2([590 + sd * 202, 852], [590 + sd * 200, 700]));
-    const b = sqPt(sqH, m2([590 + sd * 124, 864], [590 + sd * 85, 738]));
-    c.beginPath(); c.moveTo(...a); c.quadraticCurveTo(...mm, ...b); c.stroke();
-  }
-  c.restore();
+  // (hecha bolita tenía unas líneas de bracitos, en legLine, que aparecían al enrollarse; el usuario las sacó: no se veían
+  // en ninguna otra vista ni en el juego, donde el salto usa drawRatJump)
   // --- manitos (siguen el aplastado un poquito desfasadas): sentada juntas abajo, hecha bolita tapando la boca ---
   c.save(); squash(sqH);
   for (const sd of [-1, 1]) {
@@ -7623,7 +7636,7 @@ function drawRatFrontPose(c, cx, cy, size, i, t = 0, land = -1, curl = 0, landK 
       c.translate(...pv); c.rotate(sh); c.translate(-pv[0], -pv[1]);
     }
     c.fillStyle = P.paws; c.beginPath(); c.ellipse(h.c[0], h.c[1], h.rx, h.ry, h.rot, 0, Math.PI * 2); c.fill();
-    c.strokeStyle = P.earLine; c.lineWidth = 5;
+    c.strokeStyle = P.pawLine; c.lineWidth = 5;
     for (const kk of [0, 1]) {   // dos deditos: sentada para abajo y hacia el medio, hecha bolita para arriba
       const o = m2([-sd * (4 + 14 * kk), 12 - 6 * kk], [-sd * (4 + 16 * kk), -7 + 5 * kk]), d = m2([-sd * 10, 28], [-sd * 7, -27]);
       c.beginPath(); c.moveTo(h.c[0] + o[0], h.c[1] + o[1]); c.lineTo(h.c[0] + o[0] + d[0], h.c[1] + o[1] + d[1]); c.stroke();
@@ -7690,10 +7703,10 @@ const LIB_ORIG = { rats: RATS.map(r => r.slice()), port: JSON.parse(JSON.stringi
 // [campo, etiqueta]: claves de portraitOf, o 'r' + índice en RATS (ojos, manchas)
 const LIB_FIELDS = [['fur', 'Pelaje'], ['ear', 'Oreja externa'], ['earDark', 'Oreja de atrás'], ['earIn', 'Interior de la oreja'],
   ['earLine', 'Línea de la oreja'], ['nose', 'Nariz'], ['paws', 'Patas'], ['tail', 'Cola'], ['r5', 'Ojos'], ['shine', 'Brillo del ojo'],
-  ['line', 'Líneas de la cara'], ['legLine', 'Líneas de las patas'], ['r7', 'Manchas']];   // (sin arnés ni linterna: son iguales para todas)
+  ['line', 'Líneas de la cara'], ['legLine', 'Líneas de las patas'], ['pawLine', 'Rayitas de los deditos'], ['eyeShut', 'Ojo cerrado'], ['whisker', 'Bigotes'], ['r7', 'Manchas']];   // (sin arnés ni linterna: son iguales para todas)
 // los automáticos de portraitOf salen de otro color: al cambiar ese, se fijan antes con el valor que tenían, así cada
 // selector cambia solo lo suyo
-const LIB_DEPS = { fur: ['line', 'legLine'], ear: ['earDark', 'earLine', 'nose', 'paws', 'tail'], earDark: ['earIn'], paws: ['tail'], line: ['legLine'] };
+const LIB_DEPS = { fur: ['line', 'legLine', 'eyeShut', 'whisker'], ear: ['earDark', 'earLine', 'nose', 'paws', 'tail', 'pawLine'], earDark: ['earIn'], earLine: ['pawLine'], paws: ['tail'], line: ['legLine', 'eyeShut', 'whisker'] };
 const libPal = i => { const P = portraitOf(i), r = RATS[i]; return { ...P, r3: r[3], r4: r[4], r5: r[5], r7: r[7] }; };
 const LIB_PAL0 = RATS.map((_, i) => libPal(i));   // cómo eran antes de los cambios
 const Lib = {
