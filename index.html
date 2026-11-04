@@ -1420,7 +1420,14 @@ const MN = {
     this.tone(t, f, dur, { type: 'sine', gain, attack: 0.004, decay: dur / 4, wet });
     this.tone(t, f * 2.76, dur * 0.4, { type: 'sine', gain: gain * 0.35, attack: 0.002, decay: dur / 12, wet });
   },
-  kick(t, gain = 0.22) { this.tone(t, 150, 0.22, { to: 42, type: 'sine', gain, attack: 0.003, decay: 0.07 }); this.noise(t, 0.012, 2500, { gain: gain * 0.15 }); },
+  // bombo: el grave que baja, un triángulo corto que le da cuerpo en los medios (lo que el parlante del celu sí da) y un
+  // "toc" de ruido oscuro. Antes el golpe era un ruido desde 2,5 kHz sin techo, y en el celu se oía como un tic (el
+  // usuario lo encontró en la portada); sin él no se oía el bombo, porque el parlante casi no da los graves
+  kick(t, gain = 0.22) {
+    this.tone(t, 150, 0.22, { to: 42, type: 'sine', gain, attack: 0.003, decay: 0.07, wet: 0.25 });
+    this.tone(t, 380, 0.05, { to: 120, type: 'triangle', gain: gain * 0.7, attack: 0.002, decay: 0.025, wet: 0.25 });
+    this.noise(t, 0.022, 1500, { type: 'bandpass', q: 1.1, gain: gain * 0.5, lp: 3200, wet: 0.25 });
+  },
   snare(t, gain = 0.06) { this.noise(t, 0.16, 1800, { type: 'bandpass', q: 0.8, gain, wet: 0.25 }); this.tone(t, 210, 0.08, { to: 130, type: 'triangle', gain: gain * 0.7, decay: 0.03 }); },
   // --- orquesta (el estilo que pidió el usuario: Danny Elfman, mezclado con electrónico) ---
   filt(type, f, q = 0.8) { const fl = Snd.ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; return fl; },
@@ -1454,11 +1461,14 @@ const MN = {
   // tuba: dos sierras graves y un seno de cuerpo, por un filtro que se abre al soplar y se vuelve a cerrar ("tun"),
   // con la nota que entra apenas desde abajo, como un labio que busca la nota
   tuba(t, f, dur, { gain = 0.04, wet = 0.25 } = {}) {
-    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', 160, 1.6);
-    fl.frequency.setValueAtTime(160, t); fl.frequency.linearRampToValueAtTime(f * 5 + 260, t + 0.05); fl.frequency.setTargetAtTime(f * 3 + 120, t + 0.06, dur / 3);   // (el soplido abre menos y más despacio: antes f·7 + 300 en 35 ms, metía un golpe agudo)
+    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', 200, 1.4);
+    // el soplido abre en 60 ms (antes f·7 + 300 en 35 ms metía un golpe agudo) y el filtro queda abierto en f·6 + 220
+    // mientras suena: cerrado a f·3 + 120, en el parlante del celu la tuba casi no se oía, y con el bombo nuevo, que cae
+    // en el mismo tiempo, desaparecía (el usuario la eligió así, la "G", un 20% más fuerte)
+    fl.frequency.setValueAtTime(200, t); fl.frequency.linearRampToValueAtTime(f * 8 + 300, t + 0.06); fl.frequency.setTargetAtTime(f * 6 + 220, t + 0.07, dur / 3);
     for (const d of [-4, 4]) { const o = this.osc('sawtooth', f, t, dur, d); o.frequency.setValueAtTime(f * 0.97, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04); o.connect(fl); }
     const sb = this.osc('sine', f, t, dur), sg = Snd.ctx.createGain(); sg.gain.value = 0.9; sb.connect(sg).connect(g);
-    fl.connect(g); this.env(g, t, gain, 0.022, dur, dur / 2.2); this.send(g, wet);
+    fl.connect(g); this.env(g, t, gain * 1.2, 0.022, dur, dur / 2.2); this.send(g, wet);
   },
   // caña (clarinete arriba, fagot abajo): una cuadrada y un triángulo por un filtro que deja pasar bright armónicos, con
   // un vibrato que entra de a poco (vib) en las notas largas
@@ -3108,8 +3118,11 @@ function tailShapes() {
 let ratEyesDev = [];
 function markEye(c, x, y, r) { const m = c.getTransform(), p = m.transformPoint(new DOMPoint(x, y)); ratEyesDev.push([p.x, p.y, r * Math.hypot(m.a, m.b)]); }
 function ratEyes(g) { const m = g.getTransform(), inv = m.inverse(), k = Math.hypot(m.a, m.b) || 1; return ratEyesDev.map(([x, y, r]) => { const p = inv.transformPoint(new DOMPoint(x, y)); return [p.x, p.y, r / k]; }); }
-// ratitas que no parpadean (Fogui: tiene fuego en los ojos)
+// ratitas que no parpadean (Fogui: tiene fuego en los ojos; en el Bioterio, sin efectos, parpadea como las demás)
 const RAT_NOBLINK = new Set([13]);
+// dónde se ven los efectos de partículas (RAT_FX): el usuario los dejó solo en la rata de frente de la Ratalab (la
+// revelación de la máquina); en las jaulas del Bioterio y en el laberinto se sacaron. true los vuelve a poner
+const FX_CAGES = false, FX_MAZE = false;
 const NOSE_SIDE = [0.8, 1.25];   // la nariz de perfil: ancho y largo, en veces la de frente
 function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: cuánto se mueve (0 = quieta, 1 = normal); wag: segundos desde que se la tocó (0 = nada)
   // Dibujo plano de costado, mirando a la izquierda, según la última referencia del usuario (revision/rata-perfil-nueva,
@@ -3121,7 +3134,7 @@ function drawRatPortrait(c, x, y, size, i, t = 0, amp = 1, wag = 0) {   // amp: 
   // mismo largo de hocico a anca) y de ahí al marco de siempre (x, y es el centro y size el ancho de referencia), así las
   // jaulas, la máquina y las galerías no cambian.
   const S = skinOf(i), P = portraitOf(i), fur = P.fur, ink = P.line;
-  const breath = 1 + 0.012 * amp * Math.sin(t * 2.6), blink = t > 0 && amp > 0.5 && (t % 3.7) < 0.13 && !RAT_NOBLINK.has(i);
+  const breath = 1 + 0.012 * amp * Math.sin(t * 2.6), blink = t > 0 && amp > 0.5 && (t % 3.7) < 0.13 && !(FX_CAGES && RAT_NOBLINK.has(i));
   ratEyesDev = [];
   let twitch = t > 0 && (t % 5.3) < 0.4 ? Math.sin((t % 5.3) / 0.4 * Math.PI * 2) * 0.14 * amp : 0;
   if (wag > 0 && wag < 0.7) twitch += Math.sin(wag * Math.PI * 2 * 5) * 0.2 * (1 - wag / 0.7) * Math.min(1, wag * 20);   // al tocarla: sacude las orejitas
@@ -3844,7 +3857,7 @@ const cageFxT0 = performance.now(), cageFxT = () => (performance.now() - cageFxT
 function drawThumb(cv, t = 0, amp = 0, wag = 0) {
   const i = +cv.dataset.rat, g = cv.getContext('2d'), own = Skins.has(i), sel = Skins.data.sel === i, w = cv.width, h = cv.height;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
-  if (!own || !RAT_FX[i]) { cv._fx = null; drawRatCage(g, w, h, i, own, sel, t, false, amp, wag); return; }
+  if (!own || !RAT_FX[i] || !FX_CAGES) { cv._fx = null; drawRatCage(g, w, h, i, own, sel, t, false, amp, wag); return; }
   // con efecto: se guardan las tres capas de la jaula y cada cuadro se arma con las partículas en el medio (drawThumbFx),
   // así no hay que redibujar la ratita y la jaula enteras todo el tiempo
   let L = cv._fx;
@@ -7128,7 +7141,7 @@ function renderScene() {
   if (sw > 0 && sh > 0 && !menu) {
     mouseCtx.setTransform(1, 0, 0, 1, 0, 0); mouseCtx.globalCompositeOperation = 'source-over'; mouseCtx.clearRect(sx, sy, sw, sh);
     mouseCtx.setTransform(...T6);
-    const fxI = skinOverride ?? Skins.data.sel, fxF = RAT_FX[fxI] ? fxFrameTop() : null;   // efecto de la ratita elegida (si tiene)
+    const fxI = skinOverride ?? Skins.data.sel, fxF = FX_MAZE && RAT_FX[fxI] ? fxFrameTop() : null;   // efecto de la ratita elegida (si tiene)
     mouseFxUnder = fxF && (() => drawRatFx(mouseCtx, fxI, G.time, fxF, 'back'));   // (drawMouse lo llama después de su sombra)
     drawMouse(mouseCtx, 1); mouseFxUnder = null;
     if (fxF) { fxF.eyes = ratEyes(mouseCtx); drawRatFx(mouseCtx, fxI, G.time, fxF, 'front'); }
