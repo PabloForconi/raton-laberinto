@@ -125,7 +125,10 @@
   :is(#card, #opts) .wtitle { position: relative; z-index: 2; display: inline-block; margin: 0 auto; padding: 9px 28px 7px; background: #efdfbd;
     font-family: 'Kalam', cursive; line-height: 1; transform: rotate(-2deg);
     background-image: radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.4), transparent 70%); box-shadow: 0 3px 0 #a07345, 0 6px 14px rgba(0,0,0,.35); }
-  :is(#card, #opts) .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; }
+  :is(#card, #opts) .wtitle b { display: block; font-weight: normal; font-size: 46px; letter-spacing: 1px; white-space: nowrap; }   /* (en una línea: "Laberinto 23" se partía en un celu de 360 px) */
+  /* "Laberinto N" del Desafío, un poco más chico (lo pidió el usuario): medido con el número más ancho, 888, ocupa unos
+     265 px más el papel en un celu de 390, y deja casi 25 px de cartón a cada lado */
+  :is(#card, #opts) .wtitle b.lab { font-size: 40px; }
   :is(#card, #opts) .wtitle span { display: inline-block; margin-top: 3px; font-size: 25px; border-bottom: 3px solid #2b1a0b; }
   #card .wstars { position: relative; display: flex; justify-content: center; align-items: center; margin: -24px 4px 12px; padding: 34px 2px 12px;
     background: #9a6838 repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 3px, transparent 3px 7px);
@@ -656,7 +659,7 @@
 <script>
 // Versión del juego, al pie de la portada junto al crédito (lo pidió el usuario, para saber rápido si en la web ya está
 // la última): se sube en cada publicación
-const VERSION = '1.1';
+const VERSION = '1.2';
 document.getElementById('ver').textContent = 'v' + VERSION;
 // Reinicio del progreso: la primera vez que se abre esta versión se borran el progreso de Historia, las monedas y las
 // ratitas (el usuario lo pidió al terminar de probar, junto con volver a cobrar la máquina y desbloquear los niveles de a
@@ -1840,7 +1843,7 @@ function MUS_STING(t) {
 const Music = {
   started: false, vol: 0.5,   // volumen de la música, aparte de los efectos (más o menos como la canción de antes)
   muted: (() => { try { return localStorage.getItem('raton.musicMuted') === '1'; } catch (_) { return false; } })(),
-  bus: null, rev: null, dry: null, track: null, out: null, wet: null, step: 0, nextAt: 0, level: 0, paused: false, holdUntil: 0,
+  bus: null, rev: null, dry: null, track: null, out: null, wet: null, step: 0, nextAt: 0, level: 0, paused: false, holdUntil: 0, winEnd: 0,
   // "cámara", como en Growcore (lo pidió el usuario): una sala de hall más larga (hall s), con la cola que se oscurece y una
   // entrada suave de 10 ms; además de lo que cada instrumento manda (wet), todo lo seco manda room a la sala, así hasta el
   // bombo, el bajo y la tuba suenan en un lugar; revGain es cuánto vuelve la sala a la mezcla
@@ -1922,7 +1925,8 @@ const Music = {
     this.play(null);
     const out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = WIN_STING.gain; out.connect(this.dry); wet.connect(this.rev);
     this.out = out; this.wet = wet; const end = WIN_STING(t, sd); this.out = this.wet = null;
-    this.holdUntil = performance.now() + (end - now) * 1000 + WIN_TAIL; this.hitNext = true;   // (la que sigue, de golpe y desde el comienzo)
+    this.winEnd = performance.now() + (end - now) * 1000;   // (cuándo cae el re final: ahí recién cae la primera estrella, showWinCard)
+    this.holdUntil = this.winEnd + WIN_TAIL; this.hitNext = true;   // (la que sigue, de golpe y desde el comienzo)
     setTimeout(() => { out.disconnect(); wet.disconnect(); }, (end - now) * 1000 + 4000);
   },
   sched() {
@@ -2630,8 +2634,13 @@ const EAR_BACK = 0.35;
 const TAIL_N = 18, TAIL_L = 30, TAIL_SEG = TAIL_L / TAIL_N, TAIL_ROOT = 18;   // la cola nace en x = -TAIL_ROOT
 const tailWidth = t => 3.6 - 3.0 * t;
 
+// las manos, hacia los costados (la mano y el brazo entero; el usuario las pidió más afuera: la mano era 5,4 y el hombro 4,2)
+const FRONT_Y = MOUSE_V2 ? 7.8 : 5.4, SHOULDER_Y = MOUSE_V2 ? 5.6 : 4.2;
+// la mano rosada (palma y deditos) va este tanto más atrás que donde termina el brazo blanco, así el brazo la tapa y se
+// ve apenas un poco de la palma y los deditos (lo pidió el usuario; el brazo queda donde estaba)
+const FRONT_TUCK = MOUSE_V2 ? 1.4 : 0;
 // Patas: [x, y] de reposo (coordenadas del ratón), si es de adelante, y su par diagonal (se mueven de a pares, como un trote)
-const FEET = [[MOUSE_V2 ? 5 : 6, -5.4, true, 0], [MOUSE_V2 ? 5 : 6, 5.4, true, 1],   // (con el diseño nuevo, las manos un poco más atrás: con las orejas inclinadas asomaban los deditos)
+const FEET = [[MOUSE_V2 ? 6.6 : 6, -FRONT_Y, true, 0], [MOUSE_V2 ? 6.6 : 6, FRONT_Y, true, 1],   // (con el diseño nuevo estaban en 5, más atrás, porque con las orejas inclinadas asomaban los deditos; el usuario las pidió más adelante, dos veces, para que se vean más: 5,8 y ahora 6,6)
    [-14.5, -9.2, false, 1], [-14.5, 9.2, false, 0]];
 const STRIDE = 28;        // largo de un ciclo de paso (unidades de mundo recorridas por las patas): más largo = pasos más lentos
 const FOOT_SLIP = 0.45;   // apoyada, la pata acompaña al cuerpo este tanto (leve arrastre): pasos largos sin despegarse del cuerpo
@@ -3998,7 +4007,7 @@ function rampAt(t) {   // 0 arriba → 1 abajo
   if (s < RAMP_BT + b2) return 1 - RAMP_BOUNCE * 0.25 * Math.sin(Math.PI * (s - RAMP_BT) / b2);    // y otro más chiquito
   return 1;
 }
-const CAP_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#ff7fbf'];
+const CAP_COLORS = ['#ff2d3a', '#1e8fff', '#2fe04a', '#ffd21a', '#a43dff', '#ff8a14', '#14d6cf', '#ff3fc4'];   // (más vivos, como la referencia del usuario)
 const SPARK_UP = 20;   // cuánto más arriba aparecen los destellos del premio (unidades del lienzo de la máquina)
 const SPARK_SIZE = 0.6;   // tamaño de cada destello (el usuario los quiso más chicos; 1 = como eran)
 const Gacha = { phase: 'idle', t: 0, clock: 0, tick: 0, pick: 1, dup: false, raf: 0, conf: [], spark: [], cap: '#e74c3c',
@@ -4158,10 +4167,10 @@ function gachaStage(id) {
     // cayó la cápsula premiada adentro: el montón de la pecera baja un nivel (se va la fila de arriba; quedan al menos dos)
     capsDrop();
   }
-  // la música de la máquina se va apagando hasta desaparecer mientras se abre la puerta (lo pidió el usuario; antes se apagaba
-  // ya al tocar Activar, y antes de eso bajaba al 60%) y vuelve en la revelación
-  else if (id === 'door') { Snd.doorOpen(DOOR_OPEN_T, RAMP_HIT); Music.duck(0, DOOR_OPEN_T); }
-  else if (id === 'launch') { machBgDark(true); Snd.launch(GACHA_T.launch + GACHA_T.hover); }
+  else if (id === 'door') Snd.doorOpen(DOOR_OPEN_T, RAMP_HIT);
+  // la música de la máquina se apaga cuando la cápsula salta hacia adelante, mientras la máquina se desvanece (lo pidió el
+  // usuario; antes se apagaba mientras se abría la puerta, antes al tocar Activar, y antes de eso bajaba al 60%) y vuelve en la revelación
+  else if (id === 'launch') { machBgDark(true); Snd.launch(GACHA_T.launch + GACHA_T.hover); Music.duck(0, GACHA_T.launch); }
   else if (id === 'reveal') {
     // la música, que se fue apagando con la máquina, vuelve con la de la Ratalab desde su primer compás (el usuario lo
     // pidió), LAB_MUS_AT s después de abrirse la cápsula (want); las otras versiones del tema siguen después en ese mismo tiempo
@@ -4809,7 +4818,7 @@ function drawGacha(g, n) {
     // rareza y después el aviso cuando ya se ve el laboratorio (TXT_AT, segundos desde que se abre la cápsula); sin borde
     // (antes llevaban un borde oscuro: el usuario lo sacó)
     const pop = k => clamp((t - TXT_AT[k]) / 0.3, 0, 1);
-    if (pop(0) > 0) {
+    if (t > TXT_AT[0] - NAME_BOARD_LEAD) {   // (el cartoncito cae un poco antes que el nombre)
       const name = ratName(P.pick);   // (sin ¡!, lo pidió el usuario)
       const sub = P.dup ? say(['Como ya la tenés', `te devolvemos ${COIN_DUP} moneda${COIN_DUP === 1 ? '' : 's'}`], ['You already have it,', `so you get ${COIN_DUP} coin${COIN_DUP === 1 ? '' : 's'} back`]) : [say('¡Ratita nueva!', 'New rat!')];
       const txt = (ty, k, fn) => {
@@ -4819,10 +4828,29 @@ function drawGacha(g, n) {
         g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = '#140c05';
         fn(); g.restore();
       };
+      // debajo del nombre, un cartoncito como los de los carteles que cae desde arriba girando y se asienta con un
+      // rebotito, un poco antes de que salte el nombre (lo pidió el usuario); el nombre va en marrón oscuro, que resalta
+      // sobre el cartón (antes era crema sobre el laboratorio)
+      const ba = clamp((t - TXT_AT[0] + NAME_BOARD_LEAD) / NAME_BOARD_T, 0, 1);
+      if (ba > 0) {
+        g.save(); g.font = "26px 'Kalam', cursive";
+        const m = g.measureText('Hg'), w = g.measureText(name).width + 40, top = -m.actualBoundingBoxAscent - 7, h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent + 13;
+        const e = 1 + 2.4 * Math.pow(ba - 1, 3) + 1.4 * Math.pow(ba - 1, 2);   // (se pasa un poquito y vuelve)
+        g.globalAlpha = Math.min(1, ba * 2.5); g.translate(150, NAME_Y + top + h / 2 - 34 * (1 - e)); g.scale(TXT, TXT); g.rotate((-2 - 9 * (1 - e)) * Math.PI / 180);
+        const x0 = -w / 2, y0 = -h / 2, rr = (x, y, ww, hh) => { g.beginPath(); g.rect(x, y, ww, hh); };   // (con esquinas rectas: el usuario le sacó lo redondeado)
+        rr(x0, y0 + 3, w, h); g.fillStyle = NAME_BOARD.edge; g.fill();   // (el canto de abajo, como la sombra de los botones)
+        g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 5; rr(x0, y0, w, h); g.fillStyle = NAME_BOARD.fill; g.fill(); g.shadowColor = 'transparent';
+        // el brillo suave de las etiquetas de papel de los carteles (radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.4), transparent 70%))
+        g.save(); rr(x0, y0, w, h); g.clip(); g.translate(x0 + w * 0.4, y0 + h * 0.3); g.scale(w, h);
+        const hl = g.createRadialGradient(0, 0, 0, 0, 0, 0.75); hl.addColorStop(0, 'rgba(255,255,255,0.4)'); hl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = hl; g.fillRect(-1, -1, 2, 2);
+        g.restore();
+        // (sin borde ni cintas: el usuario los sacó)
+        g.restore();
+      }
       txt(NAME_Y, 0, () => {
         g.font = "26px 'Kalam', cursive";
         // (sin el borde oscuro: el usuario lo sacó de los tres textos)
-        g.fillStyle = '#f6e7bf'; g.fillText(name, 0, 0);
+        g.rotate(-2 * Math.PI / 180); g.fillStyle = NAME_BOARD.text; g.fillText(name, 0, 0);
       });
       txt(SUB_Y, 1, () => {   // y el aviso, centrado en el borde de la mesada: en una línea si entra en la pantalla, si no en dos
         g.font = "700 13px 'Kalam', cursive"; g.lineWidth = 3.5; g.textBaseline = 'middle';
@@ -4854,21 +4882,14 @@ function drawGacha(g, n) {
 // el medio y brillos; split separa las mitades al abrirse
 function capsule(g, x, y, r, col, rot, split) {
   g.save(); g.translate(x, y); g.rotate(rot);
-  const dark = mixC(col, '#000000', 0.25), light = mixC(col, '#ffffff', 0.55);
-  // mitad de arriba: plástico transparente teñido
-  g.globalAlpha *= 0.72;
-  const tg = g.createLinearGradient(0, -split - r, 0, -split);
-  tg.addColorStop(0, mixC(light, '#ffffff', 0.4)); tg.addColorStop(1, light);
-  g.fillStyle = tg; g.beginPath(); g.arc(0, -split, r, Math.PI, Math.PI * 2); g.closePath(); g.fill();
-  g.globalAlpha /= 0.72;
-  // mitad de abajo: color pleno, un poco más oscuro hacia abajo
-  const bg = g.createLinearGradient(0, split, 0, split + r);
-  bg.addColorStop(0, col); bg.addColorStop(1, dark);
-  g.fillStyle = bg; g.beginPath(); g.arc(0, split, r, 0, Math.PI); g.closePath(); g.fill();
-  if (!split) { g.fillStyle = dark; g.fillRect(-r, -r * 0.05, r * 2, r * 0.1); }   // banda donde se juntan
-  g.fillStyle = 'rgba(255,255,255,0.75)';                                               // brillos
-  g.beginPath(); g.ellipse(-r * 0.38, -split - r * 0.55, r * 0.24, r * 0.12, -0.5, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.arc(-r * 0.05, -split - r * 0.7, r * 0.05, 0, Math.PI * 2); g.arc(r * 0.12, -split - r * 0.66, r * 0.035, 0, Math.PI * 2); g.fill();
+  // como la referencia del usuario: un solo color pleno, sin degradés, con la línea donde se juntan las mitades y un
+  // solo brillo (antes la mitad de arriba era plástico transparente y la de abajo tenía un degradé)
+  g.fillStyle = col;
+  g.beginPath(); g.arc(0, -split, r, Math.PI, Math.PI * 2); g.closePath(); g.fill();
+  g.beginPath(); g.arc(0, split, r, 0, Math.PI); g.closePath(); g.fill();
+  if (!split) { g.fillStyle = mixC(col, '#000000', 0.22); g.fillRect(-r, -r * 0.04, r * 2, r * 0.08); }   // la línea donde se juntan
+  g.fillStyle = 'rgba(255,255,255,0.8)';                                                                // el brillo
+  g.beginPath(); g.ellipse(-r * 0.36, -split - r * 0.52, r * 0.26, r * 0.13, -0.6, 0, Math.PI * 2); g.fill();
   g.restore();
 }
 // Líneas cinéticas (como la referencia): rayos anchos de distintos anchos que salen de un punto, alternando verde lima
@@ -4919,6 +4940,10 @@ const SPEED_HOLD = 1.9, SPEED_FADE = 1.4;   // las líneas cinéticas del premio
 // cuándo aparecen el nombre (apenas después de que aterriza) y el aviso (con el laboratorio ya a la vista), en segundos
 // desde que se abre la cápsula (la rareza ya no se muestra: el usuario la sacó, no le servía al jugador)
 const TXT_AT = [TRAVEL + 0.25, SPEED_HOLD + SPEED_FADE + 0.1];
+// la etiqueta de papel debajo del nombre en la Ratalab: cae NAME_BOARD_LEAD s antes del nombre y tarda NAME_BOARD_T s; sus colores
+// son los del cartón de los carteles y el nombre va en marrón oscuro
+const NAME_BOARD_LEAD = 0.15, NAME_BOARD_T = 0.38;
+const NAME_BOARD = { fill: '#efdfbd', edge: '#a07345', text: '#2b1a0b' };   // (como la etiqueta de papel de los carteles, .wtitle: lo pidió el usuario; antes era un cartón)
 // la imagen de rayos del usuario (img/fondo-cinetica.jpg, hoy su fondo-cinetica3) en vez de los rayos dibujados (false = dibujados); ?v para que no quede la vieja en caché
 const SPEED_USE_IMG = true, SPEED_IMG = new Image(); SPEED_IMG.src = 'img/fondo-cinetica.jpg?v=3';
 // la imagen es de 1920 px: se achica una sola vez a SPEED_IMG_PX en un canvas aparte, así cada cuadro gira una textura
@@ -4989,7 +5014,7 @@ function drawMachine(g) {
   g.save(); g.translate(MX, MY); g.scale(MS, MS);
   g.lineCap = 'round'; g.lineJoin = 'round';
   const rr = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
-  const TEAL = '#2b8e9c', TEAL_D = '#1f6f7a', TEAL_L = '#3aa6b3', DARK = '#2b2d31', CREAM = '#efe7d0';
+  const TEAL = '#14a4b4', TEAL_D = '#0b6d7c', TEAL_L = '#2fcbd6', DARK = '#2b2d31', CREAM = '#f7eed4';   // (más vivos, con los colores de una referencia del usuario: eran #2b8e9c, #1f6f7a, #3aa6b3 y #efe7d0)
   // sombra en el piso
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(572, 1300, 470, 20, 0, 0, Math.PI * 2); g.fill();
   // cables de atrás: cada punta va enganchada a su pieza (la pecera o la base), así no se cortan cuando se mueven;
@@ -5005,11 +5030,11 @@ function drawMachine(g) {
     for (let i = 1; i < q.length; i += 3) g.bezierCurveTo(...q[i], ...q[i + 1], ...q[i + 2]);
     g.stroke();
   };
-  cable('#1677cc', 30, [[860, 285], [970, 285], [1005, 400], [990, 520], [975, 650], [935, 770], [900, 905]], Dm, Bm, 1.7);   // celeste, por detrás del negro y de la base, por el borde de afuera
+  cable('#1f7dff', 30, [[860, 285], [970, 285], [1005, 400], [990, 520], [975, 650], [935, 770], [900, 905]], Dm, Bm, 1.7);   // celeste, por detrás del negro y de la base, por el borde de afuera
   cable(DARK, 26, [[935, 520], [1015, 600], [1012, 780], [945, 880], [1060, 900], [1045, 1090], [962, 1105]], Dm, Bm, 0);
-  cable('#d9342b', 26, [[365, 725], [305, 690], [225, 700], [200, 760], [185, 800], [188, 830], [195, 850]], Dm, Bm, 3.1);   // arranca bien adentro, detrás de las cápsulas
+  cable('#f0302a', 26, [[365, 725], [305, 690], [225, 700], [200, 760], [185, 800], [188, 830], [195, 850]], Dm, Bm, 3.1);   // arranca bien adentro, detrás de las cápsulas
   cable(DARK, 24, [[195, 850], [150, 900], [158, 985], [185, 1005]], Bm, Bm, 4.4);
-  cable('#d9342b', 22, [[655, 92], [700, 20], [790, 26], [800, 72]], Dm, Dm, 5.6);
+  cable('#f0302a', 22, [[655, 92], [700, 20], [790, 26], [800, 72]], Dm, Dm, 5.6);
   g.fillStyle = '#9aa1a6';
   for (const [x, y, a, o] of [[196, 852, 0.2, Bm], [960, 1104, 1.4, Bm]]) {
     g.save(); g.translate(x + o[0], y + o[1]); g.rotate(a); rr(-22, -14, 44, 28, 6); g.fill(); g.restore();
@@ -5025,7 +5050,7 @@ function drawMachine(g) {
     halo.addColorStop(0, `rgba(255,220,90,${0.35 * glow})`); halo.addColorStop(1, 'rgba(255,220,90,0)');
     g.fillStyle = halo; g.fillRect(-60, -len * 0.6, len + 120, len * 1.2);
     const tg = g.createLinearGradient(0, -30, 0, 30);
-    tg.addColorStop(0, '#d9a51a'); tg.addColorStop(0.5, mixC('#f6d34a', '#fffbe0', glow)); tg.addColorStop(1, '#c58f12');
+    tg.addColorStop(0, '#f0b400'); tg.addColorStop(0.5, mixC('#ffe14a', '#fffbe0', glow)); tg.addColorStop(1, '#d99400');
     g.fillStyle = tg; rr(50, -30, len - 100, 60, 14); g.fill();
     g.fillStyle = 'rgba(255,255,255,0.55)'; rr(70, -18, len - 140, 10, 5); g.fill();
     g.fillStyle = DARK; rr(-6, -36, 64, 72, 12); g.fill(); rr(len - 58, -36, 64, 72, 12); g.fill();
@@ -5058,7 +5083,7 @@ function drawMachine(g) {
   g.fillStyle = TEAL_D; rr(300, 290, 545, 44, 22); g.fill();
   g.fillStyle = mixC('#6d6650', '#fff3b0', L.inner); g.beginPath(); g.ellipse(572, 334, 190, 16, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = TEAL_D; for (const x of [408, 736]) { g.beginPath(); g.arc(x, 215, 13, 0, Math.PI * 2); g.fill(); }
-  g.fillStyle = '#f2c230'; g.strokeStyle = '#f2c230'; g.lineWidth = 16;                      // cartel de peligro
+  g.fillStyle = '#ffcc1a'; g.strokeStyle = '#ffcc1a'; g.lineWidth = 16;                      // cartel de peligro
   g.lineJoin = 'round';
   g.beginPath(); g.moveTo(572, 168); g.lineTo(636, 268); g.lineTo(508, 268); g.closePath(); g.fill(); g.stroke();
   g.lineJoin = 'miter';
@@ -5068,7 +5093,7 @@ function drawMachine(g) {
   g.beginPath(); g.arc(533, 191, 27, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(611, 191, 27, 0, Math.PI * 2); g.fill();
   g.beginPath(); g.moveTo(537, 212); g.lineTo(607, 212); g.lineTo(607, 234); g.lineTo(572, 265); g.lineTo(537, 234); g.closePath();
   g.fill(); g.stroke(); g.lineJoin = 'miter';
-  g.fillStyle = '#f2c230';
+  g.fillStyle = '#ffcc1a';
   for (const x of [556, 588]) { g.beginPath(); g.arc(x, 229, 6.5, 0, Math.PI * 2); g.fill(); }
   // baliza roja, como una sirena de verdad: adentro de la cúpula roja gira un espejo alrededor de la lamparita. Cuando el
   // espejo mira a la cámara la cúpula se llena de un destello blanco rosado y larga un halo grande; de costado el brillo
@@ -5086,7 +5111,7 @@ function drawMachine(g) {
   const dome = new Path2D(); dome.moveTo(518, 98); dome.lineTo(518, 70); dome.bezierCurveTo(518, 22, 626, 22, 626, 70); dome.lineTo(626, 98); dome.closePath();
   const lit = bl * (1 - 0.45 * sa + 0.45 * Math.max(0, face));   // sin saltos: con sa = 0 queda prendida pareja
   const bg2 = g.createRadialGradient(560, 50, 5, 572, 75, 60);
-  bg2.addColorStop(0, mixC('#a85048', '#ffd0c8', lit)); bg2.addColorStop(0.35, mixC('#8e231c', '#ff3b2f', lit)); bg2.addColorStop(1, mixC('#6e140f', '#c41d16', lit * 0.6));
+  bg2.addColorStop(0, mixC('#a85048', '#ffd0c8', lit)); bg2.addColorStop(0.35, mixC('#c01e18', '#ff3328', lit)); bg2.addColorStop(1, mixC('#8a1610', '#e01a12', lit * 0.6));
   g.fillStyle = bg2; g.fill(dome);
   if (spin && bl > 0.15) {
     g.save(); g.clip(dome); g.globalAlpha = sa;   // todo lo de adentro se apaga de a poco con la baliza
@@ -5118,8 +5143,7 @@ function drawMachine(g) {
   // base: borde turquesa arriba, cuerpo crema, zócalo turquesa con patas
   g.fillStyle = TEAL_D; rr(262, 772, 620, 56, 14); g.fill();
   g.fillStyle = TEAL; rr(262, 772, 620, 34, 14); g.fill();
-  const bodyG = g.createLinearGradient(178, 0, 968, 0); bodyG.addColorStop(0, '#f7f0dc'); bodyG.addColorStop(1, '#ddd2b6');
-  g.fillStyle = bodyG; rr(178, 816, 790, 400, 32); g.fill();
+  g.fillStyle = CREAM; rr(178, 816, 790, 400, 32); g.fill();   // (el mismo crema plano de los dos lados, lo pidió el usuario: era un degradé que oscurecía el de la derecha)
   g.fillStyle = DARK; rr(215, 1272, 90, 30, 6); g.fill(); rr(840, 1272, 90, 30, 6); g.fill();
   g.fillStyle = TEAL; rr(158, 1192, 830, 92, 26); g.fill();
   g.fillStyle = TEAL_D; rr(158, 1258, 830, 26, 14); g.fill();
@@ -5163,19 +5187,17 @@ function drawMachine(g) {
   g.beginPath(); g.moveTo(434, 1250); g.lineTo(434, 1010); g.arc(572, 1010, 138, Math.PI, 0); g.lineTo(710, 1250); g.stroke();
   g.fillStyle = '#9aa3a8'; rr(548, 858, 48, 36, 6); g.fill();
   g.save(); rr(458, 1206, 228, 78, 6); g.clip();                                             // franja de peligro
-  g.fillStyle = '#f2c230'; g.fillRect(458, 1206, 228, 78);
+  g.fillStyle = '#ffcc1a'; g.fillRect(458, 1206, 228, 78);
   g.fillStyle = DARK; for (let x = 420; x < 720; x += 48) { g.beginPath(); g.moveTo(x, 1284); g.lineTo(x + 24, 1284); g.lineTo(x + 70, 1206); g.lineTo(x + 46, 1206); g.closePath(); g.fill(); }
   g.restore();
   // rejillas: iguales de los dos lados
   g.fillStyle = DARK; for (const x of [234, 790]) for (let i = 0; i < 3; i++) { rr(x, 1112 + i * 26, 120, 13, 6); g.fill(); }
   // monedero a la derecha: chapa gris con bordes redondos como la pantallita, la ranura para la moneda y abajo la boca
   // de devolución con su palanquita
-  const plate = g.createLinearGradient(764, 880, 916, 1088); plate.addColorStop(0, '#c3c9cc'); plate.addColorStop(1, '#868e93');
-  g.fillStyle = plate; rr(764, 880, 152, 208, 16); g.fill();
+  g.fillStyle = '#a7aeb2'; rr(764, 880, 152, 208, 16); g.fill();   // (sin degradés, lo pidió el usuario)
   g.fillStyle = '#6c747a'; for (const [x, y] of [[782, 898], [898, 898], [782, 1070], [898, 1070]]) { g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill(); }
   g.fillStyle = '#6c747a'; g.beginPath(); g.arc(840, 936, 36, 0, Math.PI * 2); g.fill();
-  const slotG = g.createRadialGradient(830, 926, 4, 840, 936, 30); slotG.addColorStop(0, '#e6eaec'); slotG.addColorStop(1, '#a3abb0');
-  g.fillStyle = slotG; g.beginPath(); g.arc(840, 936, 29, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#d3d8db'; g.beginPath(); g.arc(840, 936, 29, 0, Math.PI * 2); g.fill();
   g.fillStyle = DARK; rr(834, 912, 12, 48, 5); g.fill();                                     // ranura
   g.fillStyle = '#d6dadc'; rr(800, 984, 80, 30, 4); g.fill(); g.strokeStyle = '#5a6068'; g.lineWidth = 3; g.stroke();   // chapita
 
@@ -5187,11 +5209,11 @@ function drawMachine(g) {
   g.fillStyle = DARK; rr(764, 880, 152, 208, 16); g.fill();
   // en reposo y al despertar queda una prendida; con el motor se van sumando (nunca vuelven para atrás)
   const bars = shaking ? Math.max(1, Math.floor(clamp(Gacha.t / GACHA_T.run, 0, 1) * 4.99)) : ['idle', 'wake'].includes(P.phase) ? 1 : 4;
-  for (let i = 0; i < 4; i++) { g.fillStyle = i < bars ? '#53e04f' : '#264a28'; rr(790 + i * 30, 906, 20, 32, 3); g.fill(); }
+  for (let i = 0; i < 4; i++) { g.fillStyle = i < bars ? '#46ff4a' : '#264a28'; rr(790 + i * 30, 906, 20, 32, 3); g.fill(); }
   g.fillStyle = '#16231b'; rr(782, 962, 116, 84, 8); g.fill();
   g.strokeStyle = '#3d434a'; g.lineWidth = 5; g.stroke();
   g.save(); rr(786, 966, 108, 76, 6); g.clip();
-  g.strokeStyle = '#53e04f'; g.lineWidth = 4; g.beginPath();
+  g.strokeStyle = '#46ff4a'; g.lineWidth = 4; g.beginPath();
   const off = P.pulse || 0;
   for (let k = -1; k <= 1; k++) {
     const x0 = 786 + k * 108 - off;
@@ -5201,7 +5223,7 @@ function drawMachine(g) {
   g.stroke(); g.restore();
   g.fillStyle = '#5a6068'; for (const x of [790, 890]) { g.beginPath(); g.arc(x, 1068, 8, 0, Math.PI * 2); g.fill(); }
   g.restore();
-  g.fillStyle = '#d9342b'; rr(962, 980, 24, 46, 8); g.fill();                              // botoncito rojo al costado
+  g.fillStyle = '#f0302a'; rr(962, 980, 24, 46, 8); g.fill();                              // botoncito rojo al costado
   g.restore();   // fin de la base
   g.restore();
 }
@@ -5217,7 +5239,7 @@ function showIntro() {
   // "Objetivo" con lo que pide la tercera estrella (los quesos y el tiempo) y el botón para jugar
   const cheeseIcon = cheeseSvg();
   card(`<div class="win">
-      <div class="wtitle"><b>${L ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${L ? lvName(L) : `${say('Laberinto', 'Maze')} ${m.W} × ${m.H}`}</span></div>
+      <div class="wtitle"><b>${L ? `${say('Nivel', 'Level')} ${G.level}` : say('Desafío', 'Challenge')}</b><span>${L ? lvName(L) : `${say('Laberinto', 'Maze')} ${G.level}`}</span></div>   <!-- (en Desafío: arriba solo Desafío y abajo Laberinto N, sin el tamaño; lo pidió el usuario) -->
       <div class="wbox wgoal"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         <h3 class="whead">${say('Objetivo', 'Goal')}</h3>
         <div class="wgrid${G.cheeseTotal ? '' : ' solo'}">
@@ -5377,7 +5399,8 @@ addEventListener('resize', fitWin);
 // El de resultados va por partes, con aire entre una y otra (el usuario lo sentía todo junto): primero las estrellas, de a
 // una y con tiempo; después los rayos, los quesos y el tiempo contando, el sello del récord, la recompensa y al final la
 // máquina y los botones. Con menos estrellas, lo que sigue se adelanta (s: lo que no hace falta esperar)
-const STAR_AT = [0.45, 0.9, 1.35];   // cuándo empieza a caer cada estrella (aterriza 0,3 s después)
+const STAR_AT = [0.45, 0.9, 1.35];   // cuándo empieza a caer cada estrella (aterriza 0,3 s después), sin contar la espera del remate
+const STAR_AFTER = 0.12;             // s después del re final del remate de ganar en que aterriza la primera estrella
 const WIN_AT = { cheese: 2.0, time: 2.3, reward: 2.95, stamp: 3.15, machine: 3.95, btns: 4.15 };
 const winSeq = (s = 0) => [['.wtitle', 'drop', 0.08], ['.wstars', 'up', 0.15],
   ['.wstat.q', 'up', WIN_AT.cheese - s], ['.wstat:not(.q)', 'up', WIN_AT.time - s], ['.wreward', 'up', WIN_AT.reward - s],
@@ -5454,10 +5477,13 @@ function showWinCard() {
     const record = prev.best != null && time < Math.floor(prev.best);
     const cheeseIco = cheeseSvg();
     // las estrellas caen de a una (las ganadas, con un golpecito); las que faltan quedan marcadas en el cartón
-    const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k], k + 1)).join('');
-    const s = STAR_AT[2] - STAR_AT[Math.max(st, 1) - 1], at = k => WIN_AT[k] - s;   // con menos estrellas, todo antes
+    // la primera estrella aterriza recién después del ti ti ti del remate, STAR_AFTER s después de su re final (lo pidió
+    // el usuario; antes caía en medio de la bajada); todo lo que viene después se corre lo mismo
+    const late = Music.muted ? 0 : Math.max(0, (Music.winEnd - performance.now()) / 1000 + STAR_AFTER - STAR_AT[0] - 0.3);
+    const stars = [0, 1, 2].map(k => starSvg(k < st, STAR_AT[k] + late, k + 1)).join('');
+    const s = STAR_AT[2] - STAR_AT[Math.max(st, 1) - 1] - late, at = k => WIN_AT[k] - s;   // con menos estrellas, todo antes
     G.winBuild = () => card(`<div class="win">
-      <div class="wtitle"><b>${story ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span class="wrib">${say('¡Completado!', 'Complete!')}</span></div>
+      <div class="wtitle"><b${story ? '' : ' class="lab"'}>${story ? say('Nivel', 'Level') : say('Laberinto', 'Maze')} ${G.level}</b><span class="wrib">${say('¡Completado!', 'Complete!')}</span></div>
       <div class="wstars"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>${stars}</div>
       <div class="wrow${G.cheeseTotal ? '' : ' solo'}">
         ${G.cheeseTotal ? `<div class="wbox wstat q">${cheeseIco}<div><h3>${say('Quesos', 'Cheese')}</h3><span class="num">${Math.min(G.cheese, G.cheeseTotal)}/${G.cheeseTotal}</span></div></div>` : ''}
@@ -5493,7 +5519,7 @@ function lost() {
   // el botón de la máquina y Reintentar (verde)
   const trap = G.dieReason === 'trap';
   card(`<div class="win wlost">
-      <div class="wtitle lose"><b>${G.mode === 'story' ? say('Nivel', 'Level') : say('Desafío', 'Challenge')} ${G.level}</b><span>${trap ? say('¡Atrapado!', 'Trapped!') : G.lamp ? say('¡Sin pila!', 'Out of battery!') : say('¡Se acabó el tiempo!', 'Time\'s up!')}</span></div>
+      <div class="wtitle lose"><b${G.mode === 'story' ? '' : ' class="lab"'}>${G.mode === 'story' ? say('Nivel', 'Level') : say('Laberinto', 'Maze')} ${G.level}</b><span>${trap ? say('¡Atrapado!', 'Trapped!') : G.lamp ? say('¡Sin pila!', 'Out of battery!') : say('¡Se acabó el tiempo!', 'Time\'s up!')}</span></div>
       <div class="wbox wlose${trap ? '' : ' lamp'}"><i class="tp"></i><i class="tp"></i><i class="tp"></i><i class="tp"></i>
         ${trap ? TRAP_SVG : DEAD_LAMP_SVG}
         <div><b>${trap ? say('La trampa se cerró', 'The trap snapped shut') : say('La linterna se apagó', 'The flashlight went out')}</b><span>${say('Volvés a la entrada<br>del mismo laberinto', 'Back to the start<br>of the same maze')}</span></div>
@@ -6849,7 +6875,7 @@ function drawMouse(c, alpha) {
       const [px, py] = front ? [12, side * 11] : [-19, side * 13.5];
       x += (px - x) * sq; y += (py - y) * sq; lift *= 1 - sq;
     }
-    if (front) { x = hx(x); frontFeet.push([x, y, side, lift]); } else backFeet.push([x, y, side, lift]);
+    if (front) { x = hx(x); frontFeet.push([x, y, side, lift]); x -= FRONT_TUCK * (1 - sq); } else backFeet.push([x, y, side, lift]);   // (la mano, un poco más atrás que el brazo: queda metida debajo de él)
     const [rx, ry, rot] = front ? [1.7, 2.0, side * 0.4] : [3.4, 1.9, side * (0.35 - 0.9 * sq)];
     const sc = 1 - 0.28 * lift, out = side * 0.35 * lift;
     const col = `rgb(${S.foot[0] + 30 * lift | 0}, ${S.foot[1] + 26 * lift | 0}, ${S.foot[2] + 24 * lift | 0})`;
@@ -6877,7 +6903,7 @@ function drawMouse(c, alpha) {
     c.restore();
   };
   for (const [x, y, side, lift] of backFeet) limb(-12.5, side * 6.5, x, y, 3.6, 3.8, lift);
-  for (const [x, y, side, lift] of frontFeet) limb(4.5, side * 4.2, x, y, 2.3, 3, lift);
+  for (const [x, y, side, lift] of frontFeet) limb(4.5, side * SHOULDER_Y, x, y, 2.3, 3, lift);
   // torso: balanceo de lado a lado y un rebote mínimo al ritmo de los pasos;
   // al girar en el lugar se compacta (más corto y un poco más ancho)
   const moving = clamp(Math.abs(M.v) / SPEED, 0, 1);
