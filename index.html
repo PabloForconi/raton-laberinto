@@ -1318,7 +1318,7 @@ const Snd = {
 // Cuatro piezas hechas con osciladores y ruido, sin archivos. Reemplazan la canción en mp3 (audio/laberinto-de-circuitos.mp3,
 // que ya no se carga), de la que toman el tempo, unos 100 bpm, y la tonalidad, re menor:
 // después el usuario las pidió más frenéticas, al estilo de Danny Elfman mezclado con electrónico:
-//   MUS_MENU  portada, niveles, cartel de inicio, resultados, Bioterio y Máquina: sinfónica, un vals rápido de cuento raro
+//   MUS_MENU  niveles, cartel de inicio, resultados, Bioterio y Máquina (la portada y la Máquina andando, con tuba: MUS_TITLE): sinfónica, un vals rápido de cuento raro
 //   MUS_PLAY  laberintos con luz: electrónica con cuerdas y celesta, frenética
 //   MUS_DARK  laberintos a oscuras (y Desafío): electrónica oscura y frenética, con bajo distorsionado y coro en racimo;
 //             con la última pila (WARN_T) se acelera y suma un trémolo y una alarma que sube
@@ -1420,6 +1420,8 @@ const MN = {
     fl.frequency.setValueAtTime(filter * 0.5, t); fl.frequency.linearRampToValueAtTime(filter, t + 0.02); fl.frequency.setTargetAtTime(filter * 0.4, t + 0.03, dur / 2);
     this.osc('sawtooth', f, t, dur).connect(fl); fl.connect(g); this.env(g, t, gain, 0.004, dur, dur / 2.5); this.send(g, 0.05);
   },
+  // platillo crash: ruido agudo largo y un poco de cuerpo metálico más abajo, que se apagan despacio
+  crash(t, gain = 0.016) { this.noise(t, 1.6, 5200, { gain, wet: 0.45 }); this.noise(t, 0.7, 3200, { type: 'bandpass', q: 0.7, gain: gain * 0.6, wet: 0.4 }); },
   hat(t, gain = 0.015, open = false) { this.noise(t, open ? 0.12 : 0.03, 8000, { gain }); },
   clap(t, gain = 0.05) { for (const k of [0, 0.012, 0.024]) this.noise(t + k, 0.05, 1300, { type: 'bandpass', q: 1.2, gain, wet: 0.3 }); },
 };
@@ -1444,7 +1446,17 @@ const MUS_MENU = {
     if (s === 0) this.pizzBass(t, ch.r + 12);
     if (s === 6) MN.pizz(t, hz(ch.r + 19), 0.05);
     if (s === 2 || s === 4 || s === 8 || s === 10) for (const n of ch.n) MN.strings(t, hz(n), 0.13, { gain: 0.007, decay: 0.04, filter: 2600, wet: 0.25 });
-    if (this.tuba) { if (s === 0 || s === 6) for (const [k, n] of this.mel[bar]) if (k === s) MN.tuba(t, hz(n - 24), sd * 4.2); }
+    if (this.tuba) {
+      // la tuba, tres octavas abajo (antes dos: el usuario la pidió más grave), en los dos tiempos del compás, "tun, tun";
+      // en los compases impares, que cierran cada pregunta de la melodía, el segundo tiempo es un doble soplido, "tu-tun"
+      // (la nota del tiempo y la siguiente, cortitas); y abajo un bombo en cada compás y un crash al empezar cada frase
+      const dbl = bar % 2 === 1, at = k => { for (const [kk, n] of this.mel[bar]) if (kk === k) return n; return null; };
+      if (s === 0 || s === 6) { const n = at(s); if (n != null) MN.tuba(t, hz(n - 36), dbl && s === 6 ? sd * 1.5 : sd * 4.2, { gain: 0.05 }); }
+      if (dbl && s === 8) { const n = at(8); if (n != null) MN.tuba(t, hz(n - 36), sd * 3, { gain: 0.045 }); }
+      if (s === 0) MN.kick(t, bar % 4 === 0 ? 0.1 : 0.075);
+      if (s === 6 && bar % 4 === 3) MN.kick(t, 0.06);   // (y uno más en el segundo tiempo antes de la frase nueva)
+      if (s === 0 && bar % 4 === 0) MN.crash(t);
+    }
     else for (const [k, n] of this.mel[bar]) if (k === s) MN.celesta(t, hz(n + 12), 0.03, s % 2 ? 0.45 : 0.8);   // (una octava más aguda: lo pidió el usuario)
     if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 2.2, { gain: 0.012, attack: 0.6, decay: bd * 0.7 });
     if (s === 0 && bar % 4 === 0) for (const n of [ch.r + 12, ch.r + 19, ch.r + 24]) MN.brass(t, hz(n), 0.45, { gain: 0.022 });
@@ -1465,8 +1477,9 @@ const MUS_MENU = {
   },
   land(t) { MN.noise(t, 1.0, 6000, { gain: 0.012, wet: 0.5 }); },   // platillo (el timbal y los metales ya están en el paso 0)
 };
-// Portada: la misma música, pero la melodía la toca una tuba en vez de la celesta, marcando solo las notas de cada
-// tiempo, "tun, tun" (lo pidió el usuario; las otras pantallas siguen con la celesta). Como las dos van al mismo compás,
+// Portada (y la Máquina mientras anda, de Activar hasta que se abre la cápsula): la misma música, pero la melodía la toca
+// una tuba en vez de la celesta, marcando solo las notas de cada tiempo, "tun, tun", con bombo y crash (lo pidió el
+// usuario; las otras pantallas siguen con la celesta). Como las dos van al mismo compás,
 // al pasar de una a otra no se reinicia: sigue en el mismo paso y solo cambia el instrumento (Music.play)
 const MUS_TITLE = Object.assign(Object.create(MUS_MENU), { tuba: true });
 // Laberintos con luz (electrónico con orquesta, frenético): 146 bpm, 8 compases (re menor, si bemol, sol menor, la; dos
@@ -1667,7 +1680,8 @@ const Music = {
   // qué tiene que sonar según la pantalla (se mira en cada cuadro)
   want() {
     if (!this.started || G.state === 'splash') return null;
-    if (G.screen) return MUS_MENU;
+    // (la Máquina, de Activar hasta que se abre la cápsula y se ve la ratita de frente: con la tuba; lo pidió el usuario)
+    if (G.screen) return G.screen === 'machine' && !['idle', 'reveal'].includes(Gacha.phase) ? MUS_TITLE : MUS_MENU;
     if (G.state === 'title') return MUS_TITLE;
     const st = G.state;
     if (st === 'play' || st === 'paused') return G.mode === 'story' && !G.dark ? MUS_PLAY : MUS_DARK;
@@ -1687,7 +1701,7 @@ const Music = {
   },
   tick() {
     const w = this.want();
-    if (w !== this.track) this.play(w, w === MUS_MENU || w === MUS_TITLE ? 1.4 : 0.5);
+    if (w !== this.track) this.play(w, G.screen === 'machine' ? 0.6 : w === MUS_MENU || w === MUS_TITLE ? 1.4 : 0.5);
     this.level = this.track === MUS_DARK && G.state === 'play' && G.lamp && G.timeLeft <= WARN_T ? 1 : 0;
   },
 };
@@ -3835,7 +3849,7 @@ function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
   // moneda clásica de juego al tocar Activar u Otra vez (lo pidió el usuario) y después entra por la ranura y rueda
-  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450); Music.duck(0.3, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (más tensión)
+  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450); Music.duck(0.6, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (antes al 30%; ahora, con la tuba, al 60%)
   Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
