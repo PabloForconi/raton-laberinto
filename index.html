@@ -227,13 +227,16 @@
   #card.cine::before { content: ""; position: absolute; inset: -3px; z-index: -1; border: 3px solid #5b3a1b; border-radius: 16px;
     background-color: #c4915a; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
       radial-gradient(ellipse at 30% 20%, rgba(255,230,190,.25), transparent 60%);
-    box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5); animation: cineBoard .5s cubic-bezier(.2, .9, .3, 1.15) var(--cb, 1.2s) both; }
-  #card.cine .logo { animation: cineLogo var(--cld, 1s) cubic-bezier(.25, .6, .3, 1) var(--cl, .35s) both; }
-  @keyframes cineBoard { from { opacity: 0; scale: .9; } to { opacity: 1; scale: 1; } }
-  @keyframes cineLogo { from { opacity: 0; scale: 1.14; filter: blur(9px); } 60% { filter: blur(0); } to { opacity: 1; scale: 1; filter: blur(0); } }
-  #card.cine:has(.skip)::before, #card.cine:has(.skip) .logo { animation-delay: 0s !important; animation-duration: .01s !important; }
+    box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5); animation: cineBoard .5s var(--cb, 2.45s) both; }
+  #card.cine .logo { opacity: 0; }   /* hasta que arranca su animación (cineLogoAnim) */
+  /* el cartón baja desde arriba, pasa un poquito y se asienta */
+  @keyframes cineBoard { from { opacity: 0; translate: 0 -90px; animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
+    30% { opacity: 1; } 70% { translate: 0 8px; animation-timing-function: ease-out; } to { opacity: 1; translate: 0 0; } }
+  #card.cine:has(.skip)::before { animation-delay: 0s !important; animation-duration: .01s !important; }
   /* mientras dura, sin las monedas, el engranaje ni el crédito (el plano limpio); aparecen al final con un fundido */
-  body.cine :is(#coins, #topbtns, #credit) { opacity: 0 !important; }
+  /* (sin transición: el contador de monedas tiene un fundido de 0,3 s que le ganaba al !important, así que se apagaba de
+     a poco y se veía parpadear al empezar; lo vio el usuario) */
+  body.cine :is(#coins, #topbtns, #credit) { opacity: 0 !important; visibility: hidden !important; transition: none !important; }
   body.cineout :is(#coins, #topbtns, #credit) { animation: cineUi .5s ease-out both; }
   @keyframes cineUi { from { opacity: 0; } to { opacity: 1; } }
   /* portada con el formato nuevo: sin cartel de título (el logo es el título) */
@@ -1346,13 +1349,25 @@ const Snd = {
 // siempre en Web Audio), así no se atrasan aunque un cuadro se trabe. Va por su propio volumen (Music.bus, con una sala
 // de eco), aparte de los efectos: el switch de Música la apaga sin tocar los efectos.
 const hz = m => 440 * 2 ** ((m - 69) / 12);
+// volumen por debajo del cual una nota ya no se oye (unos -70 dB): ahí se paran sus osciladores (MN.env)
+const ENV_FLOOR = 0.0003;
 // instrumentos: cada uno arma sus nodos para sonar en el instante t (segundos del reloj de audio) y se conecta a la
 // pista que está sonando (Music.out, seco, y Music.wet, a la sala)
 const MN = {
-  env(g, t, gain, attack, dur, decay) {   // sube en attack y se apaga sola, más rápido o más lento según decay
+  // sube en attack y se apaga sola, más rápido o más lento según decay. Devuelve cuándo ya no se oye (cuando baja de
+  // ENV_FLOOR), y los osciladores de la nota (los que anotó osc en _pend) se paran recién ahí: antes se paraban a un tiempo
+  // fijo después de la nota, y en las de apagado lento (tuba, bajo, metales, coro, timbal) todavía sonaban, así que el
+  // corte se oía como un "tic" (el usuario lo oyó en el juego)
+  env(g, t, gain, attack, dur, decay) {
+    const dec = decay != null ? decay : Math.max(0.02, (dur - attack) / 3);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + attack);
-    g.gain.setTargetAtTime(0, t + attack, decay != null ? decay : Math.max(0.02, (dur - attack) / 3));
+    g.gain.setTargetAtTime(0, t + attack, dec);
+    const end = t + attack + dec * Math.max(0, Math.log(gain / ENV_FLOOR));
+    for (const o of this._pend) o.stop(Math.max(o._stop, end));
+    this._pend.length = 0;
+    return end;
   },
+  _pend: [],
   send(node, wet) {
     node.connect(Music.out);
     if (wet) { const w = Snd.ctx.createGain(); w.gain.value = wet; node.connect(w).connect(Music.wet); }
@@ -1361,16 +1376,16 @@ const MN = {
     const c = Snd.ctx, o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
     if (vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 5.5; lg.gain.value = vib; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + 0.1); }
-    this.env(g, t, gain, attack, dur, decay);
+    const end = this.env(g, t, gain, attack, dur, decay);
     let n = o.connect(g);
     if (filter) { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = filter; n = g.connect(fl); }
-    this.send(n, wet); o.start(t); o.stop(t + dur + 0.1);
+    this.send(n, wet); o.start(t); o.stop(Math.max(t + dur + 0.1, end));
   },
   noise(t, dur, freq, { type = 'highpass', q = 1, gain = 0.03, wet = 0 } = {}) {
     const c = Snd.ctx, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
-    s.buffer = Snd.noiseBuf; fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
-    this.env(g, t, gain, 0.003, dur, dur / 3);
-    this.send(s.connect(fl).connect(g), wet); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+    s.buffer = Snd.noiseBuf; s.loop = true; fl.type = type; fl.frequency.value = freq; fl.Q.value = q;   // (en loop: ver arriba)
+    const end = this.env(g, t, gain, 0.003, dur, dur / 3);
+    this.send(s.connect(fl).connect(g), wet); s.start(t, Math.random() * 1.5); s.stop(Math.max(t + dur + 0.05, end));
   },
   bell(t, f, { gain = 0.03, dur = 1.5, wet = 0.6 } = {}) {   // campanita: un seno y un parcial inarmónico que se apaga antes
     this.tone(t, f, dur, { type: 'sine', gain, attack: 0.004, decay: dur / 4, wet });
@@ -1380,7 +1395,7 @@ const MN = {
   snare(t, gain = 0.06) { this.noise(t, 0.16, 1800, { type: 'bandpass', q: 0.8, gain, wet: 0.25 }); this.tone(t, 210, 0.08, { to: 130, type: 'triangle', gain: gain * 0.7, decay: 0.03 }); },
   // --- orquesta (el estilo que pidió el usuario: Danny Elfman, mezclado con electrónico) ---
   filt(type, f, q = 0.8) { const fl = Snd.ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; return fl; },
-  osc(type, f, t, dur, detune = 0) { const o = Snd.ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune; o.start(t); o.stop(t + dur + 0.15); return o; },
+  osc(type, f, t, dur, detune = 0) { const o = Snd.ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune; o.start(t); o._stop = t + dur + 0.15; o.stop(o._stop); this._pend.push(o); return o; },
   // cuerdas: dos sierras un poquito desafinadas, filtradas (staccato si dur es corta, colchón si es larga)
   strings(t, f, dur, { gain = 0.02, attack = 0.012, decay, filter = 2400, wet = 0.35 } = {}) {
     const g = Snd.ctx.createGain(), fl = this.filt('lowpass', filter);
@@ -1829,9 +1844,11 @@ const Music = {
     const c = Snd.ctx, tr = this.track;
     if (!c || !tr || !this.out || this.paused || c.state !== 'running') return;
     const now = c.currentTime;
-    if (this.nextAt < now - 0.05) this.nextAt = now + 0.02;   // (pestaña en segundo plano: las notas perdidas se saltean)
+    // (si el navegador se trabó o la pestaña estuvo en segundo plano, las notas que ya pasaron se saltean: tocadas tarde
+    // entrarían de golpe, sin su ataque, y sonarían como un "tic")
+    if (this.nextAt < now + 0.005) this.nextAt = now + 0.02;
     const sd = 60 / (tr.bpm + (tr.bpmUp || 0) * this.level) / 4;
-    while (this.nextAt < now + 0.15) {
+    while (this.nextAt < now + 0.25) {   // (0,25 s por delante: antes 0,15; en el juego el margen llegaba a bajar a 31 ms)
       if (this.step < 0) tr.intro(this.step + (tr.introSteps || 16), this.nextAt, sd, this.level);
       else { if (this.step === 0 && this.landNext) tr.land(this.nextAt); tr.step(this.step % tr.steps, this.nextAt, sd, this.level); }
       this.nextAt += sd; this.step++;
@@ -2803,9 +2820,10 @@ function card(html, anim = null) {
 function showCard(html, anim = null) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in', 'cine'); void $card.offsetWidth; $card.classList.add('in');
-  const cine = anim && anim.cls === 'cine'; if (cine) { $card.classList.add('cine'); CINE.t0 = performance.now(); cineUi(true); $card.style.setProperty('--cl', CINE_AT.logo + 's'); $card.style.setProperty('--cb', CINE_AT.board + 's'); }
+  const cine = anim && anim.cls === 'cine'; if (cine) { $card.classList.add('cine'); CINE.t0 = performance.now(); cineUi(true); $card.style.setProperty('--cb', CINE_AT.board + 's'); }
   $card.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // jaulas de las ratitas
   fitRibbons($card); fitWin();
+  if (cine && $card.querySelector('.logo')) cineLogoAnim($card.querySelector('.logo'));
   animIn($card.querySelector('.win'), anim);
   if (!cine) Snd.cardIn();   // (la portada de cine entra sin el "whoosh": la presenta la música)
 }
@@ -2842,12 +2860,14 @@ function enterFromSplash() {
   if (G.state !== 'splash' || fading) return;
   Snd.init(); Snd.enter();
   if (!Music.started) Music.start();
+  cineUi(true);   // monedas, engranaje y crédito escondidos desde el toque (si no, asomaban un instante al llegar a la portada)
   document.getElementById('splash').classList.add('out');
   fadeTo(() => { document.getElementById('splash').classList.add('hidden'); showTitle(true); });
 }
 // cine: la entrada de cine, la primera vez que aparece la portada (al tocar "Tocá para entrar", o al abrir el juego con
 // música y sonido apagados); al volver desde otra pantalla entra como los demás carteles
 function showTitle(cine = false) {
+  if (cine) cineUi(true);
   document.getElementById('splash').classList.add('hidden');
   titleBackground();
   G.state = 'title';
@@ -2862,7 +2882,7 @@ function showTitle(cine = false) {
     <div class="wbtns"><button class="wbtn re" data-act="ratitas">${say('Bioterio', 'Vivarium')}</button><button class="wbtn re" data-act="machine">${say('Máquina', 'Machine')} <span class="wprice"><b>${COIN_SPIN}</b> ${COIN_ICON}</span></button></div>
     </div>`, cine
     ? { kind: 'title', cls: 'cine', seq: [['.wctl', 'up', CINE_AT.ctl], ['.wbtns > *', 'pop', CINE_AT.btns, 0.07]],
-        cues: [[CINE_AT.lights, () => Snd.tubeOn()], [CINE_AT.board, () => Snd.slide()], ...[0, 1, 2, 3].map(k => [CINE_AT.btns + k * 0.07, () => Snd.popIn(k)])] }
+        cues: [[CINE_AT.lights, () => Snd.tubeOn()], [CINE_AT.land, () => Snd.logoLand()], [CINE_AT.move, () => Snd.slide()], ...[0, 1, 2, 3].map(k => [CINE_AT.btns + k * 0.07, () => Snd.popIn(k)])] }
     : { kind: 'title', cues: [[0.24, () => Snd.logoLand()], [0.3, () => Snd.slide()], ...[0, 1, 2, 3].map(k => [0.36 + k * 0.07, () => Snd.popIn(k)])] });   // (las teclas 1 y 2 siguen andando, sin el cartelito)
   updateButtons();
 }
@@ -5319,7 +5339,7 @@ function animIn(root, a, track = true) {
 // tocar el cartel (o ESPACIO) mientras se arma: aparece todo de una con los números finales
 function cardAnimSkip() {
   if (performance.now() >= CardAnim.until || !CardAnim.root) return false;
-  CINE.t0 = null; cineUi(false);
+  CINE.t0 = null; cineUi(false); if (CINE.anim) { CINE.anim.finish(); CINE.anim = null; }
   for (const c of CardAnim.counters) if (c.el) c.el.textContent = fmtCount(c, c.to);
   CardAnim.root.classList.add('skip');
   cardAnimStop();
@@ -5992,10 +6012,13 @@ function castRays(ox, oy) {
 const MenuFl = { t: 0, dur: 1, in: 1, x: 0, y: 0 };
 // Entrada de cine de la portada (el usuario la pidió más de cine): las luces del laberinto arrancan apagadas y se prenden
 // como un tubo fluorescente (dos parpadeos y se quedan) un ratito después de arrancar en negro, el logo aparece solo con un fundido y entra en foco, y a tiempo
-// con el vals (150 bpm: un compás es 1,2 s) el cartón crece en el segundo compás, y los controles y los botones salen en
-// sus tiempos. CINE.t0: cuándo empezó (null, ya terminó)
+// con el vals (150 bpm: un compás es 1,2 s, un tiempo 0,4 s): el logo cae grande en el centro de la pantalla hasta su
+// tamaño, rebota al aterrizar en el segundo compás y late en sus otros dos tiempos; en el tercero sube a su lugar, baja el
+// cartón y los controles y los botones salen en sus tiempos (lo pidió el usuario). CINE.t0: cuándo empezó (null, ya terminó)
 const CINE = { t0: null };
-const CINE_AT = { lights: 0.36, logo: 1.2, board: 2.4, ctl: 2.6, btns: 2.8 };   // negro, se prende el laberinto, el logo al empezar el segundo compás y el resto al empezar el tercero (lo pidió el usuario: primero negro, después el laberinto, después el logo y lo demás todo animado)
+// logo: empieza a caer; land: aterriza (el primer tiempo del segundo compás); move: sube a su lugar (el primer tiempo del
+// tercero), board: baja el cartón; ctl y btns: los controles y los botones (el segundo y el tercer tiempo del tercero)
+const CINE_AT = { lights: 0.36, logo: 0.85, land: 1.2, move: 2.4, moveT: 0.42, board: 2.45, ctl: 2.85, btns: 3.0 };   // negro, se prende el laberinto, el logo al empezar el segundo compás y el resto al empezar el tercero (lo pidió el usuario: primero negro, después el laberinto, después el logo y lo demás todo animado)
 const CINE_FLICK = [[0, 0], [0.36, 0], [0.37, 0.85], [0.43, 0.85], [0.44, 0.08], [0.53, 0.08], [0.54, 0.95], [0.58, 0.95], [0.59, 0.3], [0.68, 0.3], [0.92, 1]];   // [segundos, luz]
 // esconde las monedas, el engranaje y el crédito durante la entrada y los trae de vuelta con un fundido al terminar (o al tocar)
 let cineUiT = 0;
@@ -6004,6 +6027,30 @@ function cineUi(on) {
   if (on) { document.body.classList.add('cine'); cineUiT = setTimeout(() => cineUi(false), (CINE_AT.btns + 0.5) * 1000); return; }
   if (!document.body.classList.contains('cine')) return;
   document.body.classList.remove('cine'); document.body.classList.add('cineout'); cineUiT = setTimeout(() => document.body.classList.remove('cineout'), 600);
+}
+// El logo, con Web Animations (los tiempos salen de CINE_AT): empieza en el centro de la pantalla, grande y transparente,
+// cae hasta su tamaño, aterriza con un rebote, late con los tiempos del compás y después sube a su lugar en el cartel.
+// Se mide dónde queda (sin transformar) para saber cuánto correrlo; el zoom de fitWin achica también el corrimiento
+function cineLogoAnim(lg) {
+  const go = () => {
+    if (CINE.t0 == null || !lg.isConnected) return;
+    const r = lg.getBoundingClientRect(), z = parseFloat(getComputedStyle(lg.closest('.win')).zoom) || 1;
+    const dx = (innerWidth / 2 - (r.left + r.width / 2)) / z, dy = (viewH() / 2 - (r.top + r.height / 2)) / z;
+    const A = CINE_AT, D = A.move + A.moveT - A.logo, at = t => (t - A.logo) / D, T = `${dx}px ${dy}px`, beat = 0.4;
+    const k = [
+      { offset: 0, translate: T, scale: 2.6, opacity: 0, easing: 'cubic-bezier(.55, 0, .9, .55)' },
+      { offset: at(A.logo + 0.12), opacity: 1 },
+      { offset: at(A.land), translate: T, scale: 0.9, easing: 'ease-out' },   // aterriza (aplastado)
+      { offset: at(A.land + 0.13), scale: 1.06, easing: 'ease-in-out' },
+      { offset: at(A.land + 0.26), scale: 1 },
+      ...[1, 2].flatMap(b => [{ offset: at(A.land + b * beat - 0.02), scale: 1, easing: 'ease-out' },   // late en los tiempos 2 y 3
+        { offset: at(A.land + b * beat + 0.06), scale: 1.05, easing: 'ease-in' }, { offset: at(A.land + b * beat + 0.24), scale: 1 }]),
+      { offset: at(A.move), translate: T, scale: 1, easing: 'cubic-bezier(.3, .8, .3, 1.08)' },
+      { offset: 1, translate: '0px 0px', scale: 1, opacity: 1 }];
+    let last = 0; for (const f of k) { f.opacity = f.opacity != null ? f.opacity : 1; f.offset = Math.max(last, f.offset); last = f.offset; }
+    CINE.anim = lg.animate(k, { duration: D * 1000, delay: A.logo * 1000 - (performance.now() - CINE.t0), fill: 'both' });
+  };
+  if (lg.complete && lg.naturalHeight) go(); else lg.addEventListener('load', go, { once: true });
 }
 function menuLightK() {
   if (CINE.t0 == null) return 1;
