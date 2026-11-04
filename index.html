@@ -1388,6 +1388,15 @@ const MN = {
     for (const d of [-5, 5]) this.osc('sawtooth', f, t, dur, d).connect(fl);
     fl.connect(g); this.env(g, t, gain, 0.025, dur, dur / 2.5); this.send(g, wet);
   },
+  // tuba: dos sierras graves y un seno de cuerpo, por un filtro que se abre al soplar y se vuelve a cerrar ("tun"),
+  // con la nota que entra apenas desde abajo, como un labio que busca la nota
+  tuba(t, f, dur, { gain = 0.04, wet = 0.25 } = {}) {
+    const g = Snd.ctx.createGain(), fl = this.filt('lowpass', 160, 1.6);
+    fl.frequency.setValueAtTime(160, t); fl.frequency.linearRampToValueAtTime(f * 7 + 300, t + 0.035); fl.frequency.setTargetAtTime(f * 3 + 120, t + 0.05, dur / 3);
+    for (const d of [-4, 4]) { const o = this.osc('sawtooth', f, t, dur, d); o.frequency.setValueAtTime(f * 0.97, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04); o.connect(fl); }
+    const sb = this.osc('sine', f, t, dur), sg = Snd.ctx.createGain(); sg.gain.value = 0.9; sb.connect(sg).connect(g);
+    fl.connect(g); this.env(g, t, gain, 0.022, dur, dur / 2.2); this.send(g, wet);
+  },
   // timbal: un golpe grave afinado
   timp(t, f, gain = 0.12) {
     this.tone(t, f * 1.06, 0.9, { to: f, type: 'sine', gain, attack: 0.003, decay: 0.28, wet: 0.4 });
@@ -1435,7 +1444,8 @@ const MUS_MENU = {
     if (s === 0) this.pizzBass(t, ch.r + 12);
     if (s === 6) MN.pizz(t, hz(ch.r + 19), 0.05);
     if (s === 2 || s === 4 || s === 8 || s === 10) for (const n of ch.n) MN.strings(t, hz(n), 0.13, { gain: 0.007, decay: 0.04, filter: 2600, wet: 0.25 });
-    for (const [k, n] of this.mel[bar]) if (k === s) MN.celesta(t, hz(n + 12), 0.03, s % 2 ? 0.45 : 0.8);   // (una octava más aguda: lo pidió el usuario)
+    if (this.tuba) { if (s === 0 || s === 6) for (const [k, n] of this.mel[bar]) if (k === s) MN.tuba(t, hz(n - 24), sd * 4.2); }
+    else for (const [k, n] of this.mel[bar]) if (k === s) MN.celesta(t, hz(n + 12), 0.03, s % 2 ? 0.45 : 0.8);   // (una octava más aguda: lo pidió el usuario)
     if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 2.2, { gain: 0.012, attack: 0.6, decay: bd * 0.7 });
     if (s === 0 && bar % 4 === 0) for (const n of [ch.r + 12, ch.r + 19, ch.r + 24]) MN.brass(t, hz(n), 0.45, { gain: 0.022 });
     if (bar % 4 === 3 && s >= 6) MN.timp(t, hz(45), 0.03 + (s - 6) * 0.012);   // redoble que crece hacia la frase siguiente
@@ -1446,7 +1456,7 @@ const MUS_MENU = {
   // música de menú entra sin intro): un redoble de timbal que crece, el coro que se infla, una escala de celesta que sube
   // por re menor y los metales que se inflan en la (la dominante); entra todo con un platillo (land)
   introSteps: 12,
-  introIf() { return G.state === 'title'; },
+  introIf() { return G.state === 'title' && !G.screen; },
   intro(s, t, sd) {
     if (s >= 3) MN.timp(t, hz(45), 0.006 + (s - 3) * 0.0035);
     if (s === 0) for (const n of [50, 53, 57]) MN.choir(t, hz(n), sd * 12, { gain: 0.012, attack: sd * 9, decay: sd * 3 });
@@ -1455,6 +1465,10 @@ const MUS_MENU = {
   },
   land(t) { MN.noise(t, 1.0, 6000, { gain: 0.012, wet: 0.5 }); },   // platillo (el timbal y los metales ya están en el paso 0)
 };
+// Portada: la misma música, pero la melodía la toca una tuba en vez de la celesta, marcando solo las notas de cada
+// tiempo, "tun, tun" (lo pidió el usuario; las otras pantallas siguen con la celesta). Como las dos van al mismo compás,
+// al pasar de una a otra no se reinicia: sigue en el mismo paso y solo cambia el instrumento (Music.play)
+const MUS_TITLE = Object.assign(Object.create(MUS_MENU), { tuba: true });
 // Laberintos con luz (electrónico con orquesta, frenético): 146 bpm, 8 compases (re menor, si bemol, sol menor, la; dos
 // compases cada uno): bombo en negras, palmas, platillos en semicorcheas, un bajo de sierra en semicorcheas que salta de
 // octava, cuerdas en staccato que empujan las corcheas y una melodía de celesta y "chip" que se escurre por semitonos;
@@ -1604,6 +1618,14 @@ const Music = {
   play(track, fade = 0.8) {
     if (this.track === track) return;
     const c = Snd.ctx; if (track && !this.setup()) return;   // todavía sin audio: se intenta de nuevo en el próximo cuadro
+    // (entre la música de menú y la de la portada, que son la misma con otro instrumento: sigue en el mismo paso)
+    const twin = this.track && track && this.out && (Object.getPrototypeOf(track) === this.track || Object.getPrototypeOf(this.track) === track);
+    if (twin) {
+      this.release(fade); this.track = track; const now = c.currentTime;
+      this.out = c.createGain(); this.wet = c.createGain();
+      for (const [g, to] of [[this.out, this.bus], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
+      return;
+    }
     this.release(0.5); this.track = track;
     // las pistas de los laberintos (y la de menú al llegar a la portada) arrancan con una intro de un compás (pasos con
     // step < 0) y entran de golpe
@@ -1646,6 +1668,7 @@ const Music = {
   want() {
     if (!this.started || G.state === 'splash') return null;
     if (G.screen) return MUS_MENU;
+    if (G.state === 'title') return MUS_TITLE;
     const st = G.state;
     if (st === 'play' || st === 'paused') return G.mode === 'story' && !G.dark ? MUS_PLAY : MUS_DARK;
     if (st === 'dying') return null;   // suena el remate (sting, desde startDie)
@@ -1664,7 +1687,7 @@ const Music = {
   },
   tick() {
     const w = this.want();
-    if (w !== this.track) this.play(w, w === MUS_MENU ? 1.4 : 0.5);
+    if (w !== this.track) this.play(w, w === MUS_MENU || w === MUS_TITLE ? 1.4 : 0.5);
     this.level = this.track === MUS_DARK && G.state === 'play' && G.lamp && G.timeLeft <= WARN_T ? 1 : 0;
   },
 };
