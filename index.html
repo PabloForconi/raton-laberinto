@@ -227,9 +227,16 @@
   #card.cine::before { content: ""; position: absolute; inset: -3px; z-index: -1; border: 3px solid #5b3a1b; border-radius: 16px;
     background-color: #c4915a; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 3px, transparent 3px 7px),
       radial-gradient(ellipse at 30% 20%, rgba(255,230,190,.25), transparent 60%);
-    box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5); animation: cineBoard .5s var(--cb, 2.45s) both; }
+    box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 0 30px rgba(60,35,10,.5); animation: cineStretch var(--cbd, .6s) linear var(--cb, 2.4s) both; }
+  #card.cine[data-board="drop"]::before { animation-name: cineBoard; animation-timing-function: ease; }
   #card.cine .logo { opacity: 0; }   /* hasta que arranca su animación (cineLogoAnim) */
-  /* el cartón baja desde arriba, pasa un poquito y se asienta */
+  /* el cartón arranca en el medio, finito como una línea, y se estira hasta su tamaño: se pasa un poco, se encoge un poco
+     y se asienta (el usuario lo pidió así; es solo una escala, no cuesta nada). Con CINE_BOARD = 'drop', en cambio, baja
+     desde arriba, pasa un poquito y se asienta */
+  @keyframes cineStretch { 0% { opacity: 0; scale: .3 .025; animation-timing-function: ease-out; }
+    16% { opacity: 1; scale: 1 .025; animation-timing-function: cubic-bezier(.3, .7, .4, 1); }   /* primero la línea finita se abre a lo ancho */
+    55% { scale: 1.025 1.07; animation-timing-function: ease-in-out; } 75% { scale: .995 .965; animation-timing-function: ease-in-out; }   /* después se estira, se pasa y se encoge */
+    90% { scale: 1 1.012; } 100% { opacity: 1; scale: 1 1; } }
   @keyframes cineBoard { from { opacity: 0; translate: 0 -90px; animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
     30% { opacity: 1; } 70% { translate: 0 8px; animation-timing-function: ease-out; } to { opacity: 1; translate: 0 0; } }
   #card.cine:has(.skip)::before { animation-delay: 0s !important; animation-duration: .01s !important; }
@@ -1593,7 +1600,8 @@ const MUS_BIO = themeTrack({
 });
 // Máquina (quieta y andando, hasta que se abre la cápsula): un mecanismo de relojería (tenía un tic-tac de madera en
 // corcheas, que el usuario sacó). La tuba cortita en el "um" y la quinta en el tercer tiempo, metales con sordina en el "pa-pa", la melodía en fagot,
-// cortita, con la celesta arriba en la B, un bombo suave y platillos muy bajitos
+// cortita, con la celesta arriba en la B y un bombo suave (tenía platillos en cada semicorchea, muy bajitos pero secos: el
+// usuario los oía como un tic tic tic que lo volvía loco; se sacaron)
 const MUS_MACH = themeTrack({
   gain: 1.25,   // (medido offline: queda pareja con la música de menú de antes, unos -30 dB)
   play(bar, s, t, sd, ch, m) {
@@ -1602,7 +1610,6 @@ const MUS_MACH = themeTrack({
     if (s === 4 || s === 8) for (const n of ch.n) MN.brass(t, hz(n - 12), sd * 0.8, { gain: 0.008 });
     for (const [, n, d] of m) { MN.reed(t, hz(n - 12), Math.min(d, 2) * sd * 0.9, { gain: 0.03, bright: 3.5 }); if (bar >= 8) MN.celesta(t, hz(n + 12), 0.012, 0.45); }
     if (s === 0) MN.kick(t, 0.06);
-    MN.hat(t, 0.004);
     if (s === 0 && bar % 8 === 0) MN.crash(t, 0.012);
   },
 });
@@ -1634,7 +1641,7 @@ const kickDeep = (t, v = 1) => { v *= KICK_LIT; MN.kick(t, KICK * v); MN.tone(t,
 // El tema en 4/4 (el usuario pidió una versión nueva): 146 bpm, los 16 compases del tema, cada uno de 16 semicorcheas. La
 // melodía del vals entra estirada en 4/3 (las corcheas caen en 0, 3, 5, 8, 11 y 13: un ritmo quebrado, tres más dos), en
 // celesta con una onda cuadrada, y en la B la doblan los metales una octava abajo. Abajo, lo de siempre: bombo en negras
-// con su capa grave, palmas, platillos en semicorcheas, el bajo de sierra que salta de octava, cuerdas en staccato por el
+// con su capa grave, palmas, el bajo de sierra que salta de octava, cuerdas en staccato por el
 // acorde, coros y un barrido de ruido antes de volver a empezar; un crash al empezar la B
 const MUS_PLAY = {
   bpm: 146, steps: 256, gain: 1.6,
@@ -1644,7 +1651,7 @@ const MUS_PLAY = {
     if (s % 4 === 0) kickDeep(t);
     if (bar % 2 && s === 14) kickDeep(t, 0.65);
     if (s === 4 || s === 12) MN.clap(t, 0.045);
-    MN.hat(t, s % 4 === 2 ? 0.02 : 0.008, s % 4 === 2);
+    // (sin platillos en semicorcheas: el usuario los oía como un tic tic tic y los sacó de todas las músicas)
     const off = [0, 12, 7, 12][s % 4];
     MN.synthBass(t, hz(ch.r + 12 + off), sd * 0.9, { gain: 0.045, filter: 700 + (s / 16) * 900 });
     if (s % 2 === 0) { const n = ch.n[[2, 1, 2, 0][(s >> 1) % 4]] + 12; MN.strings(t, hz(n), sd * 1.2, { gain: 0.012, decay: sd * 0.4, filter: 3000, wet: 0.2 }); }
@@ -1665,7 +1672,6 @@ const MUS_PLAY = {
   // tiempo un redoble de palmas y un arpegio de celesta que sube a re; después entra todo con un golpe (land)
   intro(s, t, sd) {
     if (s % 2 === 0) MN.synthBass(t, hz(50), sd * 1.6, { gain: 0.03 + s * 0.0015, filter: 500 + s * 80 });
-    if (s >= 4) MN.hat(t, 0.004 + (s - 4) * 0.0012);
     MN.noise(t, sd * 1.1, 1200 + s * 450, { type: 'bandpass', q: 2, gain: 0.003 + s * 0.0012, wet: 0.3 });
     if (s === 8) for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 8, { gain: 0.014 });
     if (s >= 12) MN.clap(t, 0.02 + (s - 12) * 0.008);
@@ -1677,7 +1683,7 @@ const MUS_PLAY = {
   },
 };
 // La música con luz de antes (8 compases: re menor, si bemol, sol menor, la, dos compases cada uno; bombo en negras, palmas,
-// platillos en semicorcheas, el bajo de sierra que salta de octava, cuerdas en staccato y una melodía de celesta y "chip"
+// el bajo de sierra que salta de octava, cuerdas en staccato y una melodía de celesta y "chip"
 // que se escurre por semitonos): el usuario la quiso de vuelta, alternada con la del tema nivel por nivel (Music.want)
 const MUS_PLAY_B = {
   bpm: 146, steps: 128, gain: 1.6,   // (más rápida, a pedido del usuario: antes 138; después la pidió más lenta, 158 → 150 → 146, la misma que la de oscuro)
@@ -1691,7 +1697,7 @@ const MUS_PLAY_B = {
     if (s % 4 === 0) kickDeep(t);
     if (bar % 2 && s === 14) kickDeep(t, 0.65);
     if (s === 4 || s === 12) MN.clap(t, 0.045);
-    MN.hat(t, s % 4 === 2 ? 0.02 : 0.008, s % 4 === 2);
+    // (sin platillos en semicorcheas: el usuario los oía como un tic tic tic y los sacó de todas las músicas)
     const off = [0, 12, 7, 12][s % 4];
     MN.synthBass(t, hz(ch.r + 12 + off), sd * 0.9, { gain: 0.045, filter: 700 + (s / 16) * 900 });
     if (s % 2 === 0) { const n = ch.n[[2, 1, 2, 0][(s >> 1) % 4]] + 12; MN.strings(t, hz(n), sd * 1.2, { gain: 0.012, decay: sd * 0.4, filter: 3000, wet: 0.2 }); }
@@ -1711,7 +1717,6 @@ const MUS_PLAY_B = {
   // tiempo un redoble de palmas y un arpegio de celesta que sube a re; después entra todo con un golpe (land)
   intro(s, t, sd) {
     if (s % 2 === 0) MN.synthBass(t, hz(50), sd * 1.6, { gain: 0.03 + s * 0.0015, filter: 500 + s * 80 });
-    if (s >= 4) MN.hat(t, 0.004 + (s - 4) * 0.0012);
     MN.noise(t, sd * 1.1, 1200 + s * 450, { type: 'bandpass', q: 2, gain: 0.003 + s * 0.0012, wet: 0.3 });
     if (s === 8) for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 8, { gain: 0.014 });
     if (s >= 12) MN.clap(t, 0.02 + (s - 12) * 0.008);
@@ -1724,7 +1729,7 @@ const MUS_PLAY_B = {
 };
 // Laberintos a oscuras (electrónico, frenético y oscuro): 146 bpm (162 con la última pila), 4 compases (re menor, mi bemol,
 // re menor, la; el mi bemol frigio roza contra el re): un bombo quebrado, un bajo distorsionado en semicorcheas con
-// segunda menor, platillos metálicos, una caja seca, un coro en racimo (re y mi bemol juntos), golpes de cuerdas
+// segunda menor, una caja seca, un coro en racimo (re y mi bemol juntos), golpes de cuerdas
 // y un corazón; con la última pila (level 1) entra el bombo en negras, un trémolo de cuerdas arriba y una nota que sube
 // de a semitono como una alarma
 const MUS_DARK = {
@@ -1738,7 +1743,7 @@ const MUS_DARK = {
     const bar = i >> 4, s = i & 15, ch = this.chords[bar];
     if ([0, 3, 6, 10].includes(s) || (lvl && s % 4 === 0)) MN.kick(t, KICK);
     if (s === 4 || s === 12) MN.snare(t, 0.04);
-    MN.noise(t, 0.025, 7000, { type: 'bandpass', q: 6, gain: s % 2 ? 0.007 : 0.013 });
+    // (sin los platillos metálicos en semicorcheas: el usuario los sacó de todas las músicas, sonaban tic tic tic)
     const off = [0, 0, 12, 0, 1, 0, 12, 7][s % 8];
     MN.dist(t, hz(ch.r + 12 + off), sd * 0.95, { gain: 0.035, filter: 650 + (lvl ? 500 : 0) });
     if (s === 0 && bar % 2 === 0) for (const n of [62, 63, 69]) MN.choir(t, hz(n), sd * 34, { gain: 0.028, attack: 0.3, decay: sd * 12, wet: 0.8 });   // (una octava más arriba y más fuerte: el usuario casi no lo oía)
@@ -2820,7 +2825,7 @@ function card(html, anim = null) {
 function showCard(html, anim = null) {
   if (!html) { $card.classList.add('hidden'); return; }
   $card.innerHTML = html; $card.classList.remove('hidden', 'in', 'cine'); void $card.offsetWidth; $card.classList.add('in');
-  const cine = anim && anim.cls === 'cine'; if (cine) { $card.classList.add('cine'); CINE.t0 = performance.now(); cineUi(true); $card.style.setProperty('--cb', CINE_AT.board + 's'); }
+  const cine = anim && anim.cls === 'cine'; if (cine) { $card.classList.add('cine'); CINE.t0 = performance.now(); cineUi(true); $card.style.setProperty('--cb', CINE_AT.board + 's'); $card.style.setProperty('--cbd', CINE_AT.boardT + 's'); $card.dataset.board = CINE_BOARD; }
   $card.querySelectorAll('canvas[data-rat]').forEach(c => drawThumb(c));   // jaulas de las ratitas
   fitRibbons($card); fitWin();
   if (cine && $card.querySelector('.logo')) cineLogoAnim($card.querySelector('.logo'));
@@ -6017,8 +6022,10 @@ const MenuFl = { t: 0, dur: 1, in: 1, x: 0, y: 0 };
 // cartón y los controles y los botones salen en sus tiempos (lo pidió el usuario). CINE.t0: cuándo empezó (null, ya terminó)
 const CINE = { t0: null };
 // logo: empieza a caer; land: aterriza (el primer tiempo del segundo compás); move: sube a su lugar (el primer tiempo del
-// tercero), board: baja el cartón; ctl y btns: los controles y los botones (el segundo y el tercer tiempo del tercero)
-const CINE_AT = { lights: 0.36, logo: 0.85, land: 1.2, move: 2.4, moveT: 0.42, board: 2.45, ctl: 2.85, btns: 3.0 };   // negro, se prende el laberinto, el logo al empezar el segundo compás y el resto al empezar el tercero (lo pidió el usuario: primero negro, después el laberinto, después el logo y lo demás todo animado)
+// tercero), board: el cartón, a la vez que sube el logo (antes llegaba un poco después y el usuario lo quería junto); ctl y btns: los controles y los botones (el segundo y el tercer tiempo del tercero)
+const CINE_AT = { lights: 0.36, logo: 0.85, land: 1.2, move: 2.4, moveT: 0.42, board: 2.4, boardT: 0.7, ctl: 2.85, btns: 3.0 };
+// cómo aparece el cartón detrás del logo: 'stretch' se estira desde el medio con rebote; 'drop' baja desde arriba
+const CINE_BOARD = 'stretch';   // negro, se prende el laberinto, el logo al empezar el segundo compás y el resto al empezar el tercero (lo pidió el usuario: primero negro, después el laberinto, después el logo y lo demás todo animado)
 const CINE_FLICK = [[0, 0], [0.36, 0], [0.37, 0.85], [0.43, 0.85], [0.44, 0.08], [0.53, 0.08], [0.54, 0.95], [0.58, 0.95], [0.59, 0.3], [0.68, 0.3], [0.92, 1]];   // [segundos, luz]
 // esconde las monedas, el engranaje y el crédito durante la entrada y los trae de vuelta con un fundido al terminar (o al tocar)
 let cineUiT = 0;
