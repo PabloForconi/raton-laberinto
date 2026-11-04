@@ -1318,8 +1318,10 @@ const Snd = {
 // Cuatro piezas hechas con osciladores y ruido, sin archivos. Reemplazan la canción en mp3 (audio/laberinto-de-circuitos.mp3,
 // que ya no se carga), de la que toman el tempo, unos 100 bpm, y la tonalidad, re menor:
 // después el usuario las pidió más frenéticas, al estilo de Danny Elfman mezclado con electrónico:
-//   MUS_MENU  niveles, cartel de inicio, resultados, Bioterio y Máquina (la portada y la Máquina andando, con tuba: MUS_TITLE): sinfónica, un vals rápido de cuento raro
-//   MUS_PLAY  laberintos con luz: electrónica con cuerdas y celesta, frenética
+//   el tema (TH_CH, TH_MEL), un vals raro en 3/4, con una instrumentación por pantalla: MUS_TITLE portada y niveles,
+//             MUS_RES cartel de inicio y resultados, MUS_BIO Bioterio, MUS_MACH Máquina, MUS_LAB Ratalab (el premio)
+//   MUS_PLAY  laberintos con luz (los impares): el mismo tema en 4/4, electrónico con cuerdas, celesta y coros, frenético
+//   MUS_PLAY_B laberintos con luz (los pares): la música con luz de antes
 //   MUS_DARK  laberintos a oscuras (y Desafío): electrónica oscura y frenética, con bajo distorsionado y coro en racimo;
 //             con la última pila (WARN_T) se acelera y suma un trémolo y una alarma que sube
 //   MUS_STING un remate corto al perder (startDie)
@@ -1397,6 +1399,28 @@ const MN = {
     const sb = this.osc('sine', f, t, dur), sg = Snd.ctx.createGain(); sg.gain.value = 0.9; sb.connect(sg).connect(g);
     fl.connect(g); this.env(g, t, gain, 0.022, dur, dur / 2.2); this.send(g, wet);
   },
+  // caña (clarinete arriba, fagot abajo): una cuadrada y un triángulo por un filtro que deja pasar bright armónicos, con
+  // un vibrato que entra de a poco (vib) en las notas largas
+  reed(t, f, dur, { gain = 0.03, bright = 4, wet = 0.3, vib = 0 } = {}) {
+    const c = Snd.ctx, g = c.createGain(), fl = this.filt('lowpass', f * bright + 300, 0.9);
+    const o = this.osc('square', f, t, dur), o2 = this.osc('triangle', f, t, dur), g2 = c.createGain(); g2.gain.value = 0.6;
+    if (vib) {
+      const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 5.2;
+      lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.005 * vib, t + Math.min(0.25, dur));
+      l.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency); l.start(t); l.stop(t + dur + 0.15);
+    }
+    o.connect(fl); o2.connect(g2).connect(fl); fl.connect(g); this.env(g, t, gain, 0.025, dur, dur / 2.5); this.send(g, wet);
+  },
+  // arpa: un pellizco de triángulo con su octava, que se apaga solo y suena en la sala
+  harp(t, f, gain = 0.012) {
+    this.tone(t, f, 0.6, { type: 'triangle', gain, attack: 0.003, decay: 0.18, wet: 0.55 });
+    this.tone(t, f * 2, 0.3, { type: 'sine', gain: gain * 0.3, attack: 0.002, decay: 0.08, wet: 0.55 });
+  },
+  // taco de madera (el tic-tac de la máquina): un seno agudo que cae y un chasquido de ruido
+  wood(t, f = 1400, gain = 0.025) {
+    this.tone(t, f, 0.05, { to: f * 0.8, type: 'sine', gain, attack: 0.001, decay: 0.015, wet: 0.15 });
+    this.noise(t, 0.015, f * 1.8, { type: 'bandpass', q: 3, gain: gain * 0.5 });
+  },
   // timbal: un golpe grave afinado
   timp(t, f, gain = 0.12) {
     this.tone(t, f * 1.06, 0.9, { to: f, type: 'sine', gain, attack: 0.003, decay: 0.28, wet: 0.4 });
@@ -1429,71 +1453,189 @@ const MN = {
 const CH = {
   Dm: { r: 38, n: [62, 65, 69] }, Gm: { r: 43, n: [62, 67, 70] }, A7: { r: 45, n: [61, 64, 67] }, Bb: { r: 46, n: [62, 65, 70] },
   Edim: { r: 40, n: [64, 67, 70] }, Eb: { r: 39, n: [63, 67, 70] }, A: { r: 45, n: [61, 64, 69] }, F: { r: 41, n: [60, 65, 69] },
+  DmM7: { r: 38, n: [61, 65, 69] }, Dm7: { r: 38, n: [60, 65, 69] }, Dm6: { r: 38, n: [59, 65, 69] },
 };
-// Portada y resultados (sinfónica, al estilo Danny Elfman): un vals rápido en 6/8 (compás de 12 semicorcheas, 126 bpm),
-// 8 compases en re menor con acordes de cuento raro (re menor, sol menor, la séptima, si bemol, mi disminuido): bajo en
-// pizzicato y cuerdas en staccato que hacen "um-pa-pa", una melodía de celesta que sube y baja por semitonos, el coro
-// que respira cada dos compases, metales que golpean al empezar la frase y timbales que la cierran con un redoble
-const MUS_MENU = {
-  bpm: 126, steps: 96, gain: 1.0,   // (antes 1,35: el usuario la pidió un poco más baja que la de los laberintos; y más lenta, antes 136)
-  chords: [CH.Dm, CH.Dm, CH.Gm, CH.A7, CH.Dm, CH.Bb, CH.Edim, CH.A7],
-  mel: [[[0, 74], [2, 77], [4, 81], [6, 80], [8, 81], [10, 77]], [[0, 76], [2, 77], [4, 76], [6, 73], [8, 74]],
-    [[0, 79], [2, 82], [4, 86], [6, 85], [8, 86], [10, 82]], [[0, 81], [2, 79], [4, 76], [6, 73], [8, 76], [10, 79]],
-    [[0, 81], [2, 80], [4, 81], [6, 84], [8, 81], [10, 77]], [[0, 77], [2, 74], [4, 70], [6, 74], [8, 77], [10, 82]],
-    [[0, 79], [2, 76], [4, 82], [6, 79], [8, 76], [10, 73]], [[0, 81], [3, 80], [4, 79], [5, 78], [6, 77], [7, 76], [8, 75], [9, 74], [10, 73]]],
-  step(i, t, sd) {
-    const bar = Math.floor(i / 12), s = i % 12, ch = this.chords[bar], bd = sd * 12;
-    if (s === 0) this.pizzBass(t, ch.r + 12);
-    if (s === 6) MN.pizz(t, hz(ch.r + 19), 0.05);
-    if (s === 2 || s === 4 || s === 8 || s === 10) for (const n of ch.n) MN.strings(t, hz(n), 0.13, { gain: 0.007, decay: 0.04, filter: 2600, wet: 0.25 });
-    if (this.tuba) {
-      // la tuba, tres octavas abajo (antes dos: el usuario la pidió más grave), en los dos tiempos del compás, "tun, tun";
-      // en los compases impares, que cierran cada pregunta de la melodía, el segundo tiempo es un doble soplido, "tu-tun"
-      // (la nota del tiempo y la siguiente, cortitas); y abajo un bombo en cada compás y un crash al empezar cada frase
-      const dbl = bar % 2 === 1, at = k => { for (const [kk, n] of this.mel[bar]) if (kk === k) return n; return null; };
-      if (s === 0 || s === 6) { const n = at(s); if (n != null) MN.tuba(t, hz(n - 36), dbl && s === 6 ? sd * 1.5 : sd * 4.2, { gain: 0.05 }); }
-      if (dbl && s === 8) { const n = at(8); if (n != null) MN.tuba(t, hz(n - 36), sd * 3, { gain: 0.045 }); }
-      if (s === 0) MN.kick(t, bar % 4 === 0 ? 0.1 : 0.075);
-      if (s === 6 && bar % 4 === 3) MN.kick(t, 0.06);   // (y uno más en el segundo tiempo antes de la frase nueva)
-      if (s === 0 && bar % 4 === 0) MN.crash(t);
+// EL TEMA (el usuario pidió una melodía nueva al estilo de Danny Elfman, con una instrumentación distinta en cada pantalla
+// y que todas se sientan de la misma familia): un vals raro en 3/4 (compás de 12 semicorcheas, 150 bpm), 16 compases en
+// re menor, la misma tonalidad que la música a oscuras. La A abre con la línea cromática que baja por adentro del acorde
+// (re, do#, do, si: re menor, re menor con séptima mayor, con séptima, con sexta), sigue por sol menor y mi bemol (el
+// napolitano, el color raro) y cierra en la séptima; la B sube por si bemol y sol menor hasta el mi bemol agudo, el punto
+// más alto, y baja cromática hasta la. La melodía salta y se escurre por semitonos (sol# - la, la - sol# - sol).
+// TH_MEL: por compás, [semicorchea, nota MIDI, duración en semicorcheas]
+const TH_CH = [CH.Dm, CH.DmM7, CH.Dm7, CH.Dm6, CH.Gm, CH.Eb, CH.A7, CH.A7, CH.Bb, CH.Gm, CH.Dm, CH.A7, CH.Bb, CH.Gm, CH.Eb, CH.A7];
+const TH_MEL = [
+  [[0, 74, 4], [4, 77, 2], [6, 76, 2], [8, 74, 4]], [[0, 73, 6], [6, 74, 2], [8, 77, 4]],
+  [[0, 81, 4], [4, 80, 2], [6, 81, 2], [8, 84, 4]], [[0, 83, 6], [6, 81, 2], [8, 77, 4]],
+  [[0, 79, 4], [4, 82, 2], [6, 81, 2], [8, 79, 4]], [[0, 79, 4], [4, 75, 4], [8, 70, 4]],
+  [[0, 73, 2], [2, 76, 2], [4, 79, 2], [6, 82, 2], [8, 81, 4]], [[0, 81, 6], [6, 80, 2], [8, 79, 2], [10, 76, 2]],
+  [[0, 74, 4], [4, 77, 4], [8, 82, 4]], [[0, 86, 6], [6, 84, 2], [8, 82, 2], [10, 79, 2]],
+  [[0, 81, 4], [4, 77, 4], [8, 74, 4]], [[0, 76, 2], [2, 77, 2], [4, 76, 2], [6, 73, 2], [8, 69, 4]],
+  [[0, 74, 4], [4, 77, 2], [6, 82, 2], [8, 81, 4]], [[0, 79, 4], [4, 82, 4], [8, 86, 4]],
+  [[0, 87, 6], [6, 86, 2], [8, 82, 2], [10, 79, 2]], [[0, 81, 2], [2, 80, 2], [4, 79, 2], [6, 78, 2], [8, 77, 2], [10, 73, 2]]];
+// Una versión del tema: todas van a 150 bpm con el mismo loop y el mismo theme, así que al pasar de una pantalla a otra la
+// música no se reinicia, sigue en el mismo compás y solo cambia la instrumentación (Music.play). play(bar, s, t, sd, ch, m)
+// toca un paso: m son las notas de la melodía que empiezan en ese paso, [semicorchea, nota, duración]
+function themeTrack(o) {
+  return Object.assign({ theme: 'cuento', bpm: 150, steps: 192, gain: 1,
+    step(i, t, sd) { const bar = Math.floor(i / 12), s = i % 12; this.play(bar, s, t, sd, TH_CH[bar], TH_MEL[bar].filter(([k]) => k === s)); } }, o);
+}
+// bajo de "um" del vals: la raíz en los compases pares y la quinta (por debajo si queda aguda) en los impares
+const thOom = (bar, ch) => bar % 2 ? (ch.r + 7 > 46 ? ch.r - 5 : ch.r + 7) : ch.r;
+// arpa en corcheas por el acorde: raíz, las tres notas y vuelta
+const thArp = (s, ch) => [ch.r + 12, ch.n[0], ch.n[1], ch.n[2], ch.n[1], ch.n[0]][s >> 1];
+// Portada y niveles: el tema entero, la orquesta completa. Tuba en el "um" y cuerdas con pizzicato en el "pa-pa", la
+// melodía en metales y cuerdas al unísono (y la celesta una octava arriba en la B), el coro sosteniendo la línea
+// cromática, bombo en cada compás, crash al empezar cada mitad y timbales que cierran cada frase con un redoble
+const MUS_TITLE = themeTrack({
+  gain: 1,   // (medido offline: unos -28,7 dB, entre la música de menú de antes y la de los laberintos)
+  play(bar, s, t, sd, ch, m) {
+    const bd = sd * 12;
+    if (s === 0) MN.tuba(t, hz(thOom(bar, ch)), sd * 3.5, { gain: 0.05 });
+    if (s === 4 || s === 8) { for (const n of ch.n) MN.strings(t, hz(n), sd * 1.4, { gain: 0.008, decay: sd * 0.5, filter: 2800, wet: 0.25 }); MN.pizz(t, hz(ch.n[0] - 12), 0.035); }
+    for (const [, n, d] of m) {
+      MN.brass(t, hz(n - 12), d * sd * 0.9, { gain: 0.02 });
+      MN.strings(t, hz(n), d * sd * 0.95, { gain: 0.01, attack: 0.02, decay: d * sd * 0.4, filter: 3200, wet: 0.35 });
+      if (bar >= 8) MN.celesta(t, hz(n + 12), 0.014, 0.6);
     }
-    else for (const [k, n] of this.mel[bar]) if (k === s) MN.celesta(t, hz(n + 12), 0.03, s % 2 ? 0.45 : 0.8);   // (una octava más aguda: lo pidió el usuario)
-    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 2.2, { gain: 0.012, attack: 0.6, decay: bd * 0.7 });
-    if (s === 0 && bar % 4 === 0) for (const n of [ch.r + 12, ch.r + 19, ch.r + 24]) MN.brass(t, hz(n), 0.45, { gain: 0.022 });
-    if (bar % 4 === 3 && s >= 6) MN.timp(t, hz(45), 0.03 + (s - 6) * 0.012);   // redoble que crece hacia la frase siguiente
-    if (s === 0 && bar % 4 === 0) MN.timp(t, hz(38), 0.13);
+    if (s === 0 && bar < 4) MN.choir(t, hz(ch.n[0]), bd * 1.05, { gain: 0.016, attack: 0.25, decay: bd * 0.4 });
+    if (s === 0 && bar >= 4 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 2.1, { gain: 0.011, attack: 0.5, decay: bd * 0.7 });
+    if (s === 0) MN.kick(t, bar % 4 === 0 ? 0.1 : 0.075);
+    if (s === 8 && bar % 4 === 3) MN.kick(t, 0.06);
+    if (s === 0 && bar % 8 === 0) MN.crash(t);
+    if (s === 0 && bar % 4 === 0) MN.timp(t, hz(38), 0.12);
+    if (bar % 4 === 3 && s >= 8) MN.timp(t, hz(45), 0.03 + (s - 8) * 0.015);
   },
-  pizzBass(t, n) { MN.pizz(t, hz(n), 0.07); MN.tone(t, hz(n - 12), 0.35, { type: 'sine', gain: 0.05, decay: 0.12 }); },
-  // intro de un compás de 6/8 al llegar a la portada (el usuario la pidió, cortita; solo ahí: en los demás carteles la
-  // música de menú entra sin intro): un redoble de timbal que crece, el coro que se infla, una escala de celesta que sube
-  // por re menor y los metales que se inflan en la (la dominante); entra todo con un platillo (land)
+  // intro de un compás al llegar a la portada (solo ahí: en las otras pantallas entra sin intro): un redoble de timbal que
+  // crece, el coro que se infla, una escala de celesta que sube por re menor y los metales que se inflan en la; entra todo
+  // con un platillo (land)
   introSteps: 12,
   introIf() { return G.state === 'title' && !G.screen; },
   intro(s, t, sd) {
     if (s >= 3) MN.timp(t, hz(45), 0.006 + (s - 3) * 0.0035);
     if (s === 0) for (const n of [50, 53, 57]) MN.choir(t, hz(n), sd * 12, { gain: 0.012, attack: sd * 9, decay: sd * 3 });
     MN.celesta(t, hz([74, 76, 77, 79, 81, 82, 84, 85, 86, 88, 89, 93][s]), 0.012 + s * 0.0015, 0.5);
-    if (s === 6) { MN.pizz(t, hz(57), 0.06); for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 6, { gain: 0.012 }); }
+    if (s === 8) { MN.pizz(t, hz(57), 0.06); for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 4, { gain: 0.012 }); }
   },
-  land(t) { MN.noise(t, 1.0, 6000, { gain: 0.012, wet: 0.5 }); },   // platillo (el timbal y los metales ya están en el paso 0)
-};
-// Portada (y la Máquina mientras anda, de Activar hasta que se abre la cápsula): la misma música, pero la melodía la toca
-// una tuba en vez de la celesta, marcando solo las notas de cada tiempo, "tun, tun", con bombo y crash (lo pidió el
-// usuario; las otras pantallas siguen con la celesta). Como las dos van al mismo compás,
-// al pasar de una a otra no se reinicia: sigue en el mismo paso y solo cambia el instrumento (Music.play)
-const MUS_TITLE = Object.assign(Object.create(MUS_MENU), { tuba: true });
-// Laberintos con luz (electrónico con orquesta, frenético): 146 bpm, 8 compases (re menor, si bemol, sol menor, la; dos
-// compases cada uno): bombo en negras, palmas, platillos en semicorcheas, un bajo de sierra en semicorcheas que salta de
-// octava, cuerdas en staccato que empujan las corcheas y una melodía de celesta y "chip" que se escurre por semitonos;
-// al final de cada vuelta, un barrido de ruido que sube
+  land(t) { MN.noise(t, 1.0, 6000, { gain: 0.012, wet: 0.5 }); },
+});
+// Cartel de inicio y resultados (ganar y perder): más liviana y juguetona. La melodía en clarinete (con la celesta arriba
+// en la B), el fagot cortito en el "um", pizzicato en el "pa-pa", un coro muy suave cada cuatro compases y una campanita
+// al cerrar cada frase; sin bombo
+const MUS_RES = themeTrack({
+  gain: 0.8,   // (el usuario la oía muy por encima: el clarinete llena los medios, donde el oído es más sensible; medido offline
+  // en 500 Hz - 5 kHz quedaba 5 dB sobre la portada; ahora entre la portada y la Máquina; antes 1,3)
+  play(bar, s, t, sd, ch, m) {
+    const bd = sd * 12;
+    if (s === 0) MN.reed(t, hz(thOom(bar, ch) + 12), sd * 2.2, { gain: 0.03, bright: 3 });
+    if (s === 4 || s === 8) for (const n of ch.n) MN.pizz(t, hz(n), 0.03);
+    for (const [, n, d] of m) { MN.reed(t, hz(n), d * sd * 0.85, { gain: 0.024, bright: 5, vib: d >= 4 ? 1 : 0 }); if (bar >= 8) MN.celesta(t, hz(n + 12), 0.012, 0.5); }
+    if (s === 0 && bar % 4 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 3.8, { gain: 0.008, attack: 0.8, decay: bd * 1.2 });
+    if (s === 0 && bar % 8 === 0) MN.timp(t, hz(38), 0.08);
+    if (bar % 4 === 3 && s === 8) MN.bell(t, hz(86), { gain: 0.012, dur: 1.2, wet: 0.6 });
+  },
+});
+// Bioterio: una caja de música. La melodía en celesta aguda, el arpa en corcheas por el acorde, un pizzicato suave en el
+// "um", un coro "uuh" muy bajito y una campanita arriba cada cuatro compases; sin percusión
+const MUS_BIO = themeTrack({
+  gain: 1.7,   // (medido offline: un poco más bajita que las otras, unos -31,5 dB, como una caja de música)
+  play(bar, s, t, sd, ch, m) {
+    const bd = sd * 12;
+    if (s === 0) MN.pizz(t, hz(ch.r + 12), 0.05);
+    if (s % 2 === 0) MN.harp(t, hz(thArp(s, ch)), 0.011);
+    for (const [, n, d] of m) MN.celesta(t, hz(n + 12), 0.022, d >= 4 ? 0.9 : 0.5);
+    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n - 12), bd * 2.1, { gain: 0.007, attack: 0.7, decay: bd * 0.8 });
+    if (bar % 4 === 3 && s === 0) MN.bell(t, hz(93), { gain: 0.008, dur: 1.6, wet: 0.8 });
+  },
+});
+// Máquina (quieta y andando, hasta que se abre la cápsula): un mecanismo de relojería. Tic-tac de madera en corcheas, la
+// tuba cortita en el "um" y la quinta en el tercer tiempo, metales con sordina en el "pa-pa", la melodía en fagot,
+// cortita, con la celesta arriba en la B, un bombo suave y platillos muy bajitos
+const MUS_MACH = themeTrack({
+  gain: 1.25,   // (medido offline: queda pareja con la música de menú de antes, unos -30 dB)
+  play(bar, s, t, sd, ch, m) {
+    if (s % 2 === 0) MN.wood(t, s % 4 === 0 ? 1500 : 1100, s === 0 ? 0.03 : 0.018);
+    if (s === 0) MN.tuba(t, hz(ch.r), sd * 1.8, { gain: 0.05 });
+    if (s === 8) MN.tuba(t, hz(ch.r + 7 > 46 ? ch.r - 5 : ch.r + 7), sd * 1.2, { gain: 0.035 });
+    if (s === 4 || s === 8) for (const n of ch.n) MN.brass(t, hz(n - 12), sd * 0.8, { gain: 0.008 });
+    for (const [, n, d] of m) { MN.reed(t, hz(n - 12), Math.min(d, 2) * sd * 0.9, { gain: 0.03, bright: 3.5 }); if (bar >= 8) MN.celesta(t, hz(n + 12), 0.012, 0.45); }
+    if (s === 0) MN.kick(t, 0.06);
+    MN.hat(t, 0.004);
+    if (s === 0 && bar % 8 === 0) MN.crash(t, 0.012);
+  },
+});
+// Ratalab (cuando se abre la cápsula y aparece la ratita de frente): asombro. El coro canta la melodía, con la celesta
+// arriba, el arpa en corcheas, un colchón de cuerdas, el bajo en pizzicato, campanitas, y un redoble suave de timbal y un
+// platillo al empezar cada mitad
+const MUS_LAB = themeTrack({
+  gain: 1.45,   // (medido offline: queda pareja con la música de menú de antes, unos -30 dB)
+  play(bar, s, t, sd, ch, m) {
+    const bd = sd * 12;
+    for (const [, n, d] of m) { MN.choir(t, hz(n), d * sd * 1.15, { gain: 0.02, attack: 0.06, decay: d * sd * 0.5, wet: 0.7 }); MN.celesta(t, hz(n + 12), 0.016, 0.8); }
+    if (s % 2 === 0) MN.harp(t, hz(thArp(s, ch)), 0.012);
+    if (s === 0) { for (const n of ch.n) MN.strings(t, hz(n - 12), bd * 1.05, { gain: 0.006, attack: 0.3, decay: bd * 0.4, filter: 2000, wet: 0.5 }); MN.pizz(t, hz(ch.r + 12), 0.06); MN.tone(t, hz(ch.r), 0.4, { type: 'sine', gain: 0.045, decay: 0.15 }); }
+    if (bar % 2 === 0 && s === 6) MN.bell(t, hz(ch.n[2] + 24), { gain: 0.01, dur: 1.4, wet: 0.8 });
+    if (bar % 8 === 7 && s >= 6) MN.timp(t, hz(45), 0.015 + (s - 6) * 0.008);
+    if (s === 0 && bar % 8 === 0) MN.crash(t, 0.01);
+  },
+});
 // bombo de los dos laberintos: el mismo golpe en los dos, así suenan parejos (el usuario lo oía fuerte; antes 0,11 con luz
 // y 0,12 a oscuras, medido offline: unos 3 dB menos, y los dos al mismo nivel)
 const KICK = 0.08;
 // el bombo de la música con luz con la capa grave del "corazón" de la oscura (85 → 38 Hz, el mismo golpe que cae junto al
 // bombo en el primer tiempo de esa música): el usuario quiso probar que los dos bombos suenen igual. Más bajita que allá
 // (0,065 en vez de 0,12) porque acá cae en los cuatro tiempos y no en uno: medido offline, los dos bombos quedan parejos
-const kickDeep = (t, v = 1) => { MN.kick(t, KICK * v); MN.tone(t, 85, 0.2, { to: 38, type: 'sine', gain: 0.065 * v, attack: 0.004, decay: 0.06 }); };
+// KICK_LIT: el bombo de las dos músicas con luz, más bajo que el de la oscura (el usuario lo pidió: 0,7, unos 3 dB menos)
+const KICK_LIT = 0.7;
+const kickDeep = (t, v = 1) => { v *= KICK_LIT; MN.kick(t, KICK * v); MN.tone(t, 85, 0.2, { to: 38, type: 'sine', gain: 0.065 * v, attack: 0.004, decay: 0.06 }); };
+// El tema en 4/4 (el usuario pidió una versión nueva): 146 bpm, los 16 compases del tema, cada uno de 16 semicorcheas. La
+// melodía del vals entra estirada en 4/3 (las corcheas caen en 0, 3, 5, 8, 11 y 13: un ritmo quebrado, tres más dos), en
+// celesta con una onda cuadrada, y en la B la doblan los metales una octava abajo. Abajo, lo de siempre: bombo en negras
+// con su capa grave, palmas, platillos en semicorcheas, el bajo de sierra que salta de octava, cuerdas en staccato por el
+// acorde, coros y un barrido de ruido antes de volver a empezar; un crash al empezar la B
 const MUS_PLAY = {
+  bpm: 146, steps: 256, gain: 1.6,
+  lead: TH_MEL.map(bar => bar.map(([k, n, d]) => [Math.round(k * 4 / 3), n, Math.round(d * 4 / 3)])),
+  step(i, t, sd) {
+    const bar = i >> 4, s = i & 15, ch = TH_CH[bar];
+    if (s % 4 === 0) kickDeep(t);
+    if (bar % 2 && s === 14) kickDeep(t, 0.65);
+    if (s === 4 || s === 12) MN.clap(t, 0.045);
+    MN.hat(t, s % 4 === 2 ? 0.02 : 0.008, s % 4 === 2);
+    const off = [0, 12, 7, 12][s % 4];
+    MN.synthBass(t, hz(ch.r + 12 + off), sd * 0.9, { gain: 0.045, filter: 700 + (s / 16) * 900 });
+    if (s % 2 === 0) { const n = ch.n[[2, 1, 2, 0][(s >> 1) % 4]] + 12; MN.strings(t, hz(n), sd * 1.2, { gain: 0.012, decay: sd * 0.4, filter: 3000, wet: 0.2 }); }
+    for (const [k, n, d] of this.lead[bar]) if (k === s) {
+      MN.celesta(t, hz(n), 0.022, 0.5);
+      MN.tone(t, hz(n), sd * Math.min(d, 3) * 0.8, { type: 'square', gain: 0.012, decay: sd * 0.5, filter: 2600, wet: 0.2 });
+      if (bar >= 8) MN.brass(t, hz(n - 12), sd * d * 0.85, { gain: 0.012 });
+    }
+    // coros: el acorde en "aaa" cada dos compases, y una segunda voz que canta la nota de la melodía que suena en los
+    // tiempos 1 y 3, una octava abajo
+    if (s === 0 && bar % 2 === 0) for (const n of ch.n) MN.choir(t, hz(n), sd * 30, { gain: 0.022, attack: 0.35, decay: sd * 10 });
+    if (s === 0 || s === 8) { const n = this.lead[bar].filter(([k]) => k <= s).pop(); if (n) MN.choir(t, hz(n[1] - 12), sd * 7.5, { gain: 0.028, attack: 0.08, decay: sd * 3, wet: 0.5 }); }
+    if (s === 0 && bar === 8) MN.crash(t, 0.014);
+    if (bar === 15 && s >= 8) MN.noise(t, sd * 1.1, 2000 + (s - 8) * 900, { type: 'bandpass', q: 2, gain: 0.006 + (s - 8) * 0.004, wet: 0.3 });
+  },
+  // intro de un compás al empezar el nivel (el usuario la pidió, bien cortita): el bajo late en corcheas con el filtro
+  // que se abre, los platillos y un barrido de ruido crecen, los metales se inflan en la (la dominante) y en el último
+  // tiempo un redoble de palmas y un arpegio de celesta que sube a re; después entra todo con un golpe (land)
+  intro(s, t, sd) {
+    if (s % 2 === 0) MN.synthBass(t, hz(50), sd * 1.6, { gain: 0.03 + s * 0.0015, filter: 500 + s * 80 });
+    if (s >= 4) MN.hat(t, 0.004 + (s - 4) * 0.0012);
+    MN.noise(t, sd * 1.1, 1200 + s * 450, { type: 'bandpass', q: 2, gain: 0.003 + s * 0.0012, wet: 0.3 });
+    if (s === 8) for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 8, { gain: 0.014 });
+    if (s >= 12) MN.clap(t, 0.02 + (s - 12) * 0.008);
+    if (s >= 12) MN.celesta(t, hz([74, 77, 81, 86][s - 12]), 0.022, 0.5);
+  },
+  land(t) {
+    MN.noise(t, 1.1, 6000, { gain: 0.016, wet: 0.4 });   // platillo (el bombo ya está en el paso 0)
+    for (const n of [62, 65, 69]) MN.brass(t, hz(n), 0.35, { gain: 0.009 });
+  },
+};
+// La música con luz de antes (8 compases: re menor, si bemol, sol menor, la, dos compases cada uno; bombo en negras, palmas,
+// platillos en semicorcheas, el bajo de sierra que salta de octava, cuerdas en staccato y una melodía de celesta y "chip"
+// que se escurre por semitonos): el usuario la quiso de vuelta, alternada con la del tema nivel por nivel (Music.want)
+const MUS_PLAY_B = {
   bpm: 146, steps: 128, gain: 1.6,   // (más rápida, a pedido del usuario: antes 138; después la pidió más lenta, 158 → 150 → 146, la misma que la de oscuro)
   chords: [CH.Dm, CH.Dm, CH.Bb, CH.Bb, CH.Gm, CH.Gm, CH.A, CH.A],
   lead: [[[0, 74], [3, 77], [6, 81], [8, 80], [10, 81], [12, 77], [14, 74]], [[0, 76], [4, 77], [8, 73], [12, 74]],
@@ -1614,16 +1756,21 @@ function MUS_STING(t) {
 const Music = {
   started: false, vol: 0.5,   // volumen de la música, aparte de los efectos (más o menos como la canción de antes)
   muted: (() => { try { return localStorage.getItem('raton.musicMuted') === '1'; } catch (_) { return false; } })(),
-  bus: null, rev: null, track: null, out: null, wet: null, step: 0, nextAt: 0, level: 0, paused: false, holdUntil: 0,
+  bus: null, rev: null, dry: null, track: null, out: null, wet: null, step: 0, nextAt: 0, level: 0, paused: false, holdUntil: 0,
+  // "cámara", como en Growcore (lo pidió el usuario): una sala de hall más larga (hall s), con la cola que se oscurece y una
+  // entrada suave de 10 ms; además de lo que cada instrumento manda (wet), todo lo seco manda room a la sala, así hasta el
+  // bombo, el bajo y la tuba suenan en un lugar; revGain es cuánto vuelve la sala a la mezcla
+  hall: 2.8, room: 0.2, revGain: 1.6,   // (antes 2,4 s, sin room y la sala volvía al 0,5: casi no se oía)
   setup() {   // el volumen y la sala de eco, la primera vez que hay audio
     const c = Snd.ctx; if (!c) return false; if (this.bus) return true;
     // (con un compresor a la salida, como en una mezcla: los golpes no sobresalen y todas las pistas suenan parejas)
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.2;
     const mk = c.createGain(); mk.gain.value = 1; comp.connect(mk).connect(c.destination);
     this.bus = c.createGain(); this.bus.gain.value = this.muted ? 0 : this.vol; this.bus.connect(comp);
-    const len = Math.round(c.sampleRate * 2.4), ir = c.createBuffer(2, len, c.sampleRate);
-    for (let k = 0; k < 2; k++) { const d = ir.getChannelData(k); let lp = 0; for (let j = 0; j < len; j++) { const x = j / len; lp += (Math.random() * 2 - 1 - lp) * (0.55 - 0.45 * x); d[j] = lp * (1 - x) ** 3; } }
-    this.rev = c.createConvolver(); this.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = 0.5; this.rev.connect(rg).connect(this.bus);
+    const len = Math.round(c.sampleRate * this.hall), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let k = 0; k < 2; k++) { const d = ir.getChannelData(k); let lp = 0; for (let j = 0; j < len; j++) { const x = j / len; lp += (Math.random() * 2 - 1 - lp) * (0.6 - 0.5 * x); d[j] = lp * (1 - x) ** 3 * Math.min(1, j / (c.sampleRate * 0.01)); } }
+    this.rev = c.createConvolver(); this.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = this.revGain; this.rev.connect(rg).connect(this.bus);
+    this.dry = c.createGain(); this.dry.connect(this.bus); const rs = c.createGain(); rs.gain.value = this.room; this.dry.connect(rs).connect(this.rev);
     return true;
   },
   start() { this.started = true; Snd.init(); this.setup(); },
@@ -1631,12 +1778,12 @@ const Music = {
   play(track, fade = 0.8) {
     if (this.track === track) return;
     const c = Snd.ctx; if (track && !this.setup()) return;   // todavía sin audio: se intenta de nuevo en el próximo cuadro
-    // (entre la música de menú y la de la portada, que son la misma con otro instrumento: sigue en el mismo paso)
-    const twin = this.track && track && this.out && (Object.getPrototypeOf(track) === this.track || Object.getPrototypeOf(this.track) === track);
+    // (entre dos versiones del tema, que son la misma música con otra instrumentación: sigue en el mismo paso)
+    const twin = this.track && track && this.out && track.theme && track.theme === this.track.theme;
     if (twin) {
       this.release(fade); this.track = track; const now = c.currentTime;
       this.out = c.createGain(); this.wet = c.createGain();
-      for (const [g, to] of [[this.out, this.bus], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
+      for (const [g, to] of [[this.out, this.dry], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
       return;
     }
     this.release(0.5); this.track = track;
@@ -1648,7 +1795,7 @@ const Music = {
     if (intro) fade = 0.05;
     const now = c.currentTime;
     this.out = c.createGain(); this.wet = c.createGain();
-    for (const [g, to] of [[this.out, this.bus], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
+    for (const [g, to] of [[this.out, this.dry], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
     this.nextAt = now + 0.05;
   },
   release(fade) {
@@ -1659,7 +1806,7 @@ const Music = {
   sting(fn = MUS_STING, hold = 3600) {   // al perder: la pista se corta y suena el remate; la de menú vuelve un rato después
     if (!this.setup()) return;
     this.play(null); this.holdUntil = performance.now() + hold;
-    const c = Snd.ctx, out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = fn.gain; out.connect(this.bus); wet.connect(this.rev);
+    const c = Snd.ctx, out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = fn.gain; out.connect(this.dry); wet.connect(this.rev);
     this.out = out; this.wet = wet; fn(c.currentTime + 0.05); this.out = this.wet = null;
     setTimeout(() => { out.disconnect(); wet.disconnect(); }, 4000);
   },
@@ -1680,14 +1827,17 @@ const Music = {
   // qué tiene que sonar según la pantalla (se mira en cada cuadro)
   want() {
     if (!this.started || G.state === 'splash') return null;
-    // (la Máquina, de Activar hasta que se abre la cápsula y se ve la ratita de frente: con la tuba; lo pidió el usuario)
-    if (G.screen) return G.screen === 'machine' && !['idle', 'reveal'].includes(Gacha.phase) ? MUS_TITLE : MUS_MENU;
-    if (G.state === 'title') return MUS_TITLE;
+    // una versión del tema por pantalla (lo pidió el usuario): Bioterio, Máquina y, cuando se abre la cápsula, Ratalab
+    if (G.screen === 'ratitas') return MUS_BIO;
+    if (G.screen === 'machine') return Gacha.phase === 'reveal' ? MUS_LAB : MUS_MACH;
+    if (G.screen) return MUS_RES;
+    if (G.state === 'title' || G.state === 'select') return MUS_TITLE;
     const st = G.state;
-    if (st === 'play' || st === 'paused') return G.mode === 'story' && !G.dark ? MUS_PLAY : MUS_DARK;
+    // con luz, una y una para que no aburra (lo pidió el usuario): los niveles impares con el tema, los pares con la de antes
+    if (st === 'play' || st === 'paused') return G.mode === 'story' && !G.dark ? (G.level % 2 ? MUS_PLAY : MUS_PLAY_B) : MUS_DARK;
     if (st === 'dying') return null;   // suena el remate (sting, desde startDie)
     if ((st === 'lost' || st === 'won') && performance.now() < this.holdUntil) return null;   // después del remate o del jingle de ganar
-    return MUS_MENU;
+    return MUS_RES;   // cartel de inicio y resultados
   },
   pause() { this.paused = true; this.fadeBus(0, 0.25); },
   resume() { if (!this.paused) return; this.paused = false; const c = Snd.ctx; if (c) this.nextAt = c.currentTime + 0.05; this.fadeBus(this.muted ? 0 : this.vol * this.duckK, 0.3); },
@@ -1701,7 +1851,7 @@ const Music = {
   },
   tick() {
     const w = this.want();
-    if (w !== this.track) this.play(w, G.screen === 'machine' ? 0.6 : w === MUS_MENU || w === MUS_TITLE ? 1.4 : 0.5);
+    if (w !== this.track) this.play(w, G.screen === 'machine' ? 0.6 : w && w.theme ? 1.2 : 0.5);
     this.level = this.track === MUS_DARK && G.state === 'play' && G.lamp && G.timeLeft <= WARN_T ? 1 : 0;
   },
 };
