@@ -1601,12 +1601,11 @@ const MUS_RES = themeTrack({
   // dos compases del mismo vals, a su tempo, que desembocan en el primer compás de esta música. El primero llama con un
   // arpegio de re menor que sube (re, fa, la, re) en clarinete y metales, con timbal, pizzicato y un platillo; el segundo
   // baja por semitonos como el final del tema (la, sol#, sol, fa#, fa, do#), con la celesta arriba, el pizzicato en la
-  // séptima y un redoble que crece hasta el re del primer compás, donde entra todo con un platillo (land).
-  // Music.win la pide con winNext; al perder, o al llegar desde otra pantalla, la música entra sin ella.
-  introSteps: 24,
-  introIf() { const w = Music.winNext; Music.winNext = false; return w; },
+  // séptima y un redoble que crece hasta el re, donde cierra con el acorde de re menor y un platillo (WIN_STING).
+  // Ya no es la intro de esta música: suena sola apenas la ratita sale del laberinto, y esta música entra cuando termina
+  // (lo pidió el usuario)
   fan: [[[0, 74, 2], [2, 77, 2], [4, 81, 4], [8, 86, 4]], [[0, 81, 2], [2, 80, 2], [4, 79, 2], [6, 78, 2], [8, 77, 2], [10, 73, 2]]],
-  intro(s, t, sd) {
+  fanfare(s, t, sd) {
     const b = s < 12 ? 0 : 1, k = s % 12, ch = b ? CH.A7 : CH.Dm;
     for (const [kk, n, d] of this.fan[b]) if (kk === k) {
       MN.reed(t, hz(n), d * sd * 0.9, { gain: 0.03, bright: 5 });
@@ -1618,8 +1617,18 @@ const MUS_RES = themeTrack({
     if (s === 12) MN.reed(t, hz(45), sd * 2.2, { gain: 0.03, bright: 3 });
     if (b && k >= 6) MN.timp(t, hz(45), 0.02 + (k - 6) * 0.012);
   },
-  land(t) { MN.crash(t, 0.01); },
 });
+// el remate al ganar: la fanfarria de MUS_RES (dos compases del vals) y el re menor final, que queda sonando. Arranca
+// WIN_GAP s después de que la ratita sale (la música del laberinto se apaga en ese rato) y la música de resultados entra
+// cuando termina, WIN_HOLD ms después de salir
+const WIN_GAP = 0.3, WIN_HOLD = 4300;
+const WIN_STING = Object.assign(t0 => {
+  const sd = 60 / (MUS_RES.bpm * 4), t = t0 + WIN_GAP, end = t + 24 * sd;
+  for (let s = 0; s < 24; s++) MUS_RES.fanfare(s, t + s * sd, sd);
+  MN.crash(end, 0.012); MN.timp(end, hz(38), 0.1);
+  for (const n of CH.Dm.n) { MN.reed(end, hz(n + 12), sd * 9, { gain: 0.02, bright: 4, vib: 1 }); MN.brass(end, hz(n), sd * 8, { gain: 0.018 }); }
+  MN.reed(end, hz(38), sd * 6, { gain: 0.03, bright: 3 }); MN.celesta(end, hz(86), 0.014, 0.8);
+}, { gain: MUS_RES.gain });
 // Bioterio: una caja de música. La melodía en celesta aguda, el arpa en corcheas por el acorde, un pizzicato suave en el
 // "um", un coro "uuh" muy bajito y una campanita arriba cada cuatro compases; sin percusión
 const MUS_BIO = themeTrack({
@@ -1850,7 +1859,9 @@ const Music = {
     if (this.track === track) return;
     const c = Snd.ctx; if (track && !this.setup()) return;   // todavía sin audio: se intenta de nuevo en el próximo cuadro
     // (entre dos versiones del tema, que son la misma música con otra instrumentación: sigue en el mismo paso)
-    const twin = this.track && track && this.out && track.theme && track.theme === this.track.theme;
+    // (fresh: la nueva arranca desde su primer compás aunque sea otra versión del tema: la Ratalab, en la revelación)
+    const twin = this.track && track && this.out && track.theme && track.theme === this.track.theme && !this.fresh;
+    if (track) this.fresh = false;
     if (twin) {
       this.release(fade); this.track = track; const now = c.currentTime;
       this.out = c.createGain(); this.wet = c.createGain();
@@ -1863,7 +1874,7 @@ const Music = {
     const intro = !!(track && track.intro && (!track.introIf || track.introIf()));
     this.step = intro ? -(track.introSteps || 16) : 0; this.landNext = intro;
     if (!track) return;
-    if (intro || track.hit) fade = 0.05;   // (hit: la pista entra de golpe, a su volumen, desde el primer compás)
+    if (intro || track.hit || track === MUS_LAB) fade = 0.05;   // (hit: la pista entra de golpe, a su volumen, desde el primer compás; la Ratalab también, al abrirse la cápsula)
     const now = c.currentTime;
     this.out = c.createGain(); this.wet = c.createGain();
     for (const [g, to] of [[this.out, this.dry], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
@@ -1879,15 +1890,17 @@ const Music = {
     this.play(null); this.holdUntil = performance.now() + hold;
     const c = Snd.ctx, out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = fn.gain; out.connect(this.dry); wet.connect(this.rev);
     this.out = out; this.wet = wet; fn(c.currentTime + 0.05); this.out = this.wet = null;
-    setTimeout(() => { out.disconnect(); wet.disconnect(); }, 4000);
+    setTimeout(() => { out.disconnect(); wet.disconnect(); }, Math.max(4000, hold + 2500));   // (cuando ya se apagó todo, también la sala)
   },
-  // al ganar: la música de resultados entra enseguida, con su fanfarria de dos compases (antes sonaba un remate aparte,
-  // MUS_WIN, y la música entraba 2,8 s después)
-  win() { this.holdUntil = 0; this.winNext = true; this.play(null); },   // (la fanfarria es la intro de MUS_RES)
+  // al ganar: se apaga la del laberinto, suena el remate (WIN_STING, la fanfarria del tema) y la de resultados entra
+  // recién cuando termina (lo pidió el usuario; antes la fanfarria era la intro de la de resultados y seguía de corrido)
+  win() { this.sting(WIN_STING, WIN_HOLD); },
   sched() {
     const c = Snd.ctx, tr = this.track;
     if (!c || !tr || !this.out || this.paused || c.state !== 'running') return;
     const now = c.currentTime;
+    // (ya apagada del todo, mientras anda la máquina, no programa notas: no se oirían y el celu tiene la animación)
+    if (this.duckK === 0 && now > this.duckEnd + 0.3) return;
     // (si el navegador se trabó o la pestaña estuvo en segundo plano, las notas que ya pasaron se saltean: tocadas tarde
     // entrarían de golpe, sin su ataque, y sonarían como un "tic")
     if (this.nextAt < now + 0.005) this.nextAt = now + 0.02;
@@ -1917,7 +1930,7 @@ const Music = {
   resume() { if (!this.paused) return; this.paused = false; const c = Snd.ctx; if (c) this.nextAt = c.currentTime + 0.05; this.fadeBus(this.muted ? 0 : this.vol * this.duckK, 0.3); },
   // baja la música un rato (k de 0 a 1; 1 = normal): mientras anda la máquina de ratitas, para que se oiga y dé tensión
   duckK: 1,
-  duck(k, s = 0.5) { if (this.duckK === k) return; this.duckK = k; if (!this.paused) this.fadeBus(this.muted ? 0 : this.vol * k, s); },
+  duck(k, s = 0.5) { if (this.duckK === k) return; this.duckK = k; this.duckEnd = (Snd.ctx ? Snd.ctx.currentTime : 0) + s; if (!this.paused) this.fadeBus(this.muted ? 0 : this.vol * k, s); },
   fadeBus(v, s) { const c = Snd.ctx; if (!c || !this.bus) return; const now = c.currentTime; this.bus.gain.cancelScheduledValues(now); this.bus.gain.setValueAtTime(this.bus.gain.value, now); this.bus.gain.linearRampToValueAtTime(v, now + s); },
   toggle() {
     this.muted = !this.muted; if (!this.paused) this.fadeBus(this.muted ? 0 : this.vol * this.duckK, 0.15);
@@ -4085,7 +4098,7 @@ function gachaSpin() {
   if (G.screen !== 'machine' || !['idle', 'reveal'].includes(Gacha.phase) || Wallet.coins < COIN_SPIN) return;
   Wallet.add(-COIN_SPIN); pop($coins);
   // moneda clásica de juego al tocar Activar u Otra vez (lo pidió el usuario) y después entra por la ranura y rueda
-  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450); Music.duck(0.6, 0.6);   // la moneda entra; la música baja para que se oiga la máquina (antes al 30%; ahora, con la tuba, al 60%)
+  Snd.machStop(0.1); Snd.coinBtn(); setTimeout(() => Snd.coinDrop(), 450); Music.duck(0, 2.5);   // la moneda entra; la música se va apagando hasta desaparecer mientras anda la máquina (lo pidió el usuario; antes bajaba al 60%) y vuelve en la revelación
   Gacha.pick = rollRat();   // según la rareza (la Albina ya la tenés de entrada)
   Gacha.dup = Skins.has(Gacha.pick);
   if (!Gacha.dup) { Skins.data.owned.push(Gacha.pick); Skins.save(); }
@@ -4117,7 +4130,9 @@ function gachaStage(id) {
   else if (id === 'door') Snd.doorOpen(DOOR_OPEN_T, RAMP_HIT);
   else if (id === 'launch') { machBgDark(true); Snd.launch(GACHA_T.launch + GACHA_T.hover); }
   else if (id === 'reveal') {
-    Snd.revealHit(); Music.duck(1, 2.5); gachaResult();   // (sin papelitos: el usuario los sacó; P.conf queda vacío)
+    // la música, que se fue apagando con la máquina, vuelve con la de la Ratalab desde su primer compás (el usuario lo
+    // pidió); las otras versiones del tema siguen después en ese mismo tiempo
+    Snd.revealHit(); Music.fresh = true; Music.duck(1, 0.4); gachaResult();   // (sin papelitos: el usuario los sacó; P.conf queda vacío)
   }
   if (P.onStage) P.onStage(id);
   updateButtons();   // la flechita de volver solo con la máquina quieta o con el premio
