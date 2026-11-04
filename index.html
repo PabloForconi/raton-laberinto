@@ -1618,17 +1618,19 @@ const MUS_RES = themeTrack({
     if (b && k >= 6) MN.timp(t, hz(45), 0.02 + (k - 6) * 0.012);
   },
 });
-// el remate al ganar: la fanfarria de MUS_RES (dos compases del vals) y el re menor final, que queda sonando. Arranca
-// WIN_GAP s después de que la ratita sale (la música del laberinto se apaga en ese rato) y la música de resultados entra
-// cuando termina, WIN_HOLD ms después de salir
-const WIN_GAP = 0.3, WIN_HOLD = 4300;
-const WIN_STING = Object.assign(t0 => {
-  const sd = 60 / (MUS_RES.bpm * 4), t = t0 + WIN_GAP, end = t + 24 * sd;
-  for (let s = 0; s < 24; s++) MUS_RES.fanfare(s, t + s * sd, sd);
+// el remate al ganar: solo el final de la fanfarria de MUS_RES (su segundo compás, la bajada por semitonos sobre la7)
+// y el re menor final, que queda sonando (el usuario pidió cortarle el comienzo). Empalma con la música del laberinto: entra
+// en su próximo tiempo y a su tempo (sd), mientras la del laberinto se apaga debajo (Music.win). Devuelve cuándo cae el re
+const WIN_TAIL = 2500, WIN_FADE = 0.5;   // ms desde el re final hasta que entra la de resultados (antes 1500: el usuario pidió más pausa); s en que se apaga la del laberinto
+const WIN_STING = Object.assign((t, sd = 60 / (MUS_RES.bpm * 4)) => {
+  const end = t + 12 * sd;
+  MN.crash(t, 0.008);
+  for (let s = 12; s < 24; s++) MUS_RES.fanfare(s, t + (s - 12) * sd, sd);
   MN.crash(end, 0.012); MN.timp(end, hz(38), 0.1);
   for (const n of CH.Dm.n) { MN.reed(end, hz(n + 12), sd * 9, { gain: 0.02, bright: 4, vib: 1 }); MN.brass(end, hz(n), sd * 8, { gain: 0.018 }); }
   MN.reed(end, hz(38), sd * 6, { gain: 0.03, bright: 3 }); MN.celesta(end, hz(86), 0.014, 0.8);
-}, { gain: MUS_RES.gain });
+  return end;
+}, { gain: 0.8 });   // (más fuerte que la de resultados, 0,5: así queda pareja con la del laberinto, que se apaga debajo; medido offline)
 // Bioterio: una caja de música. La melodía en celesta aguda, el arpa en corcheas por el acorde, un pizzicato suave en el
 // "um", un coro "uuh" muy bajito y una campanita arriba cada cuatro compases; sin percusión
 const MUS_BIO = themeTrack({
@@ -1874,7 +1876,10 @@ const Music = {
     const intro = !!(track && track.intro && (!track.introIf || track.introIf()));
     this.step = intro ? -(track.introSteps || 16) : 0; this.landNext = intro;
     if (!track) return;
-    if (intro || track.hit || track === MUS_LAB) fade = 0.05;   // (hit: la pista entra de golpe, a su volumen, desde el primer compás; la Ratalab también, al abrirse la cápsula)
+    // (hit: la pista entra de golpe, a su volumen, desde el primer compás; la Ratalab también, al abrirse la cápsula, y la
+    // de resultados después del remate de ganar, hitNext)
+    if (intro || track.hit || track === MUS_LAB || this.hitNext) fade = 0.05;
+    this.hitNext = false;
     const now = c.currentTime;
     this.out = c.createGain(); this.wet = c.createGain();
     for (const [g, to] of [[this.out, this.dry], [this.wet, this.rev]]) { g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(track.gain, now + fade); g.connect(to); }
@@ -1892,9 +1897,28 @@ const Music = {
     this.out = out; this.wet = wet; fn(c.currentTime + 0.05); this.out = this.wet = null;
     setTimeout(() => { out.disconnect(); wet.disconnect(); }, Math.max(4000, hold + 2500));   // (cuando ya se apagó todo, también la sala)
   },
-  // al ganar: se apaga la del laberinto, suena el remate (WIN_STING, la fanfarria del tema) y la de resultados entra
-  // recién cuando termina (lo pidió el usuario; antes la fanfarria era la intro de la de resultados y seguía de corrido)
-  win() { this.sting(WIN_STING, WIN_HOLD); },
+  // al ganar: suena el remate (WIN_STING, el final de la fanfarria del tema) y la de resultados entra recién cuando
+  // termina (lo pidió el usuario). Empalme: la del laberinto sigue hasta su próximo tiempo, ahí entra el remate a su mismo
+  // tempo y ella se apaga en WIN_FADE s debajo de él (las notas que ya sonaban terminan solas, con su sala)
+  win() {
+    if (!this.setup()) return;
+    const c = Snd.ctx, now = c.currentTime, tr = this.track;
+    let t = now + 0.05, sd;
+    if (tr && this.out && !this.paused && c.state === 'running' && this.step >= 0) {
+      sd = 60 / (tr.bpm + (tr.bpmUp || 0) * this.level) / 4;
+      if (this.nextAt < now + 0.005) this.nextAt = now + 0.02;
+      // (los pasos que faltan hasta el tiempo se programan ya, al menos 0,08 s por delante)
+      while (this.step % 4 || this.nextAt < now + 0.08) { tr.step(this.step % tr.steps, this.nextAt, sd, this.level); this.nextAt += sd; this.step++; }
+      t = this.nextAt;
+      for (const g of [this.out, this.wet]) { const v = g.gain.value; g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(v, now); g.gain.setValueAtTime(v, t); g.gain.linearRampToValueAtTime(0, t + WIN_FADE); setTimeout(() => g.disconnect(), (t - now + WIN_FADE + 0.8) * 1000); }
+      this.out = this.wet = null;
+    }
+    this.play(null);
+    const out = c.createGain(), wet = c.createGain(); out.gain.value = wet.gain.value = WIN_STING.gain; out.connect(this.dry); wet.connect(this.rev);
+    this.out = out; this.wet = wet; const end = WIN_STING(t, sd); this.out = this.wet = null;
+    this.holdUntil = performance.now() + (end - now) * 1000 + WIN_TAIL; this.hitNext = true;   // (la que sigue, de golpe y desde el comienzo)
+    setTimeout(() => { out.disconnect(); wet.disconnect(); }, (end - now) * 1000 + 4000);
+  },
   sched() {
     const c = Snd.ctx, tr = this.track;
     if (!c || !tr || !this.out || this.paused || c.state !== 'running') return;
