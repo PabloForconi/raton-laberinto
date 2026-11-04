@@ -1416,11 +1416,6 @@ const MN = {
     this.tone(t, f, 0.6, { type: 'triangle', gain, attack: 0.003, decay: 0.18, wet: 0.55 });
     this.tone(t, f * 2, 0.3, { type: 'sine', gain: gain * 0.3, attack: 0.002, decay: 0.08, wet: 0.55 });
   },
-  // taco de madera (el tic-tac de la máquina): un seno agudo que cae y un chasquido de ruido
-  wood(t, f = 1400, gain = 0.025) {
-    this.tone(t, f, 0.05, { to: f * 0.8, type: 'sine', gain, attack: 0.001, decay: 0.015, wet: 0.15 });
-    this.noise(t, 0.015, f * 1.8, { type: 'bandpass', q: 3, gain: gain * 0.5 });
-  },
   // timbal: un golpe grave afinado
   timp(t, f, gain = 0.12) {
     this.tone(t, f * 1.06, 0.9, { to: f, type: 'sine', gain, attack: 0.003, decay: 0.28, wet: 0.4 });
@@ -1505,25 +1500,15 @@ const MUS_TITLE = themeTrack({
     if (s === 0 && bar % 4 === 0) MN.timp(t, hz(38), 0.12);
     if (bar % 4 === 3 && s >= 8) MN.timp(t, hz(45), 0.03 + (s - 8) * 0.015);
   },
-  // intro de un compás al llegar a la portada (solo ahí: en las otras pantallas entra sin intro): un redoble de timbal que
-  // crece, el coro que se infla, una escala de celesta que sube por re menor y los metales que se inflan en la; entra todo
-  // con un platillo (land)
-  introSteps: 12,
-  introIf() { return G.state === 'title' && !G.screen; },
-  intro(s, t, sd) {
-    if (s >= 3) MN.timp(t, hz(45), 0.006 + (s - 3) * 0.0035);
-    if (s === 0) for (const n of [50, 53, 57]) MN.choir(t, hz(n), sd * 12, { gain: 0.012, attack: sd * 9, decay: sd * 3 });
-    MN.celesta(t, hz([74, 76, 77, 79, 81, 82, 84, 85, 86, 88, 89, 93][s]), 0.012 + s * 0.0015, 0.5);
-    if (s === 8) { MN.pizz(t, hz(57), 0.06); for (const n of [57, 61, 64]) MN.brass(t, hz(n), sd * 4, { gain: 0.012 }); }
-  },
-  land(t) { MN.noise(t, 1.0, 6000, { gain: 0.012, wet: 0.5 }); },
+  // (no tiene intro: la de un compás que venía del tema anterior la sacó el usuario; entra con un fundido)
 });
 // Cartel de inicio y resultados (ganar y perder): más liviana y juguetona. La melodía en clarinete (con la celesta arriba
 // en la B), el fagot cortito en el "um", pizzicato en el "pa-pa", un coro muy suave cada cuatro compases y una campanita
 // al cerrar cada frase; sin bombo
 const MUS_RES = themeTrack({
-  gain: 0.8,   // (el usuario la oía muy por encima: el clarinete llena los medios, donde el oído es más sensible; medido offline
-  // en 500 Hz - 5 kHz quedaba 5 dB sobre la portada; ahora entre la portada y la Máquina; antes 1,3)
+  gain: 0.5,   // (el usuario la oía muy por encima, dos veces: el clarinete llena los medios, donde el oído es más sensible; medido offline
+  // en 500 Hz - 5 kHz quedaba 5 dB sobre la portada; primero bajó de 1,3 a 0,8, entre la portada y la Máquina, y después
+  // a 0,5, unos 4 dB más, por debajo de todas)
   play(bar, s, t, sd, ch, m) {
     const bd = sd * 12;
     if (s === 0) MN.reed(t, hz(thOom(bar, ch) + 12), sd * 2.2, { gain: 0.03, bright: 3 });
@@ -1547,13 +1532,12 @@ const MUS_BIO = themeTrack({
     if (bar % 4 === 3 && s === 0) MN.bell(t, hz(93), { gain: 0.008, dur: 1.6, wet: 0.8 });
   },
 });
-// Máquina (quieta y andando, hasta que se abre la cápsula): un mecanismo de relojería. Tic-tac de madera en corcheas, la
-// tuba cortita en el "um" y la quinta en el tercer tiempo, metales con sordina en el "pa-pa", la melodía en fagot,
+// Máquina (quieta y andando, hasta que se abre la cápsula): un mecanismo de relojería (tenía un tic-tac de madera en
+// corcheas, que el usuario sacó). La tuba cortita en el "um" y la quinta en el tercer tiempo, metales con sordina en el "pa-pa", la melodía en fagot,
 // cortita, con la celesta arriba en la B, un bombo suave y platillos muy bajitos
 const MUS_MACH = themeTrack({
   gain: 1.25,   // (medido offline: queda pareja con la música de menú de antes, unos -30 dB)
   play(bar, s, t, sd, ch, m) {
-    if (s % 2 === 0) MN.wood(t, s % 4 === 0 ? 1500 : 1100, s === 0 ? 0.03 : 0.018);
     if (s === 0) MN.tuba(t, hz(ch.r), sd * 1.8, { gain: 0.05 });
     if (s === 8) MN.tuba(t, hz(ch.r + 7 > 46 ? ch.r - 5 : ch.r + 7), sd * 1.2, { gain: 0.035 });
     if (s === 4 || s === 8) for (const n of ch.n) MN.brass(t, hz(n - 12), sd * 0.8, { gain: 0.008 });
@@ -1563,14 +1547,15 @@ const MUS_MACH = themeTrack({
     if (s === 0 && bar % 8 === 0) MN.crash(t, 0.012);
   },
 });
-// Ratalab (cuando se abre la cápsula y aparece la ratita de frente): asombro. El coro canta la melodía, con la celesta
+// Ratalab (cuando se abre la cápsula y aparece la ratita de frente): asombro. El coro canta la melodía (más fuerte que al
+// principio: el usuario lo pidió; 0,032, antes 0,02), con la celesta
 // arriba, el arpa en corcheas, un colchón de cuerdas, el bajo en pizzicato, campanitas, y un redoble suave de timbal y un
 // platillo al empezar cada mitad
 const MUS_LAB = themeTrack({
   gain: 1.45,   // (medido offline: queda pareja con la música de menú de antes, unos -30 dB)
   play(bar, s, t, sd, ch, m) {
     const bd = sd * 12;
-    for (const [, n, d] of m) { MN.choir(t, hz(n), d * sd * 1.15, { gain: 0.02, attack: 0.06, decay: d * sd * 0.5, wet: 0.7 }); MN.celesta(t, hz(n + 12), 0.016, 0.8); }
+    for (const [, n, d] of m) { MN.choir(t, hz(n), d * sd * 1.15, { gain: 0.032, attack: 0.06, decay: d * sd * 0.5, wet: 0.7 }); MN.celesta(t, hz(n + 12), 0.016, 0.8); }
     if (s % 2 === 0) MN.harp(t, hz(thArp(s, ch)), 0.012);
     if (s === 0) { for (const n of ch.n) MN.strings(t, hz(n - 12), bd * 1.05, { gain: 0.006, attack: 0.3, decay: bd * 0.4, filter: 2000, wet: 0.5 }); MN.pizz(t, hz(ch.r + 12), 0.06); MN.tone(t, hz(ch.r), 0.4, { type: 'sine', gain: 0.045, decay: 0.15 }); }
     if (bar % 2 === 0 && s === 6) MN.bell(t, hz(ch.n[2] + 24), { gain: 0.01, dur: 1.4, wet: 0.8 });
